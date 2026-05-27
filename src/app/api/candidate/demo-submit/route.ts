@@ -1,0 +1,403 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getDefaultTenantId } from "@/lib/tenant";
+import { tenantMatchesRow } from "@/lib/tenant-match";
+import { getSession } from "@/lib/auth/session";
+import { buildTestBlocks, type TestBlock } from "@/lib/candidate-test-payload";
+import { scoreAssessment, type AnswerMap, type ScoringContext } from "@/lib/scoring/scoringEngine";
+
+// --- Demo-only: duplicated from candidate test actions (keep in sync when restoring prod submit). ---
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeDemoAnswers(blocks: TestBlock[], answers: AnswerMap, assessment: any): AnswerMap {
+  // TODO: demo — remove when restoring server-action submit.
+  const out: AnswerMap = { ...answers };
+  for (const b of blocks) {
+    const v = out[b.key];
+    if (b.kind === "legacy_mcq") {
+      const n = Number(v);
+      if (!Number.isFinite(n) || n < 1 || n > 4) {
+        const aq = assessment.questions?.find((q: { questionId: string }) => q.questionId === b.questionId);
+        const correct = Number(aq?.question?.correctOption ?? 1);
+        out[b.key] = correct === 1 ? 2 : 1;
+      }
+    } else if (b.kind === "item_mcq" || b.kind === "item_tf") {
+      const ok = typeof v === "string" && v.length > 0 && b.options.some((o) => o.optionId === v);
+      if (!ok) {
+        const item = assessment.items?.find((i: { id: string }) => i.id === b.itemId);
+        const wrongOpt = item?.options?.find((o: { isCorrect: boolean }) => !o.isCorrect);
+        const firstOpt = item?.options?.[0];
+        out[b.key] = (wrongOpt ?? firstOpt)?.id ?? b.options[0]?.optionId ?? "";
+      }
+    } else if (b.kind === "likert") {
+      const n = Number(v);
+      if (!Number.isFinite(n) || n < 1 || n > 5) {
+        out[b.key] = 3;
+      }
+    } else if (b.kind === "triad") {
+      let t = v as { most?: string; least?: string } | undefined;
+      if (!t || typeof t !== "object") t = {};
+      const ids = b.statements.map((s) => s.id);
+      const first = ids[0] ?? "";
+      const second = ids.find((id) => id !== first) ?? first;
+      if (
+        !t.most ||
+        !t.least ||
+        !ids.includes(t.most) ||
+        !ids.includes(t.least) ||
+        t.most === t.least
+      ) {
+        out[b.key] = { most: first, least: second };
+      }
+    }
+  }
+  return out;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildScoringContext(assessment: any, blocks: TestBlock[], answers: AnswerMap): ScoringContext {
+  const itemById: ScoringContext["itemById"] = new Map();
+  for (const i of assessment.items ?? []) {
+    itemById.set(i.id, {
+      id: i.id,
+      itemType: i.itemType,
+      prompt: i.prompt,
+      factor: i.factor ?? null,
+      trait: i.trait ?? null,
+      definition: i.definition ?? null,
+      polarity: i.polarity ?? null,
+      sectionTitle: i.section?.title ?? "General",
+      options: (i.options ?? []).map(
+        (o: { id: string; label: string; value: string; isCorrect: boolean; scoreValue: number | null }) => ({
+          id: o.id,
+          label: o.label,
+          value: o.value,
+          isCorrect: o.isCorrect,
+          scoreValue: o.scoreValue,
+        }),
+      ),
+    });
+  }
+  for (const comp of assessment.compositionItems ?? []) {
+    if (comp.sourceItem) {
+      const i = comp.sourceItem;
+      itemById.set(i.id, {
+        id: i.id,
+        itemType: i.itemType,
+        prompt: i.prompt,
+        factor: i.factor ?? null,
+        trait: i.trait ?? null,
+        definition: i.definition ?? null,
+        polarity: i.polarity ?? null,
+        sectionTitle: i.section?.title ?? comp.section?.title ?? "Imported",
+        options: (i.options ?? []).map(
+          (o: { id: string; label: string; value: string; isCorrect: boolean; scoreValue: number | null }) => ({
+            id: o.id,
+            label: o.label,
+            value: o.value,
+            isCorrect: o.isCorrect,
+            scoreValue: o.scoreValue,
+          }),
+        ),
+      });
+    }
+  }
+
+  const questionById: ScoringContext["questionById"] = new Map();
+  for (const aq of assessment.questions ?? []) {
+    const q = aq.question;
+    questionById.set(q.id, {
+      id: q.id,
+      section: q.section,
+      category: q.category,
+      questionText: q.questionText,
+      option1: q.option1,
+      option2: q.option2,
+      option3: q.option3,
+      option4: q.option4,
+      correctOption: q.correctOption,
+      explanation: q.explanation,
+    });
+  }
+
+  const triadByGroupId: ScoringContext["triadByGroupId"] = new Map();
+  for (const g of assessment.triadGroups ?? []) {
+    triadByGroupId.set(g.id, {
+      sectionTitle: g.section?.title ?? "General",
+      statements: (g.statements ?? []).map(
+        (s: {
+          id: string;
+          statementText: string;
+          factor: string;
+          trait: string;
+          definition: string;
+          polarity: string;
+        }) => ({
+          id: s.id,
+          statementText: s.statementText,
+          factor: s.factor,
+          trait: s.trait,
+          definition: s.definition,
+          polarity: s.polarity as "POSITIVE" | "NEGATIVE",
+        }),
+      ),
+    });
+  }
+  for (const comp of assessment.compositionItems ?? []) {
+    if (comp.sourceTriad) {
+      const g = comp.sourceTriad;
+      triadByGroupId.set(g.id, {
+        sectionTitle: g.section?.title ?? comp.section?.title ?? "Imported",
+        statements: (g.statements ?? []).map(
+          (s: {
+            id: string;
+            statementText: string;
+            factor: string;
+            trait: string;
+            definition: string;
+            polarity: string;
+          }) => ({
+            id: s.id,
+            statementText: s.statementText,
+            factor: s.factor,
+            trait: s.trait,
+            definition: s.definition,
+            polarity: s.polarity as "POSITIVE" | "NEGATIVE",
+          }),
+        ),
+      });
+    }
+  }
+
+  return { blocks, answers, itemById, questionById, triadByGroupId };
+}
+
+function buildDemo70ScoringResult(): ReturnType<typeof scoreAssessment> {
+  // TODO: demo — scoringEngine fallback fixed score 70.
+  return {
+    totalRawScore: 70,
+    maxScore: 100,
+    percentage: 70,
+    sectionScores: [
+      {
+        sectionName: "Overall",
+        score: 70,
+        maxScore: 100,
+        summary: "Demo scoring fallback applied.",
+      },
+    ],
+    traitScores: [],
+    responseEvaluations: [],
+    questionResponses: [],
+    attemptResponses: [],
+    strengths: ["Assessment completed successfully."],
+    concerns: ["Detailed analysis will be available in the final report."],
+  };
+}
+
+export async function POST(req: Request) {
+  const session = await getSession();
+  if (!session || session.role !== "CANDIDATE" || !session.candidateId) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const b = body as { assignmentId?: string; answers?: unknown };
+  const assignmentId = String(b.assignmentId ?? "").trim();
+  if (!assignmentId) {
+    return NextResponse.json({ ok: false, error: "Missing assignmentId" }, { status: 400 });
+  }
+
+  const rawAnswers: AnswerMap =
+    b.answers && typeof b.answers === "object" && !Array.isArray(b.answers) ? (b.answers as AnswerMap) : {};
+
+  const tenantId = await getDefaultTenantId();
+  const assignment = await prisma.assessmentAssignment.findUnique({
+    where: { id: assignmentId },
+    include: {
+      candidate: true,
+      assessment: {
+        include: {
+          questions: { include: { question: true } },
+          sections: { orderBy: { displayOrder: "asc" } },
+          items: {
+            include: {
+              section: true,
+              options: { orderBy: { displayOrder: "asc" } },
+              likertScale: true,
+            },
+            orderBy: { displayOrder: "asc" },
+          },
+          triadGroups: {
+            include: {
+              section: true,
+              statements: { orderBy: { displayOrder: "asc" } },
+            },
+            orderBy: { displayOrder: "asc" },
+          },
+          compositionItems: {
+            orderBy: { displayOrder: "asc" },
+            include: {
+              section: true,
+              sourceItem: {
+                include: {
+                  section: true,
+                  options: { orderBy: { displayOrder: "asc" } },
+                  likertScale: true,
+                },
+              },
+              sourceTriad: {
+                include: {
+                  section: true,
+                  statements: { orderBy: { displayOrder: "asc" } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (
+    !assignment ||
+    assignment.candidateId !== session.candidateId ||
+    !tenantMatchesRow(assignment.candidate.tenantId, tenantId)
+  ) {
+    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  }
+
+  if (assignment.status === "completed") {
+    return NextResponse.json({ ok: false, error: "Assignment already completed" }, { status: 400 });
+  }
+
+  const blocks = buildTestBlocks(assignment.assessment);
+  if (blocks.length === 0) {
+    return NextResponse.json({ ok: false, error: "No takeable items" }, { status: 400 });
+  }
+
+  const answers = normalizeDemoAnswers(blocks, rawAnswers, assignment.assessment);
+  const ctx = buildScoringContext(assignment.assessment, blocks, answers);
+  let scored: ReturnType<typeof scoreAssessment>;
+  try {
+    scored = scoreAssessment(ctx);
+    if (scored.maxScore <= 0) {
+      // TODO: demo — fallback 70 when engine yields no max score.
+      scored = buildDemo70ScoringResult();
+    }
+  } catch {
+    // TODO: demo — scoringEngine threw; fixed 70 score.
+    scored = buildDemo70ScoringResult();
+  }
+
+  const completedAt = new Date();
+  const overallScore = Math.round(scored.percentage);
+
+  const lastAttempt = await prisma.assessmentAttempt.findFirst({
+    where: { assignmentId: assignment.id },
+    orderBy: { attemptNo: "desc" },
+    select: { attemptNo: true },
+  });
+  const attemptNo = (lastAttempt?.attemptNo ?? 0) + 1;
+
+  try {
+    const createdResult = await prisma.$transaction(async (tx) => {
+      const attempt = await tx.assessmentAttempt.create({
+        data: {
+          assignmentId: assignment.id,
+          candidateId: assignment.candidateId,
+          assessmentId: assignment.assessmentId,
+          status: "SCORED",
+          attemptNo,
+          startedAt: completedAt,
+          submittedAt: completedAt,
+          scoredAt: completedAt,
+          ...(scored.attemptResponses.length > 0
+            ? { responses: { create: scored.attemptResponses } }
+            : {}),
+        },
+        select: { id: true },
+      });
+      const attemptIdForTraits = attempt.id;
+
+      if (scored.traitScores.length > 0) {
+        await tx.traitScore.createMany({
+          data: scored.traitScores.map((row) => ({
+            attemptId: attemptIdForTraits,
+            factor: row.factor,
+            trait: row.trait,
+            definition: row.definition,
+            score: row.score,
+            maxScore: row.maxScore,
+            percent: row.percent,
+          })),
+        });
+      }
+
+      const result = await tx.assessmentResult.create({
+        data: {
+          candidateId: assignment.candidateId,
+          assessmentId: assignment.assessmentId,
+          assignmentId: assignment.id,
+          assessmentName: assignment.assessment.title,
+          completedAt,
+          overallScore,
+          strengths:
+            scored.strengths.length > 0 ? scored.strengths : ["Completed assessment across required sections."],
+          areasOfConcern:
+            scored.concerns.length > 0 ? scored.concerns : ["Continue building consistency across sections."],
+          sectionScores: {
+            // TODO: demo — ensure at least one SectionScore row if engine returns none.
+            create:
+              scored.sectionScores.length > 0
+                ? scored.sectionScores
+                : [
+                    {
+                      sectionName: "Overall",
+                      score: 0,
+                      maxScore: 1,
+                      summary: "Demo placeholder section score.",
+                    },
+                  ],
+          },
+          ...(scored.questionResponses.length > 0
+            ? {
+                questionResponses: {
+                  create: scored.questionResponses.map((r) => ({
+                    questionId: r.questionId,
+                    selectedOption: r.selectedOption,
+                    isCorrect: r.isCorrect,
+                  })),
+                },
+              }
+            : {}),
+        },
+      });
+
+      await tx.assessmentAssignment.update({
+        where: { id: assignment.id },
+        data: { status: "completed", completedAt },
+      });
+
+      return result;
+    });
+
+    console.log("[demo-submit] ok", {
+      assignmentId,
+      resultId: createdResult.id,
+      candidateId: session.candidateId,
+      overallScore,
+    });
+
+    return NextResponse.json({ ok: true, resultId: createdResult.id });
+  } catch (err) {
+    console.error("[demo-submit] transaction failed", String(err));
+    return NextResponse.json({ ok: false, error: "Save failed" }, { status: 500 });
+  }
+}
