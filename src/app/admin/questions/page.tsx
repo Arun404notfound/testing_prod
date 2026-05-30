@@ -158,9 +158,20 @@ async function updateStatementAttribute(formData: FormData) {
   if (!statementId) redirect("/admin/questions?tab=triad");
   let saved = false;
   try {
+    // When an attribute is selected, sync the trait text + Big 5 factor to match
+    // so the left-side metadata always reflects the saved attribute.
+    const attr = attributeId
+      ? await prisma.attribute.findUnique({
+          where: { id: attributeId },
+          select: { name: true, category: true },
+        })
+      : null;
     await prisma.triadStatement.update({
       where: { id: statementId },
-      data: { attributeId: attributeId || null },
+      data: {
+        attributeId: attributeId || null,
+        ...(attr ? { trait: attr.name, factor: attr.category ?? undefined } : {}),
+      },
     });
     saved = true;
   } catch { /* swallow — redirect below carries the status */ }
