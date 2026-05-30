@@ -293,9 +293,12 @@ async function main() {
     console.log("Deleted previous 'Big Five Psychometric Assessment'");
   }
 
-  // ── Build attribute lookup by code ────────────────────────────────────────
+  // ── Build attribute lookups ───────────────────────────────────────────────
   const dbAttrs = await prisma.attribute.findMany({ where: { tenantId: tenant.id } });
   const attrByCode = new Map(dbAttrs.map((a) => [a.code, a]));
+  // attrByTrait: look up by the trait *name* string — used for triad statement
+  // attributeId assignment to avoid any code→id ordering mismatch.
+  const attrByTrait = new Map(dbAttrs.map((a) => [a.name.toLowerCase(), a]));
 
   // Verify all 30 attributes exist
   const missing = ATTRIBUTES.map((a) => a.code).filter((c) => !attrByCode.has(c));
@@ -373,8 +376,10 @@ async function main() {
     for (let s = 0; s < triad.statements.length; s++) {
       const st = triad.statements[s];
       const attrDef = ATTRIBUTES.find((a) => a.code === st.code);
-      const attr = attrByCode.get(st.code);
       if (!attrDef) throw new Error(`Unknown attribute code: ${st.code}`);
+      // Resolve attributeId by trait *name* (not by code) to avoid any
+      // code→id ordering mismatch that would create a wrong FK.
+      const attrRow = attrByTrait.get(attrDef.trait.toLowerCase());
       await prisma.triadStatement.create({
         data: {
           triadGroupId: group.id,
@@ -383,7 +388,7 @@ async function main() {
           trait: attrDef.trait,
           definition: attrDef.definition,
           polarity: "POSITIVE",
-          attributeId: attr?.id ?? null,
+          attributeId: attrRow?.id ?? null,
           displayOrder: s,
         },
       });
