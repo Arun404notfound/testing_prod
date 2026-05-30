@@ -330,7 +330,7 @@ export default async function QuestionsPage({
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-[#475569]">Trait / Sub-trait *</label>
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute *</label>
                   <input name="trait" required placeholder="e.g. Sociability" className={inputCls} />
                 </div>
                 <div>
@@ -377,8 +377,8 @@ export default async function QuestionsPage({
                         {item.polarity && (
                           <span className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${POLARITY_COLORS[item.polarity] ?? ""}`}>{item.polarity}</span>
                         )}
-                        {item.factor && <span className="text-[10px] text-[#94A3B8]">Factor: {item.factor}</span>}
-                        {item.trait && <span className="text-[10px] text-[#94A3B8]">· Trait: {item.trait}</span>}
+                        {item.factor && <span className="text-[10px] text-[#94A3B8]">Big 5: {item.factor}</span>}
+                        {item.trait && <span className="text-[10px] text-[#94A3B8]">· Attribute: {item.trait}</span>}
                         {competencyLinks.length > 0 && (
                           <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
                             → {competencyLinks.map((m) => m.competency.name).join(", ")}
@@ -450,7 +450,7 @@ export default async function QuestionsPage({
                           <select name={`stmt_${i}_attributeId`} className={inputCls}>{attrOptions}</select>
                         </div>
                         <div>
-                          <label className="mb-1 block text-xs font-medium text-[#475569]">Factor</label>
+                          <label className="mb-1 block text-xs font-medium text-[#475569]">Big 5</label>
                           <select name={`stmt_${i}_factor`} className={inputCls}>
                             <option value="">Select…</option>
                             {BIG_FIVE_FACTORS.map((f) => <option key={f} value={f}>{f}</option>)}
@@ -465,7 +465,7 @@ export default async function QuestionsPage({
                         </div>
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-[#475569]">Trait label (optional)</label>
+                        <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute (optional)</label>
                         <input name={`stmt_${i}_trait`} placeholder="e.g. Trust, Sociability…" className={inputCls} />
                       </div>
                     </div>
@@ -511,7 +511,7 @@ export default async function QuestionsPage({
                         <p className="text-sm text-[#0F172A] leading-snug">{stmt.statementText}</p>
                         <div className="mt-1.5 flex flex-wrap items-center gap-2">
                           {stmt.polarity && <span className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${POLARITY_COLORS[stmt.polarity] ?? ""}`}>{stmt.polarity}</span>}
-                          <span className="text-[10px] text-[#94A3B8]">Factor: {stmt.factor} · Trait: {stmt.trait}</span>
+                          <span className="text-[10px] text-[#94A3B8]">Big 5: {stmt.factor} · Attribute: {stmt.trait}</span>
                           {competencyLinks.length > 0 && (
                             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
                               → {competencyLinks.map((m) => m.competency.name).join(", ")}
