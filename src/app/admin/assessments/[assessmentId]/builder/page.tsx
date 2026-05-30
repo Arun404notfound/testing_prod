@@ -8,8 +8,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { getDefaultTenantId } from "@/lib/tenant";
 import type { AssessmentType } from "@/generated/prisma/enums";
 import {
-  POOL_LIKERT_ASSESSMENT_TITLE,
-  POOL_TRIAD_ASSESSMENT_TITLE,
   allowsLikertPool,
   allowsMcqPool,
   allowsTriadPool,
@@ -137,20 +135,18 @@ export default async function AssessmentBuilderPage({
     return `/admin/assessments/${assessmentId}/builder${qs ? `?${qs}` : ""}`;
   };
 
-  const [likertPool, triadPool] = await Promise.all([
-    prisma.assessment.findFirst({
-      where: { tenantId, title: POOL_LIKERT_ASSESSMENT_TITLE },
-      select: { id: true },
-    }),
-    prisma.assessment.findFirst({
-      where: { tenantId, title: POOL_TRIAD_ASSESSMENT_TITLE },
-      select: { id: true },
-    }),
-  ]);
-
   const selectedMcqIds = new Set(assessment.questions.map((q) => q.questionId));
 
   const mcqWhere = buildMcqWhere(tenantId, sp);
+
+  // Find all assessments that belong to this tenant (for pool browsing).
+  // We query items directly — no special pool-assessment-name required.
+  const tenantAssessmentIds = (
+    await prisma.assessment.findMany({
+      where: { tenantId },
+      select: { id: true },
+    })
+  ).map((a) => a.id);
 
   const [mcqPool, likertItems, triadGroups] = await Promise.all([
     allowsMcqPool(assessmentType)
@@ -160,10 +156,10 @@ export default async function AssessmentBuilderPage({
           take: 100,
         })
       : Promise.resolve([]),
-    allowsLikertPool(assessmentType) && likertPool
+    allowsLikertPool(assessmentType)
       ? prisma.assessmentItem.findMany({
           where: {
-            assessmentId: likertPool.id,
+            assessmentId: { in: tenantAssessmentIds },
             itemType: "LIKERT",
             ...(sectionQ ? { section: { title: { contains: sectionQ } } } : {}),
             ...(factorQ ? { factor: { contains: factorQ } } : {}),
@@ -174,10 +170,10 @@ export default async function AssessmentBuilderPage({
           take: 100,
         })
       : Promise.resolve([]),
-    allowsTriadPool(assessmentType) && triadPool
+    allowsTriadPool(assessmentType)
       ? prisma.triadGroup.findMany({
           where: {
-            assessmentId: triadPool.id,
+            assessmentId: { in: tenantAssessmentIds },
             ...(sectionQ ? { section: { title: { contains: sectionQ } } } : {}),
             ...(groupCodeQ
               ? {
@@ -207,6 +203,26 @@ export default async function AssessmentBuilderPage({
         })
       : Promise.resolve([]),
   ]);
+
+  // ── Attribute → Competency lookup ───────────────────────────────────────────
+  // Used to show attribute code + competency badges on every pool question.
+  const allAttributes = await prisma.attribute.findMany({
+    where: { tenantId },
+    include: {
+      competencyMaps: { include: { competency: { select: { id: true, name: true } } } },
+    },
+  });
+
+  /** Map: lower-cased attribute name → { code, category, competencies[] } */
+  type AttrInfo = { code: string; category: string | null; competencies: string[] };
+  const attrByName = new Map<string, AttrInfo>();
+  for (const a of allAttributes) {
+    attrByName.set(a.name.toLowerCase(), {
+      code: a.code,
+      category: a.category,
+      competencies: a.competencyMaps.map((m) => m.competency.name),
+    });
+  }
 
   const selectedLikertIds = new Set(
     assessment.compositionItems
@@ -479,91 +495,135 @@ export default async function AssessmentBuilderPage({
       ) : null}
 
       {tab === "likert" && allowsLikertPool(assessmentType) ? (
-        <FormCard title={`Likert pool · ${POOL_LIKERT_ASSESSMENT_TITLE}`}>
-          {!likertPool ? (
-            <p className="text-sm text-slate-500">Import Likert items first to populate this pool.</p>
-          ) : (
-            <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
-              {likertItems.map((item) => (
-                <li key={item.id} className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-xs text-slate-500">
-                      {item.section.title}
-                      {item.factor ? ` · ${item.factor}` : ""}
-                      {item.trait ? ` · ${item.trait}` : ""}
+        <FormCard title={`Likert question pool (${likertItems.length})`}>
+          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
+            {likertItems.map((item) => {
+              const attrInfo = item.trait ? attrByName.get(item.trait.toLowerCase()) : undefined;
+              const isSelected = selectedLikertIds.has(item.id);
+              return (
+                <li key={item.id} className={`flex flex-col gap-2 p-3 md:flex-row md:items-start md:justify-between ${isSelected ? "bg-emerald-50" : ""}`}>
+                  <div className="min-w-0 flex-1">
+                    {/* Big Five factor · polarity */}
+                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      {item.factor}{item.polarity ? ` · ${item.polarity}` : ""}
                     </p>
+                    {/* Question text */}
                     <p className="text-sm text-[#0F172A]">{item.prompt}</p>
+                    {/* Attribute + Competency badges */}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      {attrInfo ? (
+                        <>
+                          <span className="inline-flex items-center gap-1 rounded border border-[#DBEAFE] bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-semibold text-[#1D4ED8]">
+                            [{attrInfo.code}] {item.trait}
+                          </span>
+                          {attrInfo.competencies.map((c) => (
+                            <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+                              {c}
+                            </span>
+                          ))}
+                        </>
+                      ) : item.trait ? (
+                        <span className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
+                          {item.trait} <span className="ml-1 opacity-60">(no mapping)</span>
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                  {selectedLikertIds.has(item.id) ? (
-                    <form
-                      action={removeCompositionItem.bind(
-                        null,
-                        assessment.id,
-                        compositionIdByLikertItemId.get(item.id) ?? "",
-                      )}
-                    >
-                      <button type="submit" className="text-sm font-medium text-rose-600 hover:underline">
-                        Remove
-                      </button>
-                    </form>
-                  ) : (
-                    <form action={addLikertFromPool.bind(null, assessment.id, item.id)}>
-                      <button type="submit" className="text-sm font-medium text-[#1D4ED8] hover:underline">
-                        Add
-                      </button>
-                    </form>
-                  )}
+                  <div className="shrink-0 pt-0.5">
+                    {isSelected ? (
+                      <form action={removeCompositionItem.bind(null, assessment.id, compositionIdByLikertItemId.get(item.id) ?? "")}>
+                        <button type="submit" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-100">
+                          ✓ Added · Remove
+                        </button>
+                      </form>
+                    ) : (
+                      <form action={addLikertFromPool.bind(null, assessment.id, item.id)}>
+                        <button type="submit" className="rounded-md border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-1 text-xs font-medium text-[#1D4ED8] hover:bg-blue-100">
+                          + Add
+                        </button>
+                      </form>
+                    )}
+                  </div>
                 </li>
-              ))}
-              {likertItems.length === 0 ? (
-                <li className="p-4 text-sm text-slate-500">No Likert items match filters.</li>
-              ) : null}
-            </ul>
-          )}
+              );
+            })}
+            {likertItems.length === 0 ? (
+              <li className="p-4 text-sm text-slate-500">No Likert items match filters.</li>
+            ) : null}
+          </ul>
         </FormCard>
       ) : null}
 
       {tab === "triad" && allowsTriadPool(assessmentType) ? (
-        <FormCard title={`Triad pool · ${POOL_TRIAD_ASSESSMENT_TITLE}`}>
-          {!triadPool ? (
-            <p className="text-sm text-slate-500">Import triad groups first to populate this pool.</p>
-          ) : (
-            <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
-              {triadGroups.map((g) => {
-                const label = `${g.triadGroupCode ?? g.title}: ${g.statements.map((s) => s.statementText).join(" · ")}`;
-                return (
-                  <li key={g.id} className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-xs text-slate-500">{g.section.title}</p>
-                      <p className="text-sm text-[#0F172A]">{label}</p>
+        <FormCard title={`Triad question pool (${triadGroups.length})`}>
+          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
+            {triadGroups.map((g) => {
+              const isSelected = selectedTriadIds.has(g.id);
+              return (
+                <li key={g.id} className={`flex flex-col gap-3 p-3 md:flex-row md:items-start md:justify-between ${isSelected ? "bg-emerald-50" : ""}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                      {g.section.title}{g.triadGroupCode ? ` · ${g.triadGroupCode}` : ""}
+                    </p>
+                    <p className="mb-2 text-sm font-semibold text-[#0F172A]">{g.title}</p>
+                    {/* Each statement with its attribute + competency */}
+                    <div className="space-y-2">
+                      {g.statements.map((s, si) => {
+                        const label = ["A", "B", "C"][si] ?? String(si + 1);
+                        const sAttrInfo = s.trait ? attrByName.get(s.trait.toLowerCase()) : undefined;
+                        return (
+                          <div key={s.id} className="flex items-start gap-2">
+                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">
+                              {label}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm text-[#0F172A]">{s.statementText}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-1">
+                                {sAttrInfo ? (
+                                  <>
+                                    <span className="inline-flex items-center gap-1 rounded border border-[#DBEAFE] bg-[#EFF6FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#1D4ED8]">
+                                      [{sAttrInfo.code}] {s.trait}
+                                    </span>
+                                    {sAttrInfo.competencies.map((c) => (
+                                      <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+                                        {c}
+                                      </span>
+                                    ))}
+                                  </>
+                                ) : s.trait ? (
+                                  <span className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700">
+                                    {s.trait} <span className="ml-1 opacity-60">(no mapping)</span>
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    {selectedTriadIds.has(g.id) ? (
-                      <form
-                        action={removeCompositionItem.bind(
-                          null,
-                          assessment.id,
-                          compositionIdByTriadGroupId.get(g.id) ?? "",
-                        )}
-                      >
-                        <button type="submit" className="text-sm font-medium text-rose-600 hover:underline">
-                          Remove
+                  </div>
+                  <div className="shrink-0 pt-0.5">
+                    {isSelected ? (
+                      <form action={removeCompositionItem.bind(null, assessment.id, compositionIdByTriadGroupId.get(g.id) ?? "")}>
+                        <button type="submit" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-100">
+                          ✓ Added · Remove
                         </button>
                       </form>
                     ) : (
                       <form action={addTriadFromPool.bind(null, assessment.id, g.id)}>
-                        <button type="submit" className="text-sm font-medium text-[#1D4ED8] hover:underline">
-                          Add
+                        <button type="submit" className="rounded-md border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-1 text-xs font-medium text-[#1D4ED8] hover:bg-blue-100">
+                          + Add
                         </button>
                       </form>
                     )}
-                  </li>
-                );
-              })}
-              {triadGroups.length === 0 ? (
-                <li className="p-4 text-sm text-slate-500">No triad groups match filters.</li>
-              ) : null}
-            </ul>
-          )}
+                  </div>
+                </li>
+              );
+            })}
+            {triadGroups.length === 0 ? (
+              <li className="p-4 text-sm text-slate-500">No triad groups match filters.</li>
+            ) : null}
+          </ul>
         </FormCard>
       ) : null}
 

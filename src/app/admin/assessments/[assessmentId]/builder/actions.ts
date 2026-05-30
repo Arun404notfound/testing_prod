@@ -5,8 +5,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import {
-  POOL_LIKERT_ASSESSMENT_TITLE,
-  POOL_TRIAD_ASSESSMENT_TITLE,
   allowsLikertPool,
   allowsMcqPool,
   allowsTriadPool,
@@ -72,20 +70,13 @@ async function primarySectionId(assessmentId: string) {
   return created.id;
 }
 
-async function likertPoolId(tenantId: string) {
-  const pool = await prisma.assessment.findFirst({
-    where: { tenantId, title: POOL_LIKERT_ASSESSMENT_TITLE },
+/** IDs of all assessments belonging to this tenant — used to scope pool lookups. */
+async function tenantAssessmentIds(tenantId: string): Promise<string[]> {
+  const rows = await prisma.assessment.findMany({
+    where: { tenantId },
     select: { id: true },
   });
-  return pool?.id ?? null;
-}
-
-async function triadPoolId(tenantId: string) {
-  const pool = await prisma.assessment.findFirst({
-    where: { tenantId, title: POOL_TRIAD_ASSESSMENT_TITLE },
-    select: { id: true },
-  });
-  return pool?.id ?? null;
+  return rows.map((r) => r.id);
 }
 
 export async function addMcqQuestion(assessmentId: string, questionId: string) {
@@ -124,11 +115,9 @@ export async function addLikertFromPool(assessmentId: string, poolItemId: string
   const assessment = await assertAssessment(assessmentId);
   if (!allowsLikertPool(assessment.assessmentType)) return;
 
-  const pool = await likertPoolId(tenantId);
-  if (!pool) return;
-
+  const tenantIds = await tenantAssessmentIds(tenantId);
   const item = await prisma.assessmentItem.findFirst({
-    where: { id: poolItemId, assessmentId: pool, itemType: "LIKERT" },
+    where: { id: poolItemId, assessmentId: { in: tenantIds }, itemType: "LIKERT" },
     select: { id: true },
   });
   if (!item) return;
@@ -162,11 +151,9 @@ export async function addTriadFromPool(assessmentId: string, triadGroupId: strin
   const assessment = await assertAssessment(assessmentId);
   if (!allowsTriadPool(assessment.assessmentType)) return;
 
-  const pool = await triadPoolId(tenantId);
-  if (!pool) return;
-
+  const tenantIds = await tenantAssessmentIds(tenantId);
   const group = await prisma.triadGroup.findFirst({
-    where: { id: triadGroupId, assessmentId: pool },
+    where: { id: triadGroupId, assessmentId: { in: tenantIds } },
     select: { id: true },
   });
   if (!group) return;
