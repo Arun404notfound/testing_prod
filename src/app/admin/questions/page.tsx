@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronDown, Layers, Plus, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -64,7 +63,6 @@ async function createLikertQuestion(formData: FormData) {
   } catch {
     redirect("/admin/questions?tab=likert&status=error&reason=db");
   }
-  revalidatePath("/admin/questions");
   redirect("/admin/questions?tab=likert&status=success");
 }
 
@@ -73,7 +71,7 @@ async function deleteLikertItem(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
   await prisma.assessmentItem.delete({ where: { id } }).catch(() => {});
-  revalidatePath("/admin/questions");
+  redirect("/admin/questions?tab=likert");
 }
 
 async function createTriadGroup(formData: FormData) {
@@ -126,7 +124,6 @@ async function createTriadGroup(formData: FormData) {
   } catch {
     redirect("/admin/questions?tab=triad&status=error&reason=db");
   }
-  revalidatePath("/admin/questions");
   redirect("/admin/questions?tab=triad&status=success");
 }
 
@@ -135,7 +132,7 @@ async function deleteTriadGroup(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
   await prisma.triadGroup.delete({ where: { id } }).catch(() => {});
-  revalidatePath("/admin/questions");
+  redirect("/admin/questions?tab=triad");
 }
 
 async function updateItemAttribute(formData: FormData) {
@@ -147,7 +144,7 @@ async function updateItemAttribute(formData: FormData) {
     where: { id: itemId },
     data: { attributeId: attributeId || null },
   });
-  revalidatePath("/admin/questions");
+  redirect("/admin/questions?tab=likert");
 }
 
 async function updateStatementAttribute(formData: FormData) {
@@ -159,7 +156,7 @@ async function updateStatementAttribute(formData: FormData) {
     where: { id: statementId },
     data: { attributeId: attributeId || null },
   });
-  revalidatePath("/admin/questions");
+  redirect("/admin/questions?tab=triad");
 }
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
