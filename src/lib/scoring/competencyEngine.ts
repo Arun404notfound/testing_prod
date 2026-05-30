@@ -129,25 +129,13 @@ export function bigFiveScale(
 /**
  * Compute competency scores from attribute scores.
  *
- * Each attribute's raw score is first converted to a 1–10 scaled score
- * (via bigFiveScale when useBigFiveScaling=true, or proportional mapping
- * otherwise). Those per-attribute scaled scores are then combined using
- * the competency's scoringFormula:
- *
- *   WEIGHTED_AVERAGE  — Σ(scaledScore × weight) ÷ Σ(weights)
- *   SIMPLE_AVERAGE    — Σ(scaledScore) ÷ n  (weights ignored)
- *   HIGHEST_ATTRIBUTE — max(scaledScores)
- *   LOWEST_ATTRIBUTE  — min(scaledScores)
- *   GEOMETRIC_MEAN    — (Π scaledScores)^(1/n)
- *
- * @param useBigFiveScaling  When true each attribute raw score is converted
- *   via bigFiveScale() before combining — matching the Excel scoring formula.
- *   When false the raw/max ratio is used (MCQ assessments).
+ * Per-attribute score  = (rawScore / maxScore) × 10   →  0–10 scale
+ * Competency score     = Σ(attrScore × weight) / Σ(weights)  (weighted average, DB weights)
+ * Percent              = (scaledScore / 10) × 100
  */
 export function computeCompetencyScores(
   attributeScores: AttributeScoreInput[],
   competencyMaps: CompetencyMap[],
-  useBigFiveScaling = false,
 ): CompetencyScoreOutput[] {
   const attrMap = new Map<string, AttributeScoreInput>();
   for (const a of attributeScores) {
@@ -157,92 +145,37 @@ export function computeCompetencyScores(
   const results: CompetencyScoreOutput[] = [];
 
   for (const comp of competencyMaps) {
-    const formula = comp.scoringFormula;
-    // SIMPLE_AVERAGE treats all attributes equally regardless of weight
-    const useSimpleAverage = formula === SCORING_FORMULAS.SIMPLE_AVERAGE;
-
-    // ── Step 1: compute per-attribute scaled scores ──────────────────────────
-    type AttrData = {
-      scaledScore: number;
-      weight: number;
-      rawScore: number;
-      maxScore: number;
-    };
-    const attrData: AttrData[] = [];
+    // ── Step 1: convert each attribute to a 0–10 score ──────────────────────
+    type WeightedAttr = { score: number; weight: number; raw: number; max: number };
+    const attrs: WeightedAttr[] = [];
 
     for (const mapping of comp.attributes) {
-      const attrScore = attrMap.get(mapping.attributeId);
-      if (!attrScore) continue;
-
-      const effectiveWeight = useSimpleAverage ? 1 : mapping.weight;
-
-      let scaledScore: number;
-      if (useBigFiveScaling) {
-        // Infer per-attribute min from observed maxScore so the formula
-        // adapts to both Likert-only [1,5] and Likert+FC [4,14] ranges.
-        const attrMin = Math.round((attrScore.maxScore * BIG_FIVE_MIN) / BIG_FIVE_MAX);
-        scaledScore = bigFiveScale(attrScore.rawScore, attrMin, attrScore.maxScore);
-      } else {
-        if (attrScore.maxScore <= 0) continue;
-        const pct = attrScore.rawScore / attrScore.maxScore;
-        scaledScore = Math.max(1, Math.min(10, 1 + pct * 9));
-      }
-
-      attrData.push({
-        scaledScore,
-        weight: effectiveWeight,
-        rawScore: attrScore.rawScore,
-        maxScore: attrScore.maxScore,
-      });
+      const attr = attrMap.get(mapping.attributeId);
+      if (!attr || attr.maxScore <= 0) continue;
+      const score = Math.min(10, (attr.rawScore / attr.maxScore) * 10);
+      attrs.push({ score, weight: mapping.weight, raw: attr.rawScore, max: attr.maxScore });
     }
 
-    if (attrData.length === 0) continue;
+    if (attrs.length === 0) continue;
 
-    // ── Step 2: aggregate raw/max for reporting ──────────────────────────────
-    const totalWeight = attrData.reduce((s, d) => s + d.weight, 0);
-    const weightedRaw = attrData.reduce((s, d) => s + d.rawScore * d.weight, 0);
-    const weightedMax = attrData.reduce((s, d) => s + d.maxScore * d.weight, 0);
+    // ── Step 2: weighted average using DB weights ────────────────────────────
+    const totalWeight = attrs.reduce((s, a) => s + a.weight, 0);
+    const scaledScore =
+      Math.round(
+        (attrs.reduce((s, a) => s + a.score * a.weight, 0) / totalWeight) * 10,
+      ) / 10;
 
-    // ── Step 3: apply combination formula ────────────────────────────────────
-    let scaledScore: number;
+    // ── Step 3: percent on 0–100 scale ───────────────────────────────────────
+    const percent = Math.round((scaledScore / 10) * 1000) / 10;
 
-    switch (formula) {
-      case SCORING_FORMULAS.HIGHEST_ATTRIBUTE:
-        // Peak strength — one outstanding trait lifts the whole competency
-        scaledScore = Math.max(...attrData.map((d) => d.scaledScore));
-        break;
-
-      case SCORING_FORMULAS.LOWEST_ATTRIBUTE:
-        // Weakest link — every attribute must be strong
-        scaledScore = Math.min(...attrData.map((d) => d.scaledScore));
-        break;
-
-      case SCORING_FORMULAS.GEOMETRIC_MEAN: {
-        // Balanced — extreme lows cannot be offset by highs
-        const n = attrData.length;
-        const product = attrData.reduce((p, d) => p * d.scaledScore, 1);
-        scaledScore = Math.pow(product, 1 / n);
-        break;
-      }
-
-      // WEIGHTED_AVERAGE (default) and SIMPLE_AVERAGE (weight overridden to 1)
-      default:
-        scaledScore =
-          totalWeight > 0
-            ? attrData.reduce((s, d) => s + d.scaledScore * d.weight, 0) / totalWeight
-            : 1;
-    }
-
-    // Clamp and round to 1 decimal
-    scaledScore = Math.round(Math.max(1, Math.min(10, scaledScore)) * 10) / 10;
-    // Express percent as position on 1–10 scale → 0–100 %
-    const percent = Math.round(((scaledScore - 1) / 9) * 1000) / 10;
+    const totalRaw = attrs.reduce((s, a) => s + a.raw, 0);
+    const totalMax = attrs.reduce((s, a) => s + a.max, 0);
 
     results.push({
       competencyId: comp.competencyId,
       competencyName: comp.competencyName,
-      rawScore: weightedRaw,
-      maxScore: weightedMax,
+      rawScore: totalRaw,
+      maxScore: totalMax,
       scaledScore,
       percent,
       band: scoreBand(scaledScore),

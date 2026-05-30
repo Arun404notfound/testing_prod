@@ -334,16 +334,9 @@ export async function POST(req: Request) {
   }
 
   // Use Big Five scaling when the assessment has Likert or Forced-Choice items
-  const assessmentType = assignment.assessment.assessmentType;
-  const useBigFive =
-    assessmentType === "LIKERT_PSYCHOMETRIC" ||
-    assessmentType === "FORCED_CHOICE_TRIAD" ||
-    assessmentType === "HYBRID";
-
   const competencyScores = computeCompetencyScores(
     attributeScores,
     Array.from(compMapById.values()),
-    useBigFive,
   );
 
   const completedAt = new Date();
