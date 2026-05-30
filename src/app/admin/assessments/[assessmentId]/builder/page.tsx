@@ -559,13 +559,38 @@ export default async function AssessmentBuilderPage({
           <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
             {triadGroups.map((g) => {
               const isSelected = selectedTriadIds.has(g.id);
+
+              // Collect unique competencies across all statements in this group
+              const groupComps: string[] = [];
+              for (const s of g.statements) {
+                const info = s.trait ? attrByName.get(s.trait.toLowerCase()) : undefined;
+                if (info) {
+                  for (const c of info.competencies) {
+                    if (!groupComps.includes(c)) groupComps.push(c);
+                  }
+                }
+              }
+
               return (
                 <li key={g.id} className={`flex flex-col gap-3 p-3 md:flex-row md:items-start md:justify-between ${isSelected ? "bg-emerald-50" : ""}`}>
                   <div className="min-w-0 flex-1">
+                    {/* Section · group code */}
                     <p className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
                       {g.section.title}{g.triadGroupCode ? ` · ${g.triadGroupCode}` : ""}
                     </p>
-                    <p className="mb-2 text-sm font-semibold text-[#0F172A]">{g.title}</p>
+                    {/* Group title */}
+                    <p className="text-sm font-semibold text-[#0F172A]">{g.title}</p>
+                    {/* Competency summary line */}
+                    {groupComps.length > 0 && (
+                      <div className="mt-1 mb-2 flex flex-wrap items-center gap-1">
+                        <span className="text-[10px] font-medium text-slate-400 mr-0.5">Competencies:</span>
+                        {groupComps.map((c) => (
+                          <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {/* Each statement with its attribute + competency */}
                     <div className="space-y-2">
                       {g.statements.map((s, si) => {
