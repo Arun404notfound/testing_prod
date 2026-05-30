@@ -391,6 +391,31 @@ async function main() {
   }
   console.log(`✅ Created 20 Triad groups (60 statements)`);
 
+  // ── Reconcile triad statement attributeId values ──────────────────────────
+  // Guard against any seed ordering issues: re-build attrByName lookup and
+  // fix every TriadStatement whose attributeId doesn't match its trait text.
+  const attrByName = new Map(dbAttrs.map((a) => [a.name.toLowerCase(), a]));
+  const allStatements = await prisma.triadStatement.findMany({
+    where: { triadGroup: { assessmentId: assessment.id } },
+    select: { id: true, trait: true, attributeId: true },
+  });
+  let fixedCount = 0;
+  for (const stmt of allStatements) {
+    const correct = attrByName.get(stmt.trait.toLowerCase());
+    if (correct && correct.id !== stmt.attributeId) {
+      await prisma.triadStatement.update({
+        where: { id: stmt.id },
+        data: { attributeId: correct.id },
+      });
+      fixedCount++;
+    }
+  }
+  if (fixedCount > 0) {
+    console.log(`🔧 Reconciled ${fixedCount} triad statement attributeId values (trait→attribute FK mismatch)`);
+  } else {
+    console.log("✅ All triad statement attributeId values are correct.");
+  }
+
   // ── Assign to Alex Chen ───────────────────────────────────────────────────
   await prisma.assessmentAssignment.create({
     data: {
