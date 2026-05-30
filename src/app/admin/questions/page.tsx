@@ -139,24 +139,32 @@ async function updateItemAttribute(formData: FormData) {
   "use server";
   const itemId = String(formData.get("itemId") ?? "").trim();
   const attributeId = String(formData.get("attributeId") ?? "").trim();
-  if (!itemId) return;
-  await prisma.assessmentItem.update({
-    where: { id: itemId },
-    data: { attributeId: attributeId || null },
-  });
-  redirect("/admin/questions?tab=likert");
+  if (!itemId) redirect("/admin/questions?tab=likert");
+  let saved = false;
+  try {
+    await prisma.assessmentItem.update({
+      where: { id: itemId },
+      data: { attributeId: attributeId || null },
+    });
+    saved = true;
+  } catch { /* swallow — redirect below carries the status */ }
+  redirect(`/admin/questions?tab=likert&status=${saved ? "success" : "error"}&reason=db`);
 }
 
 async function updateStatementAttribute(formData: FormData) {
   "use server";
   const statementId = String(formData.get("statementId") ?? "").trim();
   const attributeId = String(formData.get("attributeId") ?? "").trim();
-  if (!statementId) return;
-  await prisma.triadStatement.update({
-    where: { id: statementId },
-    data: { attributeId: attributeId || null },
-  });
-  redirect("/admin/questions?tab=triad");
+  if (!statementId) redirect("/admin/questions?tab=triad");
+  let saved = false;
+  try {
+    await prisma.triadStatement.update({
+      where: { id: statementId },
+      data: { attributeId: attributeId || null },
+    });
+    saved = true;
+  } catch { /* swallow — redirect below carries the status */ }
+  redirect(`/admin/questions?tab=triad&status=${saved ? "success" : "error"}&reason=db`);
 }
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
