@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
   Building2,
   ClipboardList,
@@ -76,7 +75,6 @@ export default async function AdminDashboardPage() {
     avgScoreAgg,
     pendingAssignments,
     recentAttemptsCount,
-    lowTrustAttemptsCount,
     latestCandidates,
     latestAttempts,
     latestResults,
@@ -96,12 +94,6 @@ export default async function AdminDashboardPage() {
         updatedAt: { gte: weekAgo },
       },
     }),
-    prisma.assessmentAttempt.count({
-      where: {
-        status: "SCORED",
-        trustScore: { not: null, lt: 60 },
-      },
-    }),
     prisma.candidate.findMany({
       orderBy: { createdAt: "desc" },
       take: 6,
@@ -114,7 +106,6 @@ export default async function AdminDashboardPage() {
       select: {
         id: true,
         status: true,
-        trustScore: true,
         submittedAt: true,
         scoredAt: true,
         updatedAt: true,
@@ -203,12 +194,6 @@ export default async function AdminDashboardPage() {
             hint="Submitted/scored · 7 days"
             icon={Activity}
           />
-          <StatCard
-            title="Low Trust Attempts"
-            value={lowTrustAttemptsCount}
-            hint="Trust score under 60"
-            icon={AlertTriangle}
-          />
         </div>
       </section>
 
@@ -267,11 +252,6 @@ export default async function AdminDashboardPage() {
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#94A3B8]">
                       <span>{formatShortDate(a.submittedAt ?? a.scoredAt ?? a.updatedAt)}</span>
-                      {a.trustScore != null ? (
-                        <span className={a.trustScore < 60 ? "font-medium text-amber-700" : ""}>
-                          Trust {a.trustScore}
-                        </span>
-                      ) : null}
                       {a.assignment?.result?.id ? (
                         <Link
                           href={`/admin/reports/${a.assignment.result.id}`}

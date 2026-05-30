@@ -1,0 +1,260 @@
+import Link from "next/link";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { Pencil, Trash2, UserCheck, Users } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { getDefaultTenantId } from "@/lib/tenant";
+import { createCandidateWithLoginUser, DEFAULT_CANDIDATE_LOGIN_PASSWORD } from "@/lib/candidate-user";
+
+// ─── Server Actions ───────────────────────────────────────────────────────────
+
+async function addCandidate(formData: FormData) {
+  "use server";
+  const payload = {
+    fullName: String(formData.get("fullName") ?? "").trim(),
+    email: String(formData.get("email") ?? "").trim(),
+    mobile: String(formData.get("mobile") ?? "").trim(),
+    employeeId: String(formData.get("employeeId") ?? "").trim(),
+    designation: String(formData.get("designation") ?? "").trim(),
+    department: String(formData.get("department") ?? "").trim(),
+    location: String(formData.get("location") ?? "").trim(),
+  };
+  if (Object.values(payload).some((v) => !v)) redirect("/admin/candidates?status=error&reason=missing");
+
+  const tenantId = await getDefaultTenantId();
+  const result = await createCandidateWithLoginUser({ ...payload, tenantId });
+  if (!result.ok) {
+    const reason = result.error === "email_in_use_non_candidate" ? "email_admin" : result.error === "email_linked_other_candidate" ? "email_candidate" : "unknown";
+    redirect(`/admin/candidates?status=error&reason=${reason}`);
+  }
+  revalidatePath("/admin/candidates");
+  redirect("/admin/candidates?status=success");
+}
+
+async function updateCandidate(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id") ?? "").trim();
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  const mobile = String(formData.get("mobile") ?? "").trim();
+  const employeeId = String(formData.get("employeeId") ?? "").trim();
+  const designation = String(formData.get("designation") ?? "").trim();
+  const department = String(formData.get("department") ?? "").trim();
+  const location = String(formData.get("location") ?? "").trim();
+  if (!id || !fullName) redirect("/admin/candidates?status=error&reason=missing");
+  await prisma.candidate.update({
+    where: { id },
+    data: { fullName, mobile, employeeId, designation, department, location },
+  }).catch(() => {});
+  revalidatePath("/admin/candidates");
+  redirect("/admin/candidates?status=edit_success");
+}
+
+async function deleteCandidate(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  // Delete user account linked to this candidate (cascade handles the candidate row)
+  const candidate = await prisma.candidate.findUnique({ where: { id }, select: { userId: true } });
+  if (candidate?.userId) {
+    await prisma.user.delete({ where: { id: candidate.userId } }).catch(() => {});
+  } else {
+    await prisma.candidate.delete({ where: { id } }).catch(() => {});
+  }
+  revalidatePath("/admin/candidates");
+}
+
+// ─── Shared field component ───────────────────────────────────────────────────
+
+function Field({ label, name, value, type = "text", placeholder }: {
+  label: string; name: string; value?: string; type?: string; placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-[#475569]">{label}</label>
+      <input
+        name={name} type={type} defaultValue={value ?? ""} placeholder={placeholder ?? label}
+        className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#1D4ED8] focus:outline-none"
+        required
+      />
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function CandidatesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string; reason?: string; editId?: string; addNew?: string }>;
+}) {
+  const sp = await searchParams;
+  const tenantId = await getDefaultTenantId();
+  const addNewOpen = sp.addNew === "1";
+  const editId = sp.editId ?? null;
+
+  const candidates = await prisma.candidate.findMany({
+    where: { tenantId },
+    orderBy: { createdAt: "desc" },
+    include: { user: { select: { id: true, email: true } } },
+  });
+
+  const editingCandidate = editId ? candidates.find((c) => c.id === editId) ?? null : null;
+  const linked = candidates.filter((c) => c.userId).length;
+
+  return (
+    <main className="tg-page space-y-6">
+      <PageHeader
+        title="Candidates"
+        subtitle="Manage candidate profiles and login accounts."
+        right={
+          <Link href="/admin/candidates?addNew=1" className="tg-button-primary text-sm">+ Add Candidate</Link>
+        }
+      />
+
+      {/* Status banners */}
+      {sp.status === "success" && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          ✓ Candidate added. Login email: candidate email, password: <code className="rounded bg-white px-1 font-mono">{DEFAULT_CANDIDATE_LOGIN_PASSWORD}</code>
+        </div>
+      )}
+      {sp.status === "edit_success" && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">✓ Candidate updated successfully.</div>
+      )}
+      {sp.status === "error" && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          {sp.reason === "missing" ? "Please fill in all required fields." :
+           sp.reason === "email_admin" ? "That email belongs to a non-candidate account." :
+           sp.reason === "email_candidate" ? "That email is already linked to another candidate." :
+           "Something went wrong — please try again."}
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {[
+          { label: "Total Candidates", value: candidates.length, icon: Users, cls: "text-[#1D4ED8]", bg: "bg-[#EFF6FF]" },
+          { label: "Login Linked", value: linked, icon: UserCheck, cls: "text-emerald-600", bg: "bg-emerald-50" },
+          { label: "Default Password", value: DEFAULT_CANDIDATE_LOGIN_PASSWORD, icon: null, cls: "", bg: "" },
+        ].map((s, i) => (
+          <div key={i} className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+            {s.icon ? (
+              <>
+                <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-xl ${s.bg}`}>
+                  <s.icon size={16} className={s.cls} />
+                </div>
+                <p className="text-xl font-bold text-[#0F172A]">{s.value}</p>
+              </>
+            ) : (
+              <p className="text-lg font-mono font-bold text-[#0F172A]">{s.value}</p>
+            )}
+            <p className="text-xs font-medium text-[#64748B]">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Add / Edit form */}
+      {(addNewOpen || editingCandidate) && (
+        <div className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden">
+          <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 flex items-center justify-between">
+            <p className="text-sm font-semibold text-[#0F172A]">{editingCandidate ? `Edit: ${editingCandidate.fullName}` : "Add New Candidate"}</p>
+            <Link href="/admin/candidates" className="text-xs text-[#94A3B8] hover:text-[#334155]">Cancel</Link>
+          </div>
+          <form action={editingCandidate ? updateCandidate : addCandidate} className="p-5">
+            {editingCandidate && <input type="hidden" name="id" value={editingCandidate.id} />}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Full Name *" name="fullName" value={editingCandidate?.fullName} placeholder="Ramesh Kumar" />
+              {!editingCandidate && <Field label="Email *" name="email" type="email" placeholder="ramesh@company.com" />}
+              <Field label="Mobile *" name="mobile" value={editingCandidate?.mobile} placeholder="+91 9876543210" />
+              <Field label="Employee ID *" name="employeeId" value={editingCandidate?.employeeId} placeholder="EMP001" />
+              <Field label="Designation *" name="designation" value={editingCandidate?.designation} placeholder="Senior Manager" />
+              <Field label="Department *" name="department" value={editingCandidate?.department} placeholder="Sales" />
+              <Field label="Location *" name="location" value={editingCandidate?.location} placeholder="Mumbai" />
+            </div>
+            {!editingCandidate && (
+              <p className="mt-3 text-[11px] text-[#94A3B8]">
+                A login account will be created automatically with password <code className="rounded bg-[#F1F5F9] px-1 font-mono">{DEFAULT_CANDIDATE_LOGIN_PASSWORD}</code>.
+                Email cannot be changed after creation.
+              </p>
+            )}
+            <div className="mt-5 flex justify-end gap-3 border-t border-[#F1F5F9] pt-5">
+              <Link href="/admin/candidates" className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">Cancel</Link>
+              <button type="submit" className="rounded-lg bg-[#1D4ED8] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1e40af]">
+                {editingCandidate ? "Save Changes" : "Add Candidate"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Candidates table */}
+      <div className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden">
+        <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4">
+          <p className="text-sm font-semibold text-[#0F172A]">All Candidates ({candidates.length})</p>
+        </div>
+        {candidates.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm text-[#64748B]">No candidates yet.</p>
+            <Link href="/admin/candidates?addNew=1" className="mt-2 inline-block text-sm font-medium text-[#1D4ED8] hover:underline">Add the first candidate →</Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#F1F5F9] text-left text-xs font-semibold text-[#94A3B8]">
+                  <th className="px-5 py-3">Name</th>
+                  <th className="px-5 py-3">Email / Login</th>
+                  <th className="px-5 py-3">Mobile</th>
+                  <th className="px-5 py-3">Emp ID</th>
+                  <th className="px-5 py-3">Designation</th>
+                  <th className="px-5 py-3">Department</th>
+                  <th className="px-5 py-3">Location</th>
+                  <th className="px-5 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F8FAFC]">
+                {candidates.map((c) => {
+                  const hasLogin = Boolean(c.userId);
+                  const emailOk = hasLogin && c.user?.email?.toLowerCase() === c.email.toLowerCase();
+                  return (
+                    <tr key={c.id} className={`hover:bg-[#FAFBFE] transition-colors ${editId === c.id ? "bg-[#EFF6FF]" : ""}`}>
+                      <td className="px-5 py-3.5">
+                        <p className="font-semibold text-[#0F172A]">{c.fullName}</p>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <p className="text-[#334155]">{c.email}</p>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${hasLogin && emailOk ? "text-emerald-600" : hasLogin ? "text-amber-600" : "text-rose-500"}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${hasLogin && emailOk ? "bg-emerald-500" : hasLogin ? "bg-amber-400" : "bg-rose-400"}`} />
+                          {hasLogin && emailOk ? "Login active" : hasLogin ? "Email mismatch" : "No login"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-[#64748B]">{c.mobile}</td>
+                      <td className="px-5 py-3.5 font-mono text-xs text-[#64748B]">{c.employeeId}</td>
+                      <td className="px-5 py-3.5 text-[#64748B]">{c.designation}</td>
+                      <td className="px-5 py-3.5 text-[#64748B]">{c.department}</td>
+                      <td className="px-5 py-3.5 text-[#64748B]">{c.location}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <Link href={`/admin/candidates?editId=${c.id}`}
+                            className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-2.5 py-1 text-xs font-medium text-[#475569] hover:bg-[#F8FAFC] transition">
+                            <Pencil size={11} /> Edit
+                          </Link>
+                          <form action={deleteCandidate}>
+                            <input type="hidden" name="id" value={c.id} />
+                            <button type="submit" className="flex items-center gap-1.5 rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50 transition">
+                              <Trash2 size={11} /> Delete
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}

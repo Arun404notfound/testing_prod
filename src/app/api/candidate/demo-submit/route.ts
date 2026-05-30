@@ -5,6 +5,11 @@ import { tenantMatchesRow } from "@/lib/tenant-match";
 import { getSession } from "@/lib/auth/session";
 import { buildTestBlocks, type TestBlock } from "@/lib/candidate-test-payload";
 import { scoreAssessment, type AnswerMap, type ScoringContext } from "@/lib/scoring/scoringEngine";
+import {
+  computeCompetencyScores,
+  attributeScoresFromTraitsByName,
+  type CompetencyMap,
+} from "@/lib/scoring/competencyEngine";
 
 // --- Demo-only: duplicated from candidate test actions (keep in sync when restoring prod submit). ---
 
@@ -296,6 +301,51 @@ export async function POST(req: Request) {
     scored = buildDemo70ScoringResult();
   }
 
+  // ── Competency scoring (Big Five formula) ───────────────────────────────────
+  // Load attribute→competency mappings for this tenant
+  const competencyMappings = await prisma.attributeCompetencyMap.findMany({
+    where: { competency: { tenantId } },
+    include: { attribute: true, competency: true },
+  });
+
+  // Build lookup: attribute name → { id, name }
+  const attributesByName = new Map(
+    competencyMappings.map((m) => [m.attribute.name, { id: m.attributeId, name: m.attribute.name }]),
+  );
+
+  // Bridge trait scores (keyed by trait=attributeName) → attribute scores
+  const attributeScores = attributeScoresFromTraitsByName(scored.traitScores, attributesByName);
+
+  // Group mappings per competency — use DB weight and scoringFormula
+  const compMapById = new Map<string, CompetencyMap>();
+  for (const m of competencyMappings) {
+    if (!compMapById.has(m.competencyId)) {
+      compMapById.set(m.competencyId, {
+        competencyId: m.competencyId,
+        competencyName: m.competency.name,
+        scoringFormula: m.competency.scoringFormula ?? "WEIGHTED_AVERAGE",
+        attributes: [],
+      });
+    }
+    compMapById.get(m.competencyId)!.attributes.push({
+      attributeId: m.attributeId,
+      weight: m.weight ?? 1,
+    });
+  }
+
+  // Use Big Five scaling when the assessment has Likert or Forced-Choice items
+  const assessmentType = assignment.assessment.assessmentType;
+  const useBigFive =
+    assessmentType === "LIKERT_PSYCHOMETRIC" ||
+    assessmentType === "FORCED_CHOICE_TRIAD" ||
+    assessmentType === "HYBRID";
+
+  const competencyScores = computeCompetencyScores(
+    attributeScores,
+    Array.from(compMapById.values()),
+    useBigFive,
+  );
+
   const completedAt = new Date();
   const overallScore = Math.round(scored.percentage);
 
@@ -379,6 +429,21 @@ export async function POST(req: Request) {
             : {}),
         },
       });
+
+      // Save competency scores
+      if (competencyScores.length > 0) {
+        await tx.competencyScore.createMany({
+          data: competencyScores.map((cs) => ({
+            attemptId: attempt.id,
+            competencyId: cs.competencyId,
+            rawScore: cs.rawScore,
+            maxScore: cs.maxScore,
+            scaledScore: cs.scaledScore,
+            percent: cs.percent,
+            band: cs.band,
+          })),
+        });
+      }
 
       await tx.assessmentAssignment.update({
         where: { id: assignment.id },
