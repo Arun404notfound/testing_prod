@@ -23,8 +23,14 @@ function competencyColors(label: string): { bg: string; text: string; border: st
   return { bg: "#FFF7ED", text: "#9A3412", border: "#FDBA74" };
 }
 
-function attrScore(trait: ReportTraitScoreRow): number {
-  return trait.maxScore > 0 ? Math.round((trait.score / trait.maxScore) * 100) / 10 : 0;
+function formulaLabel(formula: string): string {
+  switch (formula) {
+    case "SIMPLE_AVERAGE": return "competency score = simple average of these";
+    case "HIGHEST_ATTRIBUTE": return "competency score = highest attribute";
+    case "LOWEST_ATTRIBUTE": return "competency score = lowest attribute";
+    case "GEOMETRIC_MEAN": return "competency score = geometric mean of these";
+    default: return "competency score = weighted average of these";
+  }
 }
 
 // --- sub-components ---------------------------------------------------------
@@ -87,7 +93,7 @@ function CompetencyCard({
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#9CA3AF]">
               Attribute Scores
               <span className="ml-2 normal-case font-normal text-[#CBD5E1]">
-                (competency score = weighted average of these)
+                ({formulaLabel(competency.scoringFormula)})
               </span>
             </p>
             <table className="w-full text-sm">

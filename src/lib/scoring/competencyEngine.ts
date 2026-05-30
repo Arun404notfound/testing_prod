@@ -158,12 +158,28 @@ export function computeCompetencyScores(
 
     if (attrs.length === 0) continue;
 
-    // ── Step 2: weighted average using DB weights ────────────────────────────
-    const totalWeight = attrs.reduce((s, a) => s + a.weight, 0);
-    const scaledScore =
-      Math.round(
-        (attrs.reduce((s, a) => s + a.score * a.weight, 0) / totalWeight) * 10,
-      ) / 10;
+    // ── Step 2: apply scoring formula ────────────────────────────────────────
+    let rawScaled: number;
+    const formula = comp.scoringFormula ?? SCORING_FORMULAS.WEIGHTED_AVERAGE;
+
+    if (formula === SCORING_FORMULAS.SIMPLE_AVERAGE) {
+      rawScaled = attrs.reduce((s, a) => s + a.score, 0) / attrs.length;
+    } else if (formula === SCORING_FORMULAS.HIGHEST_ATTRIBUTE) {
+      rawScaled = Math.max(...attrs.map((a) => a.score));
+    } else if (formula === SCORING_FORMULAS.LOWEST_ATTRIBUTE) {
+      rawScaled = Math.min(...attrs.map((a) => a.score));
+    } else if (formula === SCORING_FORMULAS.GEOMETRIC_MEAN) {
+      const product = attrs.reduce((p, a) => p * Math.max(0.001, a.score), 1);
+      rawScaled = Math.pow(product, 1 / attrs.length);
+    } else {
+      // WEIGHTED_AVERAGE (default)
+      const totalWeight = attrs.reduce((s, a) => s + a.weight, 0);
+      rawScaled = totalWeight > 0
+        ? attrs.reduce((s, a) => s + a.score * a.weight, 0) / totalWeight
+        : attrs.reduce((s, a) => s + a.score, 0) / attrs.length;
+    }
+
+    const scaledScore = Math.round(Math.min(10, Math.max(0, rawScaled)) * 10) / 10;
 
     // ── Step 3: percent on 0–100 scale ───────────────────────────────────────
     const percent = Math.round((scaledScore / 10) * 1000) / 10;

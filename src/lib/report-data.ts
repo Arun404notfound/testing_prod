@@ -56,6 +56,7 @@ export type ReportCompetencyScore = {
   percent: number;
   band: string;
   reportDescription: string | null;
+  scoringFormula: string;
   attributes: Array<{ code: string; name: string }>;
 };
 
@@ -291,6 +292,7 @@ export async function getReportPayload(
     percent: cs.percent,
     band: cs.band ?? "Moderate",
     reportDescription: cs.competency.reportDescription ?? null,
+    scoringFormula: cs.competency.scoringFormula ?? "WEIGHTED_AVERAGE",
     attributes: cs.competency.attributeMaps.map((m) => ({ code: m.attribute.code, name: m.attribute.name })),
   }));
 
