@@ -387,7 +387,7 @@ export default async function QuestionsPage({
                       </div>
                     </div>
                     <div className="mt-3 flex items-center gap-2 sm:mt-0 sm:shrink-0 sm:w-56">
-                      <form action={updateItemAttribute} className="flex flex-1 items-center gap-2">
+                      <form key={item.attributeId ?? "none"} action={updateItemAttribute} className="flex flex-1 items-center gap-2">
                         <input type="hidden" name="itemId" value={item.id} />
                         <select name="attributeId" defaultValue={item.attributeId ?? ""} className={selectCls}>{attrOptions}</select>
                         <button type="submit" className={saveBtnCls}>Save</button>
@@ -519,7 +519,7 @@ export default async function QuestionsPage({
                           )}
                         </div>
                       </div>
-                      <form action={updateStatementAttribute} className="mt-3 flex items-center gap-2 sm:mt-0 sm:shrink-0 sm:w-56">
+                      <form key={stmt.attributeId ?? "none"} action={updateStatementAttribute} className="mt-3 flex items-center gap-2 sm:mt-0 sm:shrink-0 sm:w-56">
                         <input type="hidden" name="statementId" value={stmt.id} />
                         <select name="attributeId" defaultValue={stmt.attributeId ?? ""} className={selectCls}>{attrOptions}</select>
                         <button type="submit" className={saveBtnCls}>Save</button>
