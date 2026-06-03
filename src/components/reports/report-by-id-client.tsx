@@ -9,22 +9,18 @@ import type { ReportPayload } from "@/lib/report-data";
 import { normalizeReportPayload } from "@/lib/normalize-report-payload";
 import { resolveReportLayout } from "@/lib/report-layout";
 import { ReportTemplatePlaceholderPage } from "@/components/reports/ReportTemplatePlaceholderPage";
-import { CoverPage } from "@/components/reports/CoverPage";
 import { DisclaimerPage } from "@/components/reports/DisclaimerPage";
-import { ForcedChoiceProfilePage } from "@/components/reports/ForcedChoiceProfilePage";
-import { HybridOverviewPage } from "@/components/reports/HybridOverviewPage";
-import { PsychometricProfilePage } from "@/components/reports/PsychometricProfilePage";
 import {
   QuestionResponsesPage,
   type QuestionResponseBlock,
 } from "@/components/reports/QuestionResponsesPage";
 import { ReportPageShell } from "@/components/reports/ReportPageShell";
-import { SectionScoresPage } from "@/components/reports/SectionScoresPage";
-import { StrengthsAreasPage } from "@/components/reports/StrengthsAreasPage";
-import { SummaryPage } from "@/components/reports/SummaryPage";
-import { TraitScoresPage } from "@/components/reports/TraitScoresPage";
 import { reportTheme } from "@/components/reports/report-theme";
-import { CompetencyReportPage } from "@/components/reports/CompetencyReportPage";
+import { PsychometricGlancePage } from "@/components/reports/PsychometricGlancePage";
+import { PsychometricDashboardPage } from "@/components/reports/PsychometricDashboardPage";
+import { PsychometricBigFiveDetailPage } from "@/components/reports/PsychometricBigFiveDetailPage";
+import { PsychometricBehaviouralPage } from "@/components/reports/PsychometricBehaviouralPage";
+import { PsychometricStrengthsScorecard } from "@/components/reports/PsychometricStrengthsScorecard";
 import { ReportThemeProvider } from "@/components/reports/report-theme-context";
 
 type QuestionReviewItem = ReportPayload["groupedQuestionReview"][string][number]["items"][number];
@@ -190,23 +186,24 @@ export default function ReportByIdClient() {
   const layout = resolveReportLayout(report.reportTemplateType, report.assessmentType);
   const hasMcqReview = questionPages.length > 0;
 
-  const renderMcqStack = () => (
+  const renderNewFormatStack = (_variant: "mcq" | "psychometric" | "triad" | "hybrid") => (
     <>
       <ReportPageShell>
-        <CoverPage report={report} completedDate={completedDate} variant="mcq" />
+        <PsychometricGlancePage report={report} completedDate={completedDate} />
       </ReportPageShell>
       <ReportPageShell>
-        <SummaryPage report={report} title="Summary" />
+        <PsychometricDashboardPage report={report} />
       </ReportPageShell>
       <ReportPageShell>
-        <SectionScoresPage report={report} heading="Skill / section score summary" />
+        <PsychometricBigFiveDetailPage report={report} />
       </ReportPageShell>
       <ReportPageShell>
-        <StrengthsAreasPage report={report} />
+        <PsychometricBehaviouralPage />
+        <PsychometricStrengthsScorecard report={report} />
       </ReportPageShell>
       {hasMcqReview
         ? questionPages.map((pageBlocks, index) => (
-            <ReportPageShell key={`responses-page-${index}`}>
+            <ReportPageShell key={`mcq-review-${index}`}>
               <QuestionResponsesPage pageBlocks={pageBlocks} />
             </ReportPageShell>
           ))
@@ -217,25 +214,22 @@ export default function ReportByIdClient() {
     </>
   );
 
+  const renderMcqStack = () => renderNewFormatStack("mcq");
+
   const renderLikertStack = () => (
     <>
       <ReportPageShell>
-        <CoverPage report={report} completedDate={completedDate} variant="psychometric" />
+        <PsychometricGlancePage report={report} completedDate={completedDate} />
       </ReportPageShell>
       <ReportPageShell>
-        <SummaryPage report={report} title="Psychometric summary" />
+        <PsychometricDashboardPage report={report} />
       </ReportPageShell>
-      {report.competencyScores && report.competencyScores.length > 0 ? (
-        <ReportPageShell>
-          <CompetencyReportPage competencies={report.competencyScores} heading="Competency Profile" />
-        </ReportPageShell>
-      ) : (
-        <ReportPageShell>
-          <PsychometricProfilePage report={report} />
-        </ReportPageShell>
-      )}
       <ReportPageShell>
-        <TraitScoresPage traits={report.traitScores} heading="Trait / attribute score table" />
+        <PsychometricBigFiveDetailPage report={report} />
+      </ReportPageShell>
+      <ReportPageShell>
+        <PsychometricBehaviouralPage />
+        <PsychometricStrengthsScorecard report={report} />
       </ReportPageShell>
       <ReportPageShell>
         <DisclaimerPage />
@@ -243,36 +237,12 @@ export default function ReportByIdClient() {
     </>
   );
 
-  const renderTriadStack = () => (
-    <>
-      <ReportPageShell>
-        <CoverPage report={report} completedDate={completedDate} variant="triad" />
-      </ReportPageShell>
-      <ReportPageShell>
-        <SummaryPage report={report} title="Forced-choice summary" />
-      </ReportPageShell>
-      {report.competencyScores && report.competencyScores.length > 0 ? (
-        <ReportPageShell>
-          <CompetencyReportPage competencies={report.competencyScores} heading="Competency Profile" />
-        </ReportPageShell>
-      ) : (
-        <ReportPageShell>
-          <ForcedChoiceProfilePage report={report} />
-        </ReportPageShell>
-      )}
-      <ReportPageShell>
-        <TraitScoresPage traits={report.traitScores} heading="Trait / attribute score table" />
-      </ReportPageShell>
-      <ReportPageShell>
-        <DisclaimerPage />
-      </ReportPageShell>
-    </>
-  );
+  const renderTriadStack = () => renderNewFormatStack("triad");
 
   const renderPlaceholderStack = () => (
     <>
       <ReportPageShell>
-        <CoverPage report={report} completedDate={completedDate} variant="mcq" />
+        <PsychometricGlancePage report={report} completedDate={completedDate} />
       </ReportPageShell>
       <ReportPageShell>
         <ReportTemplatePlaceholderPage reportTemplateType={report.reportTemplateType} />
@@ -283,40 +253,7 @@ export default function ReportByIdClient() {
     </>
   );
 
-  const renderHybridStack = () => (
-    <>
-      <ReportPageShell>
-        <CoverPage report={report} completedDate={completedDate} variant="hybrid" />
-      </ReportPageShell>
-      <ReportPageShell>
-        <HybridOverviewPage report={report} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <SummaryPage report={report} title="Overall score summary" />
-      </ReportPageShell>
-      <ReportPageShell>
-        <SectionScoresPage report={report} heading="Section score summary" />
-      </ReportPageShell>
-      {report.traitScores.length > 0 ? (
-        <ReportPageShell>
-          <TraitScoresPage traits={report.traitScores} heading="Trait score summary" />
-        </ReportPageShell>
-      ) : null}
-      {hasMcqReview
-        ? questionPages.map((pageBlocks, index) => (
-            <ReportPageShell key={`hybrid-mcq-${index}`}>
-              <QuestionResponsesPage pageBlocks={pageBlocks} />
-            </ReportPageShell>
-          ))
-        : null}
-      <ReportPageShell>
-        <StrengthsAreasPage report={report} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <DisclaimerPage />
-      </ReportPageShell>
-    </>
-  );
+  const renderHybridStack = () => renderNewFormatStack("hybrid");
 
   return (
     <main className="min-h-screen px-4 py-8 md:px-10" style={{ backgroundColor: reportTheme.pageBackground }}>

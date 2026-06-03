@@ -8,7 +8,7 @@ import { tenantMatchesRow } from "@/lib/tenant-match";
 import { getSession } from "@/lib/auth/session";
 import { buildTestBlocks, type TestBlock } from "@/lib/candidate-test-payload";
 import { scoreAssessment, type AnswerMap, type ScoringContext } from "@/lib/scoring/scoringEngine";
-import { computeCompetencyScores, attributeScoresFromTraits } from "@/lib/scoring/competencyEngine";
+import { computeCompetencyScores, attributeScoresFromTraitsByName } from "@/lib/scoring/competencyEngine";
 import { computeProctoringTrustScore, countProctoringEvents } from "@/lib/proctoring-trust";
 
 function testAccessBlocked(
@@ -447,10 +447,12 @@ export async function submitCandidateTest(formData: FormData) {
         ]);
 
         if (dbAttributes.length > 0 && competencyMaps.length > 0) {
-          const attributesByCode = new Map(dbAttributes.map((a) => [a.code, { id: a.id }]));
+          // Match by attribute name (traitScore.trait = attribute name for Likert/Triad/Hybrid)
+          const attributesByName = new Map(
+            dbAttributes.map((a) => [a.name, { id: a.id, name: a.name }]),
+          );
 
-          // Build attribute scores from trait scores (factor field = attribute code)
-          const attrScores = attributeScoresFromTraits(scored.traitScores, attributesByCode);
+          const attrScores = attributeScoresFromTraitsByName(scored.traitScores, attributesByName);
 
           // Group maps by competency
           const compMapsByCompetency = new Map<string, { id: string; name: string; scoringFormula: string; attrs: Array<{ attributeId: string; weight: number }> }>();
@@ -472,6 +474,7 @@ export async function submitCandidateTest(formData: FormData) {
             attributes: c.attrs,
           }));
 
+          // Use Big Five scaling for psychometric/triad/hybrid assessments
           const competencyScores = computeCompetencyScores(attrScores, competencyInputs);
 
           if (competencyScores.length > 0) {
