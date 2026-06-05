@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Pencil, Trash2, UserCheck, Users } from "lucide-react";
+import { UserCheck, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { createCandidateWithLoginUser, DEFAULT_CANDIDATE_LOGIN_PASSWORD } from "@/lib/candidate-user";
+import { CandidatesTable } from "./candidates-table";
 
 // ─── Server Actions ───────────────────────────────────────────────────────────
 
@@ -54,13 +55,35 @@ async function deleteCandidate(formData: FormData) {
   "use server";
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
-  // Delete user account linked to this candidate (cascade handles the candidate row)
   const candidate = await prisma.candidate.findUnique({ where: { id }, select: { userId: true } });
   if (candidate?.userId) {
     await prisma.user.delete({ where: { id: candidate.userId } }).catch(() => {});
   } else {
     await prisma.candidate.delete({ where: { id } }).catch(() => {});
   }
+  revalidatePath("/admin/candidates");
+}
+
+async function deleteCandidateById(id: string) {
+  "use server";
+  if (!id) return;
+  const candidate = await prisma.candidate.findUnique({ where: { id }, select: { userId: true } });
+  if (candidate?.userId) {
+    await prisma.user.delete({ where: { id: candidate.userId } }).catch(() => {});
+  } else {
+    await prisma.candidate.delete({ where: { id } }).catch(() => {});
+  }
+  revalidatePath("/admin/candidates");
+}
+
+async function bulkDeleteCandidates(ids: string[]) {
+  "use server";
+  if (!ids.length) return;
+  const candidates = await prisma.candidate.findMany({ where: { id: { in: ids } }, select: { id: true, userId: true } });
+  const userIds = candidates.map((c) => c.userId).filter((id): id is string => Boolean(id));
+  const candidateIdsWithNoUser = candidates.filter((c) => !c.userId).map((c) => c.id);
+  if (userIds.length) await prisma.user.deleteMany({ where: { id: { in: userIds } } }).catch(() => {});
+  if (candidateIdsWithNoUser.length) await prisma.candidate.deleteMany({ where: { id: { in: candidateIdsWithNoUser } } }).catch(() => {});
   revalidatePath("/admin/candidates");
 }
 
@@ -93,14 +116,14 @@ export default async function CandidatesPage({
   const addNewOpen = sp.addNew === "1";
   const editId = sp.editId ?? null;
 
-  const candidates = await prisma.candidate.findMany({
+  const allCandidates = await prisma.candidate.findMany({
     where: { tenantId },
     orderBy: { createdAt: "desc" },
     include: { user: { select: { id: true, email: true } } },
   });
 
-  const editingCandidate = editId ? candidates.find((c) => c.id === editId) ?? null : null;
-  const linked = candidates.filter((c) => c.userId).length;
+  const editingCandidate = editId ? allCandidates.find((c) => c.id === editId) ?? null : null;
+  const linked = allCandidates.filter((c) => c.userId).length;
 
   return (
     <main className="tg-page space-y-6">
@@ -133,7 +156,7 @@ export default async function CandidatesPage({
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
-          { label: "Total Candidates", value: candidates.length, icon: Users, cls: "text-[#1D4ED8]", bg: "bg-[#EFF6FF]" },
+          { label: "Total Candidates", value: allCandidates.length, icon: Users, cls: "text-[#1D4ED8]", bg: "bg-[#EFF6FF]" },
           { label: "Login Linked", value: linked, icon: UserCheck, cls: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "Default Password", value: DEFAULT_CANDIDATE_LOGIN_PASSWORD, icon: null, cls: "", bg: "" },
         ].map((s, i) => (
@@ -187,74 +210,24 @@ export default async function CandidatesPage({
         </div>
       )}
 
-      {/* Candidates table */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden">
-        <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4">
-          <p className="text-sm font-semibold text-[#0F172A]">All Candidates ({candidates.length})</p>
-        </div>
-        {candidates.length === 0 ? (
-          <div className="px-5 py-12 text-center">
-            <p className="text-sm text-[#64748B]">No candidates yet.</p>
-            <Link href="/admin/candidates?addNew=1" className="mt-2 inline-block text-sm font-medium text-[#1D4ED8] hover:underline">Add the first candidate →</Link>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#F1F5F9] text-left text-xs font-semibold text-[#94A3B8]">
-                  <th className="px-5 py-3">Name</th>
-                  <th className="px-5 py-3">Email / Login</th>
-                  <th className="px-5 py-3">Mobile</th>
-                  <th className="px-5 py-3">Emp ID</th>
-                  <th className="px-5 py-3">Designation</th>
-                  <th className="px-5 py-3">Department</th>
-                  <th className="px-5 py-3">Location</th>
-                  <th className="px-5 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F8FAFC]">
-                {candidates.map((c) => {
-                  const hasLogin = Boolean(c.userId);
-                  const emailOk = hasLogin && c.user?.email?.toLowerCase() === c.email.toLowerCase();
-                  return (
-                    <tr key={c.id} className={`hover:bg-[#FAFBFE] transition-colors ${editId === c.id ? "bg-[#EFF6FF]" : ""}`}>
-                      <td className="px-5 py-3.5">
-                        <p className="font-semibold text-[#0F172A]">{c.fullName}</p>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <p className="text-[#334155]">{c.email}</p>
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${hasLogin && emailOk ? "text-emerald-600" : hasLogin ? "text-amber-600" : "text-rose-500"}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${hasLogin && emailOk ? "bg-emerald-500" : hasLogin ? "bg-amber-400" : "bg-rose-400"}`} />
-                          {hasLogin && emailOk ? "Login active" : hasLogin ? "Email mismatch" : "No login"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-[#64748B]">{c.mobile}</td>
-                      <td className="px-5 py-3.5 font-mono text-xs text-[#64748B]">{c.employeeId}</td>
-                      <td className="px-5 py-3.5 text-[#64748B]">{c.designation}</td>
-                      <td className="px-5 py-3.5 text-[#64748B]">{c.department}</td>
-                      <td className="px-5 py-3.5 text-[#64748B]">{c.location}</td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <Link href={`/admin/candidates?editId=${c.id}`}
-                            className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-2.5 py-1 text-xs font-medium text-[#475569] hover:bg-[#F8FAFC] transition">
-                            <Pencil size={11} /> Edit
-                          </Link>
-                          <form action={deleteCandidate}>
-                            <input type="hidden" name="id" value={c.id} />
-                            <button type="submit" className="flex items-center gap-1.5 rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-500 hover:bg-rose-50 transition">
-                              <Trash2 size={11} /> Delete
-                            </button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <CandidatesTable
+        candidates={allCandidates.map((c) => ({
+          id: c.id,
+          fullName: c.fullName,
+          email: c.email,
+          mobile: c.mobile,
+          employeeId: c.employeeId,
+          designation: c.designation,
+          department: c.department,
+          location: c.location,
+          batchName: c.batchName,
+          userId: c.userId,
+          userEmail: c.user?.email ?? null,
+        }))}
+        editId={editId}
+        deleteCandidateById={deleteCandidateById}
+        bulkDeleteCandidates={bulkDeleteCandidates}
+      />
     </main>
   );
 }

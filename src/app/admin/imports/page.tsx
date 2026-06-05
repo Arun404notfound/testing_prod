@@ -18,6 +18,9 @@ async function runImport(formData: FormData) {
     redirect("/admin/imports?status=error");
   }
 
+  const rawBatch = String(formData.get("batchName") ?? "").trim();
+  const batchName = importType === "CANDIDATES" && rawBatch ? rawBatch : null;
+
   const tenantId = await getDefaultTenantId();
   const fileName = file.name || "upload";
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -27,6 +30,7 @@ async function runImport(formData: FormData) {
       tenantId,
       importType,
       fileName,
+      batchName,
       status: "PROCESSING",
     },
     select: { id: true },
@@ -38,6 +42,7 @@ async function runImport(formData: FormData) {
       importType,
       fileName,
       bytes,
+      batchName,
     });
 
     await prisma.importJob.update({
@@ -83,11 +88,20 @@ export default async function ImportsPage({
   const tenantId = await getDefaultTenantId();
   const templateColumns = getTemplateColumns();
 
-  const latestJobs = await prisma.importJob.findMany({
-    where: { tenantId },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  });
+  const [latestJobs, batchRows] = await Promise.all([
+    prisma.importJob.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+    prisma.candidate.findMany({
+      where: { tenantId },
+      select: { batchName: true },
+      orderBy: { batchName: "asc" },
+    }),
+  ]);
+
+  const existingBatches = [...new Set(batchRows.map((b) => b.batchName).filter((b): b is string => Boolean(b)))];
 
   const selectedJob = jobId
     ? await prisma.importJob.findFirst({
@@ -137,6 +151,30 @@ export default async function ImportsPage({
                 <option value="TRIAD_ITEMS">Triad Items</option>
               </select>
             </label>
+
+            <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-3">
+              <p className="text-xs font-semibold text-[#475569] uppercase tracking-wide">Batch (Candidates only)</p>
+              <p className="text-xs text-[#64748B]">
+                Tag this import with a batch name to bulk-assign an assessment to all candidates in it later. Type a new name or pick an existing one.
+              </p>
+              <label className="block text-sm text-[#334155]">
+                <span className="mb-1 block font-medium">Batch name</span>
+                <input
+                  name="batchName"
+                  list="existing-batches"
+                  className="tg-input w-full"
+                  placeholder="e.g. Q2 Sales Cohort, June Leadership Batch…"
+                  autoComplete="off"
+                />
+                {existingBatches.length > 0 && (
+                  <datalist id="existing-batches">
+                    {existingBatches.map((b) => (
+                      <option key={b} value={b} />
+                    ))}
+                  </datalist>
+                )}
+              </label>
+            </div>
 
             <label className="block text-sm text-[#334155]">
               <span className="mb-1 block font-medium">File (.csv or .xlsx)</span>
@@ -237,6 +275,7 @@ export default async function ImportsPage({
                 <th className="px-3 py-2">Created</th>
                 <th className="px-3 py-2">Type</th>
                 <th className="px-3 py-2">File</th>
+                <th className="px-3 py-2">Batch</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Total</th>
                 <th className="px-3 py-2">Success</th>
@@ -250,6 +289,11 @@ export default async function ImportsPage({
                   <td className="px-3 py-2">{new Date(job.createdAt).toLocaleString("en-IN")}</td>
                   <td className="px-3 py-2">{job.importType}</td>
                   <td className="px-3 py-2">{job.fileName}</td>
+                  <td className="px-3 py-2">
+                    {job.batchName ? (
+                      <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">{job.batchName}</span>
+                    ) : <span className="text-[#94A3B8]">—</span>}
+                  </td>
                   <td className="px-3 py-2">{job.status}</td>
                   <td className="px-3 py-2">{job.totalRows}</td>
                   <td className="px-3 py-2">{job.successRows}</td>
@@ -263,7 +307,7 @@ export default async function ImportsPage({
               ))}
               {latestJobs.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-4 text-slate-500">
+                  <td colSpan={9} className="px-3 py-4 text-slate-500">
                     No imports yet.
                   </td>
                 </tr>

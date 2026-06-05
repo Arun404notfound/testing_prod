@@ -1,25 +1,9 @@
-import Link from "next/link";
-import { ClipboardList, CheckCircle2, Clock, ChevronRight, BookOpen } from "lucide-react";
+import { ClipboardList, CheckCircle2, Clock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireCandidateRoleSession } from "@/lib/auth/require-user";
+import { autoSubmitAbandonedAttempts } from "@/lib/score-and-save";
+import { AssignmentsList } from "./assignments-list";
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-    assigned: { label: "Pending", bg: "#FFF7ED", text: "#C2410C", dot: "#F97316" },
-    in_progress: { label: "In Progress", bg: "#EFF6FF", text: "#1D4ED8", dot: "#3B82F6" },
-    completed: { label: "Completed", bg: "#F0FDF4", text: "#15803D", dot: "#22C55E" },
-  };
-  const s = map[status] ?? { label: status, bg: "#F1F5F9", text: "#475569", dot: "#94A3B8" };
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-      style={{ background: s.bg, color: s.text }}
-    >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
-      {s.label}
-    </span>
-  );
-}
 
 export default async function CandidatePage() {
   const session = await requireCandidateRoleSession();
@@ -35,6 +19,11 @@ export default async function CandidatePage() {
         </div>
       </main>
     );
+  }
+
+  // Auto-submit any tests interrupted by sign-out, power-off, etc. — best-effort, never blocks the page
+  try { await autoSubmitAbandonedAttempts(session.candidateId); } catch (e) {
+    console.error("[autoSubmitAbandoned]", e);
   }
 
   const assignments = await prisma.assessmentAssignment.findMany({
@@ -87,69 +76,15 @@ export default async function CandidatePage() {
       {/* Assignments list */}
       <section>
         <h2 className="mb-4 text-lg font-semibold text-[#0F172A]">Assigned Assessments</h2>
-
-        {assignments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#CBD5E1] bg-white py-16 text-center">
-            <BookOpen size={40} className="text-[#CBD5E1] mb-3" />
-            <p className="font-medium text-[#475569]">No assessments assigned yet</p>
-            <p className="mt-1 text-sm text-[#94A3B8]">Your administrator will assign assessments to you shortly.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {assignments.map((assignment) => {
-              const isDone = assignment.status === "completed" && assignment.result;
-              return (
-                <div
-                  key={assignment.id}
-                  className="group flex flex-col gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm transition-all hover:border-[#93C5FD] hover:shadow-md md:flex-row md:items-center md:justify-between"
-                >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-                      style={{ background: isDone ? "#F0FDF4" : "#EFF6FF" }}
-                    >
-                      {isDone ? (
-                        <CheckCircle2 size={24} className="text-emerald-600" />
-                      ) : (
-                        <ClipboardList size={24} className="text-[#1D4ED8]" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <p className="font-semibold text-[#0F172A]">{assignment.assessment.title}</p>
-                        <StatusBadge status={assignment.status} />
-                      </div>
-                      {assignment.assessment.description ? (
-                        <p className="mt-1 text-sm text-[#64748B] line-clamp-2">{assignment.assessment.description}</p>
-                      ) : null}
-                      <p className="mt-2 text-xs text-[#94A3B8]">
-                        Assigned on {new Date(assignment.assignedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      </p>
-                    </div>
-                  </div>
-
-                  {isDone ? (
-                    <Link
-                      href={`/candidate/reports/${assignment.result!.id}`}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-5 py-2.5 text-sm font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9]"
-                    >
-                      View Report
-                      <ChevronRight size={16} />
-                    </Link>
-                  ) : (
-                    <Link
-                      href={`/candidate/test/${assignment.id}`}
-                      className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#1D4ED8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] hover:shadow-md"
-                    >
-                      Start Test
-                      <ChevronRight size={16} />
-                    </Link>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <AssignmentsList
+          assignments={assignments.map((a) => ({
+            id: a.id,
+            status: a.status,
+            assignedAt: a.assignedAt.toISOString(),
+            assessment: { title: a.assessment.title, description: a.assessment.description ?? null },
+            result: a.result ? { id: a.result.id } : null,
+          }))}
+        />
       </section>
     </main>
   );

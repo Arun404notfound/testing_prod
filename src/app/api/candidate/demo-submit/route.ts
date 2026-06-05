@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { tenantMatchesRow } from "@/lib/tenant-match";
@@ -13,51 +14,6 @@ import {
 
 // --- Demo-only: duplicated from candidate test actions (keep in sync when restoring prod submit). ---
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function normalizeDemoAnswers(blocks: TestBlock[], answers: AnswerMap, assessment: any): AnswerMap {
-  // TODO: demo — remove when restoring server-action submit.
-  const out: AnswerMap = { ...answers };
-  for (const b of blocks) {
-    const v = out[b.key];
-    if (b.kind === "legacy_mcq") {
-      const n = Number(v);
-      if (!Number.isFinite(n) || n < 1 || n > 4) {
-        const aq = assessment.questions?.find((q: { questionId: string }) => q.questionId === b.questionId);
-        const correct = Number(aq?.question?.correctOption ?? 1);
-        out[b.key] = correct === 1 ? 2 : 1;
-      }
-    } else if (b.kind === "item_mcq" || b.kind === "item_tf") {
-      const ok = typeof v === "string" && v.length > 0 && b.options.some((o) => o.optionId === v);
-      if (!ok) {
-        const item = assessment.items?.find((i: { id: string }) => i.id === b.itemId);
-        const wrongOpt = item?.options?.find((o: { isCorrect: boolean }) => !o.isCorrect);
-        const firstOpt = item?.options?.[0];
-        out[b.key] = (wrongOpt ?? firstOpt)?.id ?? b.options[0]?.optionId ?? "";
-      }
-    } else if (b.kind === "likert") {
-      const n = Number(v);
-      if (!Number.isFinite(n) || n < 1 || n > 5) {
-        out[b.key] = 3;
-      }
-    } else if (b.kind === "triad") {
-      let t = v as { most?: string; least?: string } | undefined;
-      if (!t || typeof t !== "object") t = {};
-      const ids = b.statements.map((s) => s.id);
-      const first = ids[0] ?? "";
-      const second = ids.find((id) => id !== first) ?? first;
-      if (
-        !t.most ||
-        !t.least ||
-        !ids.includes(t.most) ||
-        !ids.includes(t.least) ||
-        t.most === t.least
-      ) {
-        out[b.key] = { most: first, least: second };
-      }
-    }
-  }
-  return out;
-}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildScoringContext(assessment: any, blocks: TestBlock[], answers: AnswerMap): ScoringContext {
@@ -213,8 +169,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  const b = body as { assignmentId?: string; answers?: unknown };
+  const b = body as { assignmentId?: string; answers?: unknown; submissionType?: string };
   const assignmentId = String(b.assignmentId ?? "").trim();
+  const submissionType = typeof b.submissionType === "string" ? b.submissionType : "NORMAL";
   if (!assignmentId) {
     return NextResponse.json({ ok: false, error: "Missing assignmentId" }, { status: 400 });
   }
@@ -287,17 +244,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "No takeable items" }, { status: 400 });
   }
 
-  const answers = normalizeDemoAnswers(blocks, rawAnswers, assignment.assessment);
-  const ctx = buildScoringContext(assignment.assessment, blocks, answers);
+  const ctx = buildScoringContext(assignment.assessment, blocks, rawAnswers);
   let scored: ReturnType<typeof scoreAssessment>;
   try {
     scored = scoreAssessment(ctx);
     if (scored.maxScore <= 0) {
-      // TODO: demo — fallback 70 when engine yields no max score.
-      scored = buildDemo70ScoringResult();
+      // Fallback to demo score but keep real attempt responses so submissions view works
+      scored = { ...buildDemo70ScoringResult(), attemptResponses: scored.attemptResponses, traitScores: scored.traitScores };
     }
   } catch {
-    // TODO: demo — scoringEngine threw; fixed 70 score.
+    // scoringEngine threw — use demo scores; attempt responses will be empty
     scored = buildDemo70ScoringResult();
   }
 
@@ -361,6 +317,7 @@ export async function POST(req: Request) {
           startedAt: completedAt,
           submittedAt: completedAt,
           scoredAt: completedAt,
+          submissionType,
           ...(scored.attemptResponses.length > 0
             ? { responses: { create: scored.attemptResponses } }
             : {}),
@@ -453,6 +410,9 @@ export async function POST(req: Request) {
       overallScore,
     });
 
+    revalidatePath("/candidate");
+    revalidatePath("/admin/assignments");
+    revalidatePath("/admin/reports");
     return NextResponse.json({ ok: true, resultId: createdResult.id });
   } catch (err) {
     console.error("[demo-submit] transaction failed", String(err));

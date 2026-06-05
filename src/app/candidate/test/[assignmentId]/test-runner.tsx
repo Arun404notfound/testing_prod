@@ -12,7 +12,6 @@ import {
 import {
   AlertCircle,
   CheckCircle2,
-  ChevronLeft,
   ChevronRight,
   Clock,
   Flag,
@@ -37,6 +36,16 @@ function isAnswered(block: TestBlock, answers: Answers): boolean {
     return Boolean(t.most && t.least && t.most !== t.least);
   }
   return true;
+}
+
+// True when a triad has exactly one of most/least filled but not both
+function isPartialTriad(block: TestBlock, answers: Answers): boolean {
+  if (block.kind !== "triad") return false;
+  const v = answers[block.key] as { most?: string; least?: string } | undefined;
+  if (!v) return false;
+  const hasAny = Boolean(v.most || v.least);
+  const hasAll = Boolean(v.most && v.least && v.most !== v.least);
+  return hasAny && !hasAll;
 }
 
 // ─── Timer ───────────────────────────────────────────────────────────────────
@@ -86,13 +95,12 @@ function TimerPill({ mm, ss, isWarning, isCritical }: { mm: string; ss: string; 
   );
 }
 
-// ─── Question Navigator ───────────────────────────────────────────────────────
+// ─── Question Navigator (read-only — unidirectional) ─────────────────────────
 
-function QuestionNavigator({ blocks, answers, currentIndex, onJump }: {
+function QuestionNavigator({ blocks, answers, currentIndex }: {
   blocks: TestBlock[];
   answers: Answers;
   currentIndex: number;
-  onJump: (i: number) => void;
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -103,20 +111,18 @@ function QuestionNavigator({ blocks, answers, currentIndex, onJump }: {
             const done = isAnswered(b, answers);
             const cur = i === currentIndex;
             return (
-              <button
+              <div
                 key={b.key}
-                type="button"
-                onClick={() => onJump(i)}
-                className={`flex h-8 w-full items-center justify-center rounded-lg text-xs font-semibold transition-all ${
+                className={`flex h-8 w-full items-center justify-center rounded-lg text-xs font-semibold select-none ${
                   cur
                     ? "bg-[#1D4ED8] text-white shadow-sm"
                     : done
-                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                    : "bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0]"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : "bg-[#F1F5F9] text-[#64748B]"
                 }`}
               >
                 {i + 1}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -125,7 +131,7 @@ function QuestionNavigator({ blocks, answers, currentIndex, onJump }: {
         {[
           { cls: "bg-[#1D4ED8]", label: "Current" },
           { cls: "bg-emerald-400", label: "Answered" },
-          { cls: "bg-[#E2E8F0]", label: "Unanswered" },
+          { cls: "bg-[#E2E8F0]", label: "Not answered" },
         ].map(({ cls, label }) => (
           <div key={label} className="flex items-center gap-2">
             <span className={`h-2.5 w-2.5 rounded-sm ${cls}`} />
@@ -370,6 +376,7 @@ function TriadQuestion({ block, answers, setAnswers }: {
 
 // ─── Overlays ─────────────────────────────────────────────────────────────────
 
+
 function TimesUpOverlay({ onSubmit, submitting }: { onSubmit: () => void; submitting: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -388,73 +395,15 @@ function TimesUpOverlay({ onSubmit, submitting }: { onSubmit: () => void; submit
   );
 }
 
-function ReviewOverlay({ blocks, answers, onJump, onClose, onSubmit, submitting, error }: {
-  blocks: TestBlock[]; answers: Answers; onJump: (i: number) => void;
-  onClose: () => void; onSubmit: () => void; submitting: boolean; error: string | null;
-}) {
-  const answeredCount = blocks.filter((b) => isAnswered(b, answers)).length;
-  const total = blocks.length;
-  const unanswered = blocks.map((b, i) => ({ b, i })).filter(({ b }) => !isAnswered(b, answers));
-
+function SubmittingOverlay() {
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center">
-      <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] px-6 py-5">
-          <div>
-            <h2 className="text-lg font-bold text-white">Review & Submit</h2>
-            <p className="text-sm text-blue-100">
-              {answeredCount === total ? "All questions answered — ready to submit!" : `${total - answeredCount} question${total - answeredCount === 1 ? "" : "s"} unanswered`}
-            </p>
-          </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1.5 text-white/80 hover:bg-white/20 transition"><X size={18} /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-2xl">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+          <Loader2 size={30} className="animate-spin text-[#1D4ED8]" />
         </div>
-
-        <div className="space-y-4 p-6">
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { val: answeredCount, label: "Answered", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-              { val: total - answeredCount, label: "Skipped", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-              { val: total, label: "Total", cls: "bg-blue-50 text-[#1D4ED8] border-blue-200" },
-            ].map(({ val, label, cls }) => (
-              <div key={label} className={`rounded-2xl border p-3 text-center ${cls}`}>
-                <p className="text-2xl font-bold">{val}</p>
-                <p className="text-xs font-medium">{label}</p>
-              </div>
-            ))}
-          </div>
-
-          {unanswered.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#64748B]">Tap to answer skipped questions</p>
-              <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
-                {unanswered.map(({ b, i }) => (
-                  <button key={b.key} type="button" onClick={() => { onJump(i); onClose(); }}
-                    className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition">
-                    Q{i + 1}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
-              <AlertCircle size={14} className="mt-0.5 shrink-0 text-rose-500" />
-              <p className="text-sm text-rose-700">{error}</p>
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            <button type="button" onClick={onClose}
-              className="flex-1 rounded-xl border-2 border-[#E2E8F0] bg-white py-3 text-sm font-semibold text-[#334155] hover:bg-[#F8FAFC] transition">
-              Keep Answering
-            </button>
-            <button type="button" onClick={onSubmit} disabled={submitting}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#1E40AF] transition disabled:opacity-50">
-              {submitting ? <><Loader2 size={14} className="animate-spin" />Submitting…</> : <><SendHorizonal size={14} />Submit</>}
-            </button>
-          </div>
-        </div>
+        <h2 className="text-xl font-bold text-[#0F172A]">Submitting Your Responses</h2>
+        <p className="mt-2 text-sm text-[#64748B]">Please wait while your answers are being saved…</p>
       </div>
     </div>
   );
@@ -462,9 +411,9 @@ function ReviewOverlay({ blocks, answers, onJump, onClose, onSubmit, submitting,
 
 // ─── Mobile nav drawer ───────────────────────────────────────────────────────
 
-function MobileNavDrawer({ blocks, answers, currentIndex, onJump, onClose }: {
+function MobileNavDrawer({ blocks, answers, currentIndex, onClose }: {
   blocks: TestBlock[]; answers: Answers; currentIndex: number;
-  onJump: (i: number) => void; onClose: () => void;
+  onClose: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-30 lg:hidden">
@@ -474,7 +423,7 @@ function MobileNavDrawer({ blocks, answers, currentIndex, onJump, onClose }: {
           <p className="font-semibold text-[#0F172A]">Question Navigator</p>
           <button type="button" onClick={onClose} className="rounded-full p-1 text-[#64748B] hover:bg-[#F1F5F9]"><X size={18} /></button>
         </div>
-        <QuestionNavigator blocks={blocks} answers={answers} currentIndex={currentIndex} onJump={onJump} />
+        <QuestionNavigator blocks={blocks} answers={answers} currentIndex={currentIndex} />
       </div>
     </div>
   );
@@ -482,8 +431,28 @@ function MobileNavDrawer({ blocks, answers, currentIndex, onJump, onClose }: {
 
 // ─── Main Runner ─────────────────────────────────────────────────────────────
 
+// Best-effort fire-and-forget autosave — never throws, never blocks UI
+async function autosave(
+  attemptId: string,
+  answers: Answers,
+  skipped: Set<number>,
+  blocks: TestBlock[],
+) {
+  try {
+    const skippedKeys = [...skipped].map((i) => blocks[i]?.key).filter(Boolean);
+    await fetch(`/api/candidate/attempts/${attemptId}/autosave`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers, skippedKeys }),
+      credentials: "same-origin",
+    });
+  } catch {
+    // best-effort — ignore
+  }
+}
+
 export function CandidateTestRunner({
-  assignmentId, blocks, assessmentTitle, candidateName, durationMinutes = 45, attemptId: _,
+  assignmentId, blocks, assessmentTitle, candidateName, durationMinutes = 45, attemptId,
 }: {
   assignmentId: string;
   blocks: TestBlock[];
@@ -497,9 +466,11 @@ export function CandidateTestRunner({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showReview, setShowReview] = useState(false);
   const [timesUp, setTimesUp] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [unansweredWarning, setUnansweredWarning] = useState(false);
+  // Prevents double-click from advancing two questions at once
+  const navLockRef = useRef(false);
 
   const total = blocks.length;
   const block = blocks[currentIndex];
@@ -509,6 +480,7 @@ export function CandidateTestRunner({
   );
   const isCurrentAnswered = answeredSet.has(currentIndex);
   const progress = Math.round((answeredSet.size / total) * 100);
+  const skipped = new Set<number>(); // no skipping — kept for autosave API compat
 
   // scroll question area to top on question change
   const questionScrollRef = useRef<HTMLDivElement>(null);
@@ -516,14 +488,43 @@ export function CandidateTestRunner({
     questionScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentIndex]);
 
-  const handleSubmit = useCallback(async () => {
+  // Debounced auto-save to DB whenever answers change (1.5 s after last keystroke)
+  const answersRef = useRef(answers);
+  answersRef.current = answers;
+  useEffect(() => {
+    if (!attemptId) return;
+    const id = setTimeout(() => {
+      void autosave(attemptId, answersRef.current, new Set(), blocks);
+    }, 1500);
+    return () => clearTimeout(id);
+  }, [answers, attemptId, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reliable save on tab close / power off via sendBeacon
+  useEffect(() => {
+    if (!attemptId) return;
+    const handleUnload = () => {
+      const payload = JSON.stringify({ answers: answersRef.current, skippedKeys: [], trigger: "beforeunload" });
+      try {
+        navigator.sendBeacon(
+          `/api/candidate/attempts/${attemptId}/autosave`,
+          new Blob([payload], { type: "application/json" }),
+        );
+      } catch {
+        // sendBeacon not available
+      }
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [attemptId, blocks]);
+
+  const handleSubmit = useCallback(async (submissionType = "NORMAL") => {
     setError(null);
     setLoading(true);
     try {
       const res = await fetch("/api/candidate/demo-submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignmentId, answers }),
+        body: JSON.stringify({ assignmentId, answers, skippedKeys: [], submissionType }),
         credentials: "same-origin",
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; resultId?: string; error?: string };
@@ -532,38 +533,54 @@ export function CandidateTestRunner({
         setLoading(false);
         return;
       }
+      try { sessionStorage.removeItem("activeAttemptId"); } catch { /* ignore */ }
       router.push(`/candidate/reports/${data.resultId}`);
     } catch {
       setError("Network error — could not reach the server.");
       setLoading(false);
     }
-  }, [assignmentId, answers, router]);
+  }, [assignmentId, answers, skipped, blocks, router]);
 
-  const handleTimesUp = useCallback(() => { setShowReview(false); setTimesUp(true); }, []);
+  const handleTimesUp = useCallback(() => {
+    setTimesUp(true);
+    void handleSubmit("TIMED_OUT");
+  }, [handleSubmit]);
 
   const { mm, ss, isWarning, isCritical } = useCountdownTimer(durationMinutes * 60, handleTimesUp);
 
-  const goTo = useCallback((i: number) => { setCurrentIndex(i); setNavOpen(false); }, []);
-  const prev = () => setCurrentIndex((i) => Math.max(0, i - 1));
-  const next = () => setCurrentIndex((i) => Math.min(total - 1, i + 1));
+  const handleNext = useCallback(() => {
+    if (navLockRef.current) return;
+    if (!isAnswered(blocks[currentIndex], answers)) {
+      setUnansweredWarning(true);
+      setTimeout(() => setUnansweredWarning(false), 2500);
+      return;
+    }
+    navLockRef.current = true;
+
+    if (attemptId) {
+      void autosave(attemptId, answers, new Set(), blocks);
+    }
+
+    if (currentIndex < total - 1) {
+      setCurrentIndex((i) => i + 1);
+    } else {
+      void handleSubmit();
+    }
+
+    setTimeout(() => { navLockRef.current = false; }, 300);
+  }, [blocks, currentIndex, answers, total, attemptId, handleSubmit]);
 
   return (
     <>
-      {timesUp && <TimesUpOverlay onSubmit={() => void handleSubmit()} submitting={loading} />}
-      {showReview && (
-        <ReviewOverlay blocks={blocks} answers={answers} onJump={goTo}
-          onClose={() => setShowReview(false)} onSubmit={() => void handleSubmit()}
-          submitting={loading} error={error} />
-      )}
+      {(loading || timesUp) && <SubmittingOverlay />}
       {navOpen && (
         <MobileNavDrawer blocks={blocks} answers={answers} currentIndex={currentIndex}
-          onJump={goTo} onClose={() => setNavOpen(false)} />
+          onClose={() => setNavOpen(false)} />
       )}
 
       {/*
-        ROOT: h-full fills the shell's content div (which is h-screen minus 56px header).
+        ROOT: h-full forces the container to fit the parent exactly.
         flex-col stacks: [sub-header] + [body].
-        overflow-hidden = zero page scroll ever.
       */}
       <div className="flex h-full flex-col overflow-hidden bg-[#F1F5F9]">
 
@@ -598,9 +615,9 @@ export function CandidateTestRunner({
         */}
         <div className="flex min-h-0 flex-1">
 
-          {/* ── Left navigator (desktop only) ── */}
+          {/* ── Left navigator (desktop only, read-only) ── */}
           <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-[#E2E8F0] bg-white px-4 py-5 lg:flex">
-            <QuestionNavigator blocks={blocks} answers={answers} currentIndex={currentIndex} onJump={goTo} />
+            <QuestionNavigator blocks={blocks} answers={answers} currentIndex={currentIndex} />
           </aside>
 
           {/*
@@ -649,15 +666,6 @@ export function CandidateTestRunner({
                   )}
                 </div>
 
-                {/* All-answered shortcut (only shows mid-test) */}
-                {answeredSet.size === total && currentIndex < total - 1 && (
-                  <div className="mt-3 flex justify-center">
-                    <button type="button" onClick={() => setShowReview(true)}
-                      className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100">
-                      <CheckCircle2 size={14} /> All answered — Review & Submit
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
             {/* ↑ end question scroll area */}
@@ -669,20 +677,20 @@ export function CandidateTestRunner({
               not a child, so it never gets pushed off screen.
             */}
             <div className="shrink-0 border-t border-[#E2E8F0] bg-white px-4 py-3 sm:px-6">
+              {unansweredWarning && (
+                <div className="mx-auto mb-2 flex max-w-2xl items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                  <AlertCircle size={13} className="shrink-0 text-amber-600" />
+                  <p className="text-xs font-medium text-amber-700">
+                    {blocks[currentIndex]?.kind === "triad"
+                      ? "Please select both a Most like me and a Least like me option before continuing."
+                      : "Please answer this question before continuing."}
+                  </p>
+                </div>
+              )}
               <div className="mx-auto flex max-w-2xl items-center gap-3">
-                {/* Previous */}
-                <button
-                  type="button"
-                  onClick={prev}
-                  disabled={currentIndex === 0}
-                  className="flex items-center gap-1.5 rounded-xl border-2 border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-semibold text-[#334155] transition hover:border-[#93C5FD] hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <ChevronLeft size={16} />
-                  <span className="hidden sm:inline">Previous</span>
-                </button>
 
                 {/* Centre status */}
-                <div className="flex flex-1 items-center justify-center gap-2">
+                <div className="flex flex-1 items-center gap-2">
                   {isCurrentAnswered ? (
                     <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
                       <CheckCircle2 size={14} /> Answered
@@ -694,24 +702,23 @@ export function CandidateTestRunner({
                   )}
                 </div>
 
-                {/* Next / Submit */}
+                {/* Next / Submit — Submit only shows on the very last question */}
                 {currentIndex < total - 1 ? (
                   <button
                     type="button"
-                    onClick={next}
+                    onClick={handleNext}
                     className="flex items-center gap-1.5 rounded-xl bg-[#1D4ED8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF]"
                   >
-                    <span className="hidden sm:inline">Next</span>
+                    <span>Next</span>
                     <ChevronRight size={16} />
                   </button>
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setShowReview(true)}
+                    onClick={handleNext}
                     className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
                   >
-                    <span className="hidden sm:inline">Review & Submit</span>
-                    <span className="sm:hidden">Submit</span>
+                    Submit
                     <SendHorizonal size={14} />
                   </button>
                 )}

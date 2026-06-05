@@ -14,6 +14,7 @@ import {
   defaultReportTemplateForAssessmentType,
   isReportTemplateType,
 } from "@/lib/report-layout";
+import { CreateAssessmentButton } from "./submit-button";
 
 const ASSESSMENT_TYPES: AssessmentType[] = [
   "KNOWLEDGE_MCQ",
@@ -209,9 +210,7 @@ export default async function NewAssessmentPage({
             </label>
           </div>
 
-          <button type="submit" className="tg-button-primary w-fit">
-            Create and open builder
-          </button>
+          <CreateAssessmentButton />
         </form>
       </FormCard>
     </main>

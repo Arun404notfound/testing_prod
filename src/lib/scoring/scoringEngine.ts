@@ -184,8 +184,39 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
     traitAgg.set(key, prev);
   };
 
+  // ── Pre-pass: register full possible max for EVERY item/block ──────────────
+  // This ensures unanswered items still contribute their max to the trait
+  // aggregator, so skipped questions correctly reduce the trait percentage.
+  for (const b of ctx.blocks) {
+    if (b.kind === "legacy_mcq") {
+      const q = ctx.questionById.get(b.questionId);
+      if (!q) continue;
+      bumpTrait(q.section, q.category, q.explanation.slice(0, 120) || q.category, 0, 1);
+      bumpSection(q.section, 0, 1);
+    } else if (b.kind === "item_mcq" || b.kind === "item_tf") {
+      const item = ctx.itemById.get(b.itemId);
+      if (!item) continue;
+      const max = maxMarksForMcqItem(item.options);
+      bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), 0, max);
+      bumpSection(item.sectionTitle, 0, max);
+    } else if (b.kind === "likert") {
+      const item = ctx.itemById.get(b.itemId);
+      if (!item) continue;
+      bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), 0, 5);
+      bumpSection(item.sectionTitle, 0, 5);
+    } else if (b.kind === "triad") {
+      const group = ctx.triadByGroupId.get(b.groupId);
+      if (!group) continue;
+      for (const st of group.statements) {
+        bumpTrait(st.factor, st.trait, st.definition, 0, 3);
+      }
+      bumpSection(group.sectionTitle, 0, 6);
+    }
+  }
+
+  // totalMax comes from the pre-pass (all items); only totalRaw accumulates per answer
   let totalRaw = 0;
-  let totalMax = 0;
+  const totalMax = Array.from(sectionAgg.values()).reduce((s, a) => s + a.max, 0);
 
   for (const b of ctx.blocks) {
     const v = ctx.answers[b.key];
@@ -193,13 +224,12 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
       const selectedOption = Number(v);
       const q = ctx.questionById.get(b.questionId);
       if (!q) continue;
+      if (!Number.isFinite(selectedOption)) continue;
       const isCorrect = selectedOption === q.correctOption;
       const score = isCorrect ? 1 : 0;
-      const max = 1;
       totalRaw += score;
-      totalMax += max;
-      bumpSection(q.section, score, max);
-      bumpTrait(q.section, q.category, q.explanation.slice(0, 120) || q.category, score, max);
+      // Only bump raw — max already registered in pre-pass
+      bumpTrait(q.section, q.category, q.explanation.slice(0, 120) || q.category, score, 0);
 
       evaluations.push({
         itemId: q.id,
@@ -207,7 +237,7 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         selectedAnswer: selectedOption,
         correctAnswer: q.correctOption,
         score,
-        maxScore: max,
+        maxScore: 1,
         isCorrect,
         factor: q.section,
         attribute: q.category,
@@ -224,14 +254,13 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
       const score = opt.isCorrect ? optionMarks(opt) : 0;
       const isCorrect = opt.isCorrect;
       totalRaw += score;
-      totalMax += max;
-      bumpSection(item.sectionTitle, score, max);
+      // Only bump raw — max already registered in pre-pass
       bumpTrait(
         item.factor ?? "General",
         item.trait ?? "General",
         item.definition ?? item.prompt.slice(0, 120),
         score,
-        max,
+        0,
       );
 
       const correctOpt = item.options.find((o) => o.isCorrect);
@@ -260,17 +289,16 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
       const selectedRating = Number(v);
       const item = ctx.itemById.get(b.itemId);
       if (!item) continue;
+      if (!Number.isFinite(selectedRating) || selectedRating < 1 || selectedRating > 5) continue;
       const score = likertScoredValue(selectedRating, item.polarity);
-      const max = 5;
       totalRaw += score;
-      totalMax += max;
-      bumpSection(item.sectionTitle, score, max);
+      // Only bump raw — max already registered in pre-pass
       bumpTrait(
         item.factor ?? "General",
         item.trait ?? "General",
         item.definition ?? item.prompt.slice(0, 120),
         score,
-        max,
+        0,
       );
 
       evaluations.push({
@@ -279,7 +307,7 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         selectedAnswer: selectedRating,
         correctAnswer: null,
         score,
-        maxScore: max,
+        maxScore: 5,
         isCorrect: null,
         factor: item.factor ?? "General",
         attribute: item.trait ?? "General",
@@ -293,9 +321,10 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         scoredValue: score,
       });
     } else if (b.kind === "triad") {
-      const t = v as { most: string; least: string };
+      const t = v as { most?: string; least?: string } | undefined;
       const group = ctx.triadByGroupId.get(b.groupId);
       if (!group) continue;
+      if (!t || typeof t !== "object" || !t.most || !t.least || t.most === t.least) continue;
       const mostId = t.most;
       const leastId = t.least;
       let groupRaw = 0;
@@ -308,7 +337,7 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         else role = "neutral";
         const stmtScore = triadRoleScore(st.polarity, role);
         groupRaw += stmtScore;
-        bumpTrait(st.factor, st.trait, st.definition, stmtScore, 3);
+        bumpTrait(st.factor, st.trait, st.definition, stmtScore, 0); // max pre-registered
         evaluations.push({
           itemId: st.id,
           itemType: "TRIAD",
@@ -324,7 +353,6 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
       }
       bumpSection(group.sectionTitle, groupRaw, maxPerGroup);
       totalRaw += groupRaw;
-      totalMax += maxPerGroup;
 
       attemptResponses.push({
         triadGroupId: b.groupId,

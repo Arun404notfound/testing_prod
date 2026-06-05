@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
+import { AlertCircle, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { logoutAction } from "@/app/actions/auth";
 
 export function CandidateAppShell({
@@ -16,6 +16,27 @@ export function CandidateAppShell({
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showSignOutWarning, setShowSignOutWarning] = useState(false);
+  const [submittingAndOut, setSubmittingAndOut] = useState(false);
+  const [, startSignOutTransition] = useTransition();
+
+  const handleSignOutFromTest = async () => {
+    const attemptId = (() => { try { return sessionStorage.getItem("activeAttemptId"); } catch { return null; } })();
+    if (attemptId) {
+      setSubmittingAndOut(true);
+      try {
+        await fetch(`/api/candidate/attempts/${attemptId}/submit-progress`, {
+          method: "POST",
+          credentials: "same-origin",
+        });
+      } catch { /* best-effort */ } finally {
+        setSubmittingAndOut(false);
+      }
+      try { sessionStorage.removeItem("activeAttemptId"); } catch { /* ignore */ }
+    }
+    setShowSignOutWarning(false);
+    startSignOutTransition(() => { void logoutAction(); });
+  };
   const initials = email
     .split("@")[0]
     .split(/[._-]/)
@@ -25,11 +46,53 @@ export function CandidateAppShell({
 
   const isTestPage = pathname.includes("/test/");
 
+  const SignOutWarningModal = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="px-6 pt-6 pb-4">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+            <AlertCircle size={22} className="text-amber-600" />
+          </div>
+          <h2 className="text-center text-base font-bold text-[#0F172A]">Assessment in Progress</h2>
+          <p className="mt-2 text-center text-sm leading-relaxed text-[#475569]">
+            You are currently in the middle of an assessment. Your answers are being auto-saved, but signing out will leave the test incomplete.
+          </p>
+          <p className="mt-2 text-center text-sm text-[#64748B]">
+            Your answered questions will be <span className="font-semibold text-[#1D4ED8]">auto-submitted</span> if you sign out now.
+          </p>
+        </div>
+        <div className="flex border-t border-[#F1F5F9]">
+          <button
+            type="button"
+            disabled={submittingAndOut}
+            onClick={() => setShowSignOutWarning(false)}
+            className="flex-1 py-4 text-sm font-semibold text-[#1D4ED8] hover:bg-[#F8FAFC] transition disabled:opacity-50"
+          >
+            Stay &amp; Continue
+          </button>
+          <div className="w-px bg-[#F1F5F9]" />
+          <button
+            type="button"
+            disabled={submittingAndOut}
+            onClick={() => void handleSignOutFromTest()}
+            className="flex flex-1 items-center justify-center gap-2 py-4 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition disabled:opacity-50"
+          >
+            {submittingAndOut ? (
+              <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-rose-300 border-t-rose-600" />Submitting…</>
+            ) : "Submit & Sign Out"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   /* ── TEST PAGE: true full-screen, zero page scroll ─────────────────────── */
   if (isTestPage) {
     return (
       /* h-screen + overflow-hidden = browser viewport is the only scroll root */
       <div className="flex h-screen flex-col overflow-hidden bg-[#F8FAFC] text-[#334155]">
+        {showSignOutWarning && <SignOutWarningModal />}
+
         {/* Top bar — fixed height, shrinks nothing */}
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-white px-4 sm:px-6">
           <div className="relative h-7 w-28">
@@ -49,14 +112,13 @@ export function CandidateAppShell({
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-xs font-bold text-white">
               {initials || email.slice(0, 2).toUpperCase()}
             </div>
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="text-sm font-medium text-[#64748B] transition hover:text-rose-600"
-              >
-                Sign out
-              </button>
-            </form>
+            <button
+              type="button"
+              onClick={() => setShowSignOutWarning(true)}
+              className="text-sm font-medium text-[#64748B] transition hover:text-rose-600"
+            >
+              Sign out
+            </button>
           </div>
         </header>
 

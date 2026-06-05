@@ -13,16 +13,18 @@ import {
   allowsTriadPool,
 } from "@/lib/assessment-pools";
 import {
-  addLikertFromPool,
-  addMcqQuestion,
-  addTriadFromPool,
   removeCompositionItem,
   removeMcqQuestion,
+  saveAssessmentDetails,
   setLifecycleStatus,
   updateAssessmentBrandingTenant,
   updateAssessmentReportTemplate,
 } from "./actions";
 import { REPORT_TEMPLATE_LABELS, REPORT_TEMPLATE_TYPES } from "@/lib/report-layout";
+import { BulkMcqPool } from "./bulk-mcq-pool";
+import { BulkLikertPool } from "./bulk-likert-pool";
+import { BulkTriadPool } from "./bulk-triad-pool";
+import { BuilderHeaderActions } from "./builder-header-actions";
 
 type Search = {
   tab?: string;
@@ -114,6 +116,7 @@ export default async function AssessmentBuilderPage({
   });
   const boundUpdateBrandingTenant = updateAssessmentBrandingTenant.bind(null, assessment.id);
   const boundUpdateReportTemplate = updateAssessmentReportTemplate.bind(null, assessment.id);
+  const boundSaveDetails = saveAssessmentDetails.bind(null, assessment.id);
 
   const assessmentType = assessment.assessmentType;
   const tab = resolveTab(assessmentType, sp.tab);
@@ -288,17 +291,20 @@ export default async function AssessmentBuilderPage({
 
   return (
     <main className="tg-page space-y-6">
-      <PageHeader
-        title={assessment.title}
-        subtitle={`Builder · ${assessmentType} · ${assessment.lifecycleStatus}`}
-        right={
-          <div className="flex flex-wrap items-center gap-3">
-            <Link href="/admin/assessments" className="text-sm font-medium text-[#1D4ED8] hover:underline">
-              All assessments
-            </Link>
-          </div>
-        }
-      />
+      <div>
+        <Link href="/admin/assessments" className="inline-flex items-center gap-1 text-xs font-medium text-[#64748B] hover:text-[#334155] transition mb-3">
+          ← Back to assessments
+        </Link>
+        <PageHeader
+          title={assessment.title}
+          subtitle={`Builder · ${assessmentType} · ${assessment.lifecycleStatus}`}
+          right={
+            <div className="flex flex-wrap items-center gap-3">
+              <BuilderHeaderActions assessmentId={assessment.id} assessmentTitle={assessment.title} />
+            </div>
+          }
+        />
+      </div>
 
       <FormCard title="Publish status">
         <p className="mb-3 text-sm text-[#64748B]">
@@ -330,6 +336,48 @@ export default async function AssessmentBuilderPage({
             </button>
           </form>
         </div>
+      </FormCard>
+
+      <FormCard title="Edit details">
+        <p className="mb-4 text-sm text-[#64748B]">
+          Update the assessment title, description, and duration. Changes are saved immediately.
+        </p>
+        <form action={boundSaveDetails} className="grid gap-4">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="text-sm text-[#334155]">
+              <span className="mb-1 block font-medium">Title</span>
+              <input
+                name="title"
+                required
+                defaultValue={assessment.title}
+                className="tg-input w-full"
+                placeholder="Assessment title"
+              />
+            </label>
+            <label className="text-sm text-[#334155]">
+              <span className="mb-1 block font-medium">Duration (minutes)</span>
+              <input
+                name="durationMinutes"
+                type="number"
+                min={1}
+                defaultValue={assessment.durationMinutes ?? ""}
+                className="tg-input w-full"
+              />
+            </label>
+          </div>
+          <label className="text-sm text-[#334155]">
+            <span className="mb-1 block font-medium">Description</span>
+            <textarea
+              name="description"
+              rows={2}
+              defaultValue={assessment.description ?? ""}
+              className="tg-input w-full"
+            />
+          </label>
+          <button type="submit" className="tg-button-primary w-fit text-sm">
+            Save details
+          </button>
+        </form>
       </FormCard>
 
       <FormCard title="Tenant & branding">
@@ -463,192 +511,31 @@ export default async function AssessmentBuilderPage({
       {tab === "mcq" && allowsMcqPool(assessmentType) ? (
         <FormCard title="MCQ question pool">
           <p className="mb-3 text-sm text-[#64748B]">Tenant question bank. MCQ demo flow uses linked questions only.</p>
-          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
-            {mcqPool.map((q) => (
-              <li key={q.id} className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-xs text-slate-500">
-                    {q.section} · {q.category}
-                  </p>
-                  <p className="text-sm text-[#0F172A]">{q.questionText}</p>
-                </div>
-                {selectedMcqIds.has(q.id) ? (
-                  <form action={removeMcqQuestion.bind(null, assessment.id, q.id)}>
-                    <button type="submit" className="text-sm font-medium text-rose-600 hover:underline">
-                      Remove
-                    </button>
-                  </form>
-                ) : (
-                  <form action={addMcqQuestion.bind(null, assessment.id, q.id)}>
-                    <button type="submit" className="text-sm font-medium text-[#1D4ED8] hover:underline">
-                      Add
-                    </button>
-                  </form>
-                )}
-              </li>
-            ))}
-            {mcqPool.length === 0 ? (
-              <li className="p-4 text-sm text-slate-500">No questions match filters.</li>
-            ) : null}
-          </ul>
+          <BulkMcqPool assessmentId={assessment.id} items={mcqPool} selectedIdList={[...selectedMcqIds]} />
         </FormCard>
       ) : null}
 
       {tab === "likert" && allowsLikertPool(assessmentType) ? (
         <FormCard title={`Likert question pool (${likertItems.length})`}>
-          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
-            {likertItems.map((item) => {
-              const attrInfo = item.trait ? attrByName.get(item.trait.toLowerCase()) : undefined;
-              const isSelected = selectedLikertIds.has(item.id);
-              return (
-                <li key={item.id} className={`flex flex-col gap-2 p-3 md:flex-row md:items-start md:justify-between ${isSelected ? "bg-emerald-50" : ""}`}>
-                  <div className="min-w-0 flex-1">
-                    {/* Big Five factor · polarity */}
-                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                      {item.factor}{item.polarity ? ` · ${item.polarity}` : ""}
-                    </p>
-                    {/* Question text */}
-                    <p className="text-sm text-[#0F172A]">{item.prompt}</p>
-                    {/* Attribute + Competency badges */}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      {attrInfo ? (
-                        <>
-                          <span className="inline-flex items-center gap-1 rounded border border-[#DBEAFE] bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-semibold text-[#1D4ED8]">
-                            [{attrInfo.code}] {item.trait}
-                          </span>
-                          {attrInfo.competencies.map((c) => (
-                            <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
-                              {c}
-                            </span>
-                          ))}
-                        </>
-                      ) : item.trait ? (
-                        <span className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
-                          {item.trait} <span className="ml-1 opacity-60">(no mapping)</span>
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="shrink-0 pt-0.5">
-                    {isSelected ? (
-                      <form action={removeCompositionItem.bind(null, assessment.id, compositionIdByLikertItemId.get(item.id) ?? "")}>
-                        <button type="submit" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-100">
-                          ✓ Added · Remove
-                        </button>
-                      </form>
-                    ) : (
-                      <form action={addLikertFromPool.bind(null, assessment.id, item.id)}>
-                        <button type="submit" className="rounded-md border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-1 text-xs font-medium text-[#1D4ED8] hover:bg-blue-100">
-                          + Add
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-            {likertItems.length === 0 ? (
-              <li className="p-4 text-sm text-slate-500">No Likert items match filters.</li>
-            ) : null}
-          </ul>
+          <BulkLikertPool
+            assessmentId={assessment.id}
+            items={likertItems}
+            selectedIdList={[...selectedLikertIds]}
+            compositionIdMap={[...compositionIdByLikertItemId]}
+            attrByNameEntries={[...attrByName]}
+          />
         </FormCard>
       ) : null}
 
       {tab === "triad" && allowsTriadPool(assessmentType) ? (
         <FormCard title={`Triad question pool (${triadGroups.length})`}>
-          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
-            {triadGroups.map((g) => {
-              const isSelected = selectedTriadIds.has(g.id);
-
-              // Collect unique competencies across all statements in this group
-              const groupComps: string[] = [];
-              for (const s of g.statements) {
-                const info = s.trait ? attrByName.get(s.trait.toLowerCase()) : undefined;
-                if (info) {
-                  for (const c of info.competencies) {
-                    if (!groupComps.includes(c)) groupComps.push(c);
-                  }
-                }
-              }
-
-              return (
-                <li key={g.id} className={`flex flex-col gap-3 p-3 md:flex-row md:items-start md:justify-between ${isSelected ? "bg-emerald-50" : ""}`}>
-                  <div className="min-w-0 flex-1">
-                    {/* Section · group code */}
-                    <p className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                      {g.section.title}{g.triadGroupCode ? ` · ${g.triadGroupCode}` : ""}
-                    </p>
-                    {/* Group title */}
-                    <p className="text-sm font-semibold text-[#0F172A]">{g.title}</p>
-                    {/* Competency summary line */}
-                    {groupComps.length > 0 && (
-                      <div className="mt-1 mb-2 flex flex-wrap items-center gap-1">
-                        <span className="text-[10px] font-medium text-slate-400 mr-0.5">Competencies:</span>
-                        {groupComps.map((c) => (
-                          <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">
-                            {c}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {/* Each statement with its attribute + competency */}
-                    <div className="space-y-2">
-                      {g.statements.map((s, si) => {
-                        const label = ["A", "B", "C"][si] ?? String(si + 1);
-                        const sAttrInfo = s.trait ? attrByName.get(s.trait.toLowerCase()) : undefined;
-                        return (
-                          <div key={s.id} className="flex items-start gap-2">
-                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600">
-                              {label}
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-sm text-[#0F172A]">{s.statementText}</p>
-                              <div className="mt-1 flex flex-wrap items-center gap-1">
-                                {sAttrInfo ? (
-                                  <>
-                                    <span className="inline-flex items-center gap-1 rounded border border-[#DBEAFE] bg-[#EFF6FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#1D4ED8]">
-                                      [{sAttrInfo.code}] {s.trait}
-                                    </span>
-                                    {sAttrInfo.competencies.map((c) => (
-                                      <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
-                                        {c}
-                                      </span>
-                                    ))}
-                                  </>
-                                ) : s.trait ? (
-                                  <span className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700">
-                                    {s.trait} <span className="ml-1 opacity-60">(no mapping)</span>
-                                  </span>
-                                ) : null}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  <div className="shrink-0 pt-0.5">
-                    {isSelected ? (
-                      <form action={removeCompositionItem.bind(null, assessment.id, compositionIdByTriadGroupId.get(g.id) ?? "")}>
-                        <button type="submit" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-100">
-                          ✓ Added · Remove
-                        </button>
-                      </form>
-                    ) : (
-                      <form action={addTriadFromPool.bind(null, assessment.id, g.id)}>
-                        <button type="submit" className="rounded-md border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-1 text-xs font-medium text-[#1D4ED8] hover:bg-blue-100">
-                          + Add
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-            {triadGroups.length === 0 ? (
-              <li className="p-4 text-sm text-slate-500">No triad groups match filters.</li>
-            ) : null}
-          </ul>
+          <BulkTriadPool
+            assessmentId={assessment.id}
+            groups={triadGroups}
+            selectedIdList={[...selectedTriadIds]}
+            compositionIdMap={[...compositionIdByTriadGroupId]}
+            attrByNameEntries={[...attrByName]}
+          />
         </FormCard>
       ) : null}
 

@@ -5,7 +5,7 @@ import { tenantMatchesRow } from "@/lib/tenant-match";
 import { getSession } from "@/lib/auth/session";
 import { shuffleArray } from "@/lib/shuffle";
 import { buildTestBlocks, shuffleBlockOptions } from "@/lib/candidate-test-payload";
-import { CandidateTestRunner } from "./test-runner";
+import { InstructionsGate } from "./instructions-gate";
 
 function testAccessBlocked(
   assessment: {
@@ -83,8 +83,7 @@ export default async function CandidateTestPage({
   if (assignment.assessment.randomizeQuestions) blocks = shuffleArray(blocks);
   blocks = shuffleBlockOptions(blocks, assignment.assessment.randomizeOptions);
 
-  // 45 minutes per 50 questions; scale proportionally for other sizes
-  const durationMinutes = Math.max(10, Math.round((blocks.length / 50) * 45));
+  const durationMinutes = assignment.assessment.durationMinutes;
 
   if (accessBlocked) {
     return (
@@ -107,7 +106,7 @@ export default async function CandidateTestPage({
   }
 
   return (
-    <CandidateTestRunner
+    <InstructionsGate
       assignmentId={assignment.id}
       blocks={blocks}
       assessmentTitle={assignment.assessment.title}

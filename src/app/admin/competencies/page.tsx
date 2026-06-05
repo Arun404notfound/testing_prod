@@ -6,6 +6,7 @@ import {
   SCORING_FORMULA_LABELS,
   SCORING_FORMULA_DESCRIPTIONS,
 } from "@/lib/scoring/competencyEngine";
+import { WeightEditorPanel } from "./weight-editor-panel";
 
 async function updateAttribute(formData: FormData) {
   "use server";
@@ -131,6 +132,20 @@ async function deleteMapping(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
   await prisma.attributeCompetencyMap.delete({ where: { id } }).catch(() => {});
+  revalidatePath("/admin/competencies");
+}
+
+async function bulkUpdateWeights(updates: { id: string; weight: number }[]) {
+  "use server";
+  if (!updates.length) return;
+  await Promise.all(
+    updates.map((u) =>
+      prisma.attributeCompetencyMap.update({
+        where: { id: u.id },
+        data: { weight: isFinite(u.weight) && u.weight > 0 ? u.weight : 1 },
+      }).catch(() => {})
+    )
+  );
   revalidatePath("/admin/competencies");
 }
 
@@ -388,7 +403,7 @@ export default async function CompetenciesPage({
                           <form action={updateCompetencyFormula} className="flex items-center gap-2">
                             <input type="hidden" name="id" value={c.id} />
                             <label className="text-xs text-[#64748B] whitespace-nowrap">Formula:</label>
-                            <select name="scoringFormula" defaultValue={c.scoringFormula} className="flex-1 rounded border border-[#E2E8F0] px-2 py-1 text-xs text-[#334155] focus:outline-none">
+                            <select key={c.scoringFormula} name="scoringFormula" defaultValue={c.scoringFormula} className="flex-1 rounded border border-[#E2E8F0] px-2 py-1 text-xs text-[#334155] focus:outline-none">
                               {Object.entries(SCORING_FORMULA_LABELS).map(([value, label]) => (
                                 <option key={value} value={value}>{label}</option>
                               ))}
@@ -448,7 +463,8 @@ export default async function CompetenciesPage({
       {/* ── Mappings tab ── */}
       {tab === "mappings" && (
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Map form */}
+          {/* Left column: Map form + Weight editor */}
+          <div className="space-y-6">
           <div className={card}>
             <div className={cardHeader}>
               <h2 className="text-sm font-semibold text-[#0F172A]">Map Attribute → Competency</h2>
@@ -483,6 +499,25 @@ export default async function CompetenciesPage({
                 Save Mapping
               </button>
             </form>
+          </div>
+
+          {/* Bulk weight editor */}
+          {competencies.length > 0 && (
+            <WeightEditorPanel
+              competencies={competencies.map((c) => ({
+                id: c.id,
+                name: c.name,
+                mappings: mappings
+                  .filter((m) => m.competencyId === c.id)
+                  .map((m) => ({
+                    id: m.id,
+                    weight: m.weight,
+                    attribute: { code: m.attribute.code, name: m.attribute.name },
+                  })),
+              }))}
+              bulkUpdateWeights={bulkUpdateWeights}
+            />
+          )}
           </div>
 
           {/* Mappings list + competency summary */}
@@ -554,3 +589,4 @@ export default async function CompetenciesPage({
     </div>
   );
 }
+

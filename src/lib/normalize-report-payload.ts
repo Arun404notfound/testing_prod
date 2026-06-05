@@ -179,6 +179,7 @@ export function normalizeReportPayload(data: unknown): ReportPayload | null {
     traitScores,
     factorAggregates,
     attemptId: typeof o.attemptId === "string" || o.attemptId === null ? o.attemptId : null,
+    submissionType: typeof o.submissionType === "string" ? o.submissionType : null,
     attemptResponses,
     tenantBranding,
     competencyScores: Array.isArray(o.competencyScores)

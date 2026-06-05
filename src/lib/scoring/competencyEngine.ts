@@ -151,9 +151,13 @@ export function computeCompetencyScores(
 
     for (const mapping of comp.attributes) {
       const attr = attrMap.get(mapping.attributeId);
-      if (!attr || attr.maxScore <= 0) continue;
-      const score = Math.min(10, (attr.rawScore / attr.maxScore) * 10);
-      attrs.push({ score, weight: mapping.weight, raw: attr.rawScore, max: attr.maxScore });
+      // Missing or zero-max attributes count as 0 score but still contribute
+      // their weight to the denominator — otherwise a partially-answered
+      // assessment inflates scores by excluding unanswered attributes.
+      const score = attr && attr.maxScore > 0
+        ? Math.min(10, (attr.rawScore / attr.maxScore) * 10)
+        : 0;
+      attrs.push({ score, weight: mapping.weight, raw: attr?.rawScore ?? 0, max: attr?.maxScore ?? 0 });
     }
 
     if (attrs.length === 0) continue;

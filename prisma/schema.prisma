@@ -137,6 +137,7 @@ model Candidate {
   designation String
   department  String
   location    String
+  batchName   String?
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @default(now()) @updatedAt
   tenant      Tenant?                @relation(fields: [tenantId], references: [id], onDelete: SetNull)
@@ -148,6 +149,7 @@ model Candidate {
   @@index([tenantId])
   @@index([email])
   @@index([employeeId])
+  @@index([batchName])
 }
 
 model Assessment {
@@ -370,6 +372,10 @@ model AssessmentAttempt {
   proctoringSnapshot      String?
   /// Final trust score (0–100) set when attempt is scored
   trustScore              Int?
+  /// Auto-saved answers snapshot — written periodically during the test so progress survives interruptions
+  progressData            Json?
+  /// How the attempt was closed: NORMAL | TIMED_OUT | SIGNED_OUT | TAB_CLOSED | AUTO_SUBMITTED
+  submissionType          String?
   createdAt    DateTime              @default(now())
   updatedAt    DateTime              @default(now()) @updatedAt
   assignment   AssessmentAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
@@ -585,6 +591,7 @@ model ImportJob {
   importType   ImportType
   status       ImportJobStatus @default(PROCESSING)
   fileName     String
+  batchName    String?
   totalRows    Int             @default(0)
   successRows  Int             @default(0)
   failedRows   Int             @default(0)

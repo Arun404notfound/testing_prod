@@ -14,6 +14,7 @@ export type CreateCandidateWithLoginInput = {
   designation: string;
   department: string;
   location: string;
+  batchName?: string | null;
 };
 
 export type CreateCandidateWithLoginResult =
@@ -58,6 +59,7 @@ export async function createCandidateWithLoginUser(
           designation: input.designation.trim(),
           department: input.department.trim(),
           location: input.location.trim(),
+          batchName: input.batchName ?? null,
           userId: existingUser.id,
         },
       });
@@ -86,6 +88,7 @@ export async function createCandidateWithLoginUser(
             designation: input.designation.trim(),
             department: input.department.trim(),
             location: input.location.trim(),
+            batchName: input.batchName ?? null,
           },
         },
       },

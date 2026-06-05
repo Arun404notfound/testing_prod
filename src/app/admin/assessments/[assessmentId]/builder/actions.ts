@@ -28,6 +28,97 @@ async function resolveAssessmentTenantIdFromForm(formData: FormData): Promise<st
   return row?.id ?? null;
 }
 
+export async function addMcqQuestionsBulk(assessmentId: string, formData: FormData) {
+  const tenantId = await getDefaultTenantId();
+  const assessment = await assertAssessment(assessmentId);
+  if (!allowsMcqPool(assessment.assessmentType)) return;
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  if (!ids.length) return;
+  const questions = await prisma.question.findMany({ where: { id: { in: ids }, tenantId }, select: { id: true } });
+  for (const q of questions) {
+    await prisma.assessmentQuestion.upsert({
+      where: { assessmentId_questionId: { assessmentId, questionId: q.id } },
+      create: { assessmentId, questionId: q.id },
+      update: {},
+    });
+  }
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  revalidatePath("/admin/assessments");
+}
+
+export async function addLikertFromPoolBulk(assessmentId: string, formData: FormData) {
+  const tenantId = await getDefaultTenantId();
+  const assessment = await assertAssessment(assessmentId);
+  if (!allowsLikertPool(assessment.assessmentType)) return;
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  if (!ids.length) return;
+  const tenantIds = await tenantAssessmentIds(tenantId);
+  const items = await prisma.assessmentItem.findMany({
+    where: { id: { in: ids }, assessmentId: { in: tenantIds }, itemType: "LIKERT" },
+    select: { id: true },
+  });
+  const sectionId = await primarySectionId(assessmentId);
+  for (const item of items) {
+    const dup = await prisma.assessmentCompositionItem.findFirst({ where: { assessmentId, sourceAssessmentItemId: item.id } });
+    if (dup) continue;
+    const maxOrder = await prisma.assessmentCompositionItem.aggregate({ where: { sectionId }, _max: { displayOrder: true } });
+    await prisma.assessmentCompositionItem.create({
+      data: { assessmentId, sectionId, displayOrder: (maxOrder._max.displayOrder ?? 0) + 1, sourceAssessmentItemId: item.id },
+    });
+  }
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  revalidatePath("/admin/assessments");
+}
+
+export async function addTriadFromPoolBulk(assessmentId: string, formData: FormData) {
+  const tenantId = await getDefaultTenantId();
+  const assessment = await assertAssessment(assessmentId);
+  if (!allowsTriadPool(assessment.assessmentType)) return;
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  if (!ids.length) return;
+  const tenantIds = await tenantAssessmentIds(tenantId);
+  const groups = await prisma.triadGroup.findMany({
+    where: { id: { in: ids }, assessmentId: { in: tenantIds } },
+    select: { id: true },
+  });
+  const sectionId = await primarySectionId(assessmentId);
+  for (const group of groups) {
+    const dup = await prisma.assessmentCompositionItem.findFirst({ where: { assessmentId, sourceTriadGroupId: group.id } });
+    if (dup) continue;
+    const maxOrder = await prisma.assessmentCompositionItem.aggregate({ where: { sectionId }, _max: { displayOrder: true } });
+    await prisma.assessmentCompositionItem.create({
+      data: { assessmentId, sectionId, displayOrder: (maxOrder._max.displayOrder ?? 0) + 1, sourceTriadGroupId: group.id },
+    });
+  }
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  revalidatePath("/admin/assessments");
+}
+
+export async function saveAssessmentDetails(assessmentId: string, formData: FormData) {
+  await assertAssessment(assessmentId);
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const duration = parseInt(String(formData.get("durationMinutes") ?? ""), 10);
+  if (!title) return;
+  await prisma.assessment.update({
+    where: { id: assessmentId },
+    data: {
+      title,
+      ...(description && { description }),
+      ...(Number.isFinite(duration) && duration > 0 && { durationMinutes: duration }),
+    },
+  });
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  revalidatePath("/admin/assessments");
+}
+
+export async function deleteAssessmentById(assessmentId: string) {
+  await assertAssessment(assessmentId);
+  await prisma.assessment.delete({ where: { id: assessmentId } });
+  revalidatePath("/admin/assessments");
+  redirect("/admin/assessments");
+}
+
 export async function updateAssessmentBrandingTenant(assessmentId: string, formData: FormData) {
   await assertAssessment(assessmentId);
   const nextTenantId = await resolveAssessmentTenantIdFromForm(formData);

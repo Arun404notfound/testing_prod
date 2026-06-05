@@ -82,6 +82,7 @@ export type ReportPayload = {
   traitScores: ReportTraitScoreRow[];
   factorAggregates: ReportFactorAggregate[];
   attemptId: string | null;
+  submissionType: string | null;
   attemptResponses: ReportAttemptResponseRow[];
   tenantBranding: ReportTenantBranding;
   competencyScores: ReportCompetencyScore[];
@@ -318,6 +319,7 @@ export async function getReportPayload(
     traitScores,
     factorAggregates,
     attemptId: attempt?.id ?? null,
+    submissionType: attempt?.submissionType ?? null,
     attemptResponses,
     tenantBranding,
     competencyScores,

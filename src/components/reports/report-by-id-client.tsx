@@ -25,6 +25,30 @@ import { ReportThemeProvider } from "@/components/reports/report-theme-context";
 
 type QuestionReviewItem = ReportPayload["groupedQuestionReview"][string][number]["items"][number];
 
+const SUBMISSION_META: Record<string, { label: string; detail: string; color: string; bg: string; border: string }> = {
+  TIMED_OUT:      { label: "Timer Expired",         detail: "The assessment time limit was reached and the test was auto-submitted.",                                    color: "#92400E", bg: "#FFFBEB", border: "#FDE68A" },
+  SIGNED_OUT:     { label: "Signed Out Mid-Test",   detail: "The candidate chose to sign out before completing the assessment. All saved answers were submitted.",       color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE" },
+  TAB_CLOSED:     { label: "Tab / Window Closed",   detail: "The browser tab or window was closed before the assessment was formally submitted. Progress was auto-saved and submitted on next login.", color: "#5B21B6", bg: "#F5F3FF", border: "#DDD6FE" },
+  AUTO_SUBMITTED: { label: "Technical Interruption", detail: "The assessment was interrupted — possibly due to a power loss, browser crash, or connectivity issue — and was auto-submitted with the last saved progress on the candidate's next login.", color: "#991B1B", bg: "#FEF2F2", border: "#FECACA" },
+};
+
+function SubmissionTypeBanner({ submissionType }: { submissionType: string }) {
+  const meta = SUBMISSION_META[submissionType];
+  if (!meta) return null;
+  return (
+    <div
+      className="mb-2 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm"
+      style={{ background: meta.bg, borderColor: meta.border, color: meta.color }}
+    >
+      <span className="mt-0.5 shrink-0 text-base">⚠</span>
+      <div>
+        <span className="font-semibold">{meta.label}. </span>
+        <span style={{ opacity: 0.85 }}>{meta.detail}</span>
+      </div>
+    </div>
+  );
+}
+
 function pdfFileName(assessmentName: string) {
   const slug = assessmentName
     .toLowerCase()
@@ -258,14 +282,25 @@ export default function ReportByIdClient() {
   return (
     <main className="min-h-screen px-4 py-8 md:px-10" style={{ backgroundColor: reportTheme.pageBackground }}>
       <div className="mx-auto max-w-6xl">
-        <div className="mb-5 flex items-center justify-between">
-          <h1 className="text-xl font-semibold" style={{ color: reportTheme.primary }}>
-            Report Preview
-          </h1>
-          <div className="flex items-center gap-5">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
             <Link href={backHref} className="text-sm font-medium hover:underline" style={{ color: reportTheme.accent }}>
-              {backLabel}
+              ← {backLabel}
             </Link>
+            <h1 className="text-xl font-semibold" style={{ color: reportTheme.primary }}>
+              Report Preview
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            {isCandidate && (
+              <Link
+                href={`/candidate/reports/${resultId}/submissions`}
+                className="rounded-md border px-4 py-2 text-sm font-medium transition hover:opacity-80"
+                style={{ borderColor: reportTheme.primary, color: reportTheme.primary }}
+              >
+                View Submission
+              </Link>
+            )}
             <button
               onClick={downloadPdf}
               disabled={downloading}
@@ -276,6 +311,10 @@ export default function ReportByIdClient() {
             </button>
           </div>
         </div>
+
+        {report.submissionType && report.submissionType !== "NORMAL" && (
+          <SubmissionTypeBanner submissionType={report.submissionType} />
+        )}
 
         <div ref={pagesRef} className="space-y-6">
           {report ? (

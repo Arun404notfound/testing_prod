@@ -56,6 +56,7 @@ export async function processImportFile(args: {
   importType: ImportKind;
   fileName: string;
   bytes: Uint8Array;
+  batchName?: string | null;
 }) {
   const rows = parseWorkbookRows(args.fileName, args.bytes);
   if (rows.length === 0) {
@@ -124,6 +125,7 @@ export async function processImportFile(args: {
           designation: row.designation,
           department: row.department,
           location: row.location,
+          batchName: args.batchName ?? null,
         });
         if (!created.ok) {
           throw new Error(
