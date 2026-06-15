@@ -69,7 +69,7 @@ export default async function ReportsIndexPage({
     where: mergedWhere,
     include: {
       candidate: { select: { fullName: true, email: true, employeeId: true, batchName: true } },
-      assessment: { select: { title: true } },
+      assessment: { select: { title: true, assessmentType: true } },
     },
     orderBy: { completedAt: "desc" },
   });
@@ -280,15 +280,19 @@ export default async function ReportsIndexPage({
                     {result.assessment?.title ?? result.assessmentName}
                   </td>
                   <td className="px-5 py-3">
-                    <span className={`font-semibold ${
-                      result.overallScore >= 70
-                        ? "text-emerald-600"
-                        : result.overallScore >= 50
-                        ? "text-amber-600"
-                        : "text-rose-600"
-                    }`}>
-                      {result.overallScore}%
-                    </span>
+                    {result.assessment?.assessmentType === "MCQ" ? (
+                      <span className={`font-semibold ${
+                        result.overallScore >= 70
+                          ? "text-emerald-600"
+                          : result.overallScore >= 50
+                          ? "text-amber-600"
+                          : "text-rose-600"
+                      }`}>
+                        {result.overallScore}%
+                      </span>
+                    ) : (
+                      <span className="text-xs text-[#94A3B8]">—</span>
+                    )}
                   </td>
                   <td className="px-5 py-3 text-xs text-[#64748B]">
                     {new Date(result.completedAt).toLocaleDateString("en-IN", {

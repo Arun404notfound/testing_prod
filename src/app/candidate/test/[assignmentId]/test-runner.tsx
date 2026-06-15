@@ -55,8 +55,10 @@ function useCountdownTimer(totalSeconds: number, onExpire: () => void) {
   const expiredRef = useRef(false);
   const cbRef = useRef(onExpire);
   cbRef.current = onExpire;
+  const hasTimer = totalSeconds > 0;
 
   useEffect(() => {
+    if (!hasTimer) return; // no timer — never expire
     const id = setInterval(() => {
       setRemaining((prev) => {
         if (prev <= 1) {
@@ -71,7 +73,7 @@ function useCountdownTimer(totalSeconds: number, onExpire: () => void) {
       });
     }, 1000);
     return () => clearInterval(id);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasTimer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
   const ss = String(remaining % 60).padStart(2, "0");
@@ -452,7 +454,7 @@ async function autosave(
 }
 
 export function CandidateTestRunner({
-  assignmentId, blocks, assessmentTitle, candidateName, durationMinutes = 45, attemptId,
+  assignmentId, blocks, assessmentTitle, candidateName, durationMinutes, attemptId,
 }: {
   assignmentId: string;
   blocks: TestBlock[];
@@ -546,7 +548,8 @@ export function CandidateTestRunner({
     void handleSubmit("TIMED_OUT");
   }, [handleSubmit]);
 
-  const { mm, ss, isWarning, isCritical } = useCountdownTimer(durationMinutes * 60, handleTimesUp);
+  const effectiveDuration = (durationMinutes && durationMinutes > 0) ? durationMinutes : 0;
+  const { mm, ss, isWarning, isCritical } = useCountdownTimer(effectiveDuration * 60, handleTimesUp);
 
   const handleNext = useCallback(() => {
     if (navLockRef.current) return;
@@ -597,7 +600,7 @@ export function CandidateTestRunner({
               <CheckCircle2 size={13} className="text-emerald-500" />
               {answeredSet.size}/{total}
             </div>
-            <TimerPill mm={mm} ss={ss} isWarning={isWarning} isCritical={isCritical} />
+            {effectiveDuration > 0 && <TimerPill mm={mm} ss={ss} isWarning={isWarning} isCritical={isCritical} />}
             <button type="button" onClick={() => setNavOpen(true)}
               className="flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#475569] hover:bg-[#F8FAFC] lg:hidden">
               <Grid3X3 size={12} /> Q{currentIndex + 1}

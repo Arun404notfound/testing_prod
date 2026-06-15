@@ -52,7 +52,7 @@ export function ForcedChoiceProfilePage({ report }: { report: ReportPayload }) {
             </p>
           ) : (
             (Array.isArray(report.factorAggregates) ? report.factorAggregates : []).map((f) => {
-              const pct = f.maxScore > 0 ? Math.round((f.score / f.maxScore) * 100) : 0;
+              const pct = f.scaledScore != null ? Math.round(f.scaledScore * 10) : (f.maxScore > 0 ? Math.round((f.score / f.maxScore) * 100) : 0);
               return (
                 <div key={f.factor} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                   <div className="mb-1 flex items-center justify-between text-sm">

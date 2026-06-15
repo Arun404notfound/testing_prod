@@ -162,7 +162,7 @@ export default async function AssessmentBuilderPage({
     allowsLikertPool(assessmentType)
       ? prisma.assessmentItem.findMany({
           where: {
-            assessmentId: { in: tenantAssessmentIds },
+            OR: [{ assessmentId: { in: tenantAssessmentIds } }, { assessmentId: null }],
             itemType: "LIKERT",
             ...(sectionQ ? { section: { title: { contains: sectionQ } } } : {}),
             ...(factorQ ? { factor: { contains: factorQ } } : {}),
@@ -170,13 +170,13 @@ export default async function AssessmentBuilderPage({
           },
           include: { section: true },
           orderBy: { displayOrder: "asc" },
-          take: 100,
+          take: 500,
         })
       : Promise.resolve([]),
     allowsTriadPool(assessmentType)
       ? prisma.triadGroup.findMany({
           where: {
-            assessmentId: { in: tenantAssessmentIds },
+            OR: [{ assessmentId: { in: tenantAssessmentIds } }, { assessmentId: null }],
             ...(sectionQ ? { section: { title: { contains: sectionQ } } } : {}),
             ...(groupCodeQ
               ? {
@@ -266,7 +266,7 @@ export default async function AssessmentBuilderPage({
     if (c.sourceItem) {
       selectedRows.push({
         kind: "likert",
-        section: c.sourceItem.section.title,
+        section: c.sourceItem.section?.title ?? "Question Pool",
         key: `comp-${c.id}`,
         label: c.sourceItem.prompt,
       });
@@ -275,7 +275,7 @@ export default async function AssessmentBuilderPage({
       const stmts = c.sourceTriad.statements.map((s) => s.statementText).join(" · ");
       selectedRows.push({
         kind: "triad",
-        section: c.sourceTriad.section.title,
+        section: c.sourceTriad.section?.title ?? "Question Pool",
         key: `comp-${c.id}`,
         label: `${code}: ${stmts}`,
       });

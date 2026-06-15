@@ -74,6 +74,24 @@ export default async function CandidateTestPage({
   }
   if (assignment.status === "completed") redirect("/candidate");
 
+  // Check expiry: if the assignment has a deadline that has passed and it's not yet started/completed
+  if (assignment.expiresAt && new Date() > assignment.expiresAt && assignment.status === "assigned") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F1F5F9] p-6">
+        <div className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center shadow-sm">
+          <p className="text-lg font-semibold text-red-800">Assignment Expired</p>
+          <p className="mt-2 text-sm text-red-700">
+            This assignment expired on{" "}
+            {assignment.expiresAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}.
+          </p>
+          <a href="/candidate" className="mt-4 inline-block rounded-xl bg-red-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-800 transition">
+            Back to Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   const scoredAttempts = await prisma.assessmentAttempt.count({
     where: { assignmentId: assignment.id, status: { in: ["SCORED", "SUBMITTED"] } },
   });
@@ -83,7 +101,8 @@ export default async function CandidateTestPage({
   if (assignment.assessment.randomizeQuestions) blocks = shuffleArray(blocks);
   blocks = shuffleBlockOptions(blocks, assignment.assessment.randomizeOptions);
 
-  const durationMinutes = assignment.assessment.durationMinutes;
+  // Per-assignment duration overrides the assessment default; fall back to assessment value if not set
+  const durationMinutes = assignment.durationMinutes ?? assignment.assessment.durationMinutes;
 
   if (accessBlocked) {
     return (

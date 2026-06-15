@@ -25,24 +25,16 @@ const ASSESSMENT_TYPES: AssessmentType[] = [
 
 const LIFECYCLE: AssessmentLifecycleStatus[] = ["draft", "published"];
 
-function parseOptionalDate(value: string): Date | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const d = new Date(trimmed);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
 
 async function createAssessment(formData: FormData) {
   "use server";
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const durationMinutes = Number(formData.get("durationMinutes") ?? 0);
-  const maxAttempts = Math.max(1, Number(formData.get("maxAttempts") ?? 1));
   const assessmentType = String(formData.get("assessmentType") ?? "") as AssessmentType;
   const lifecycleStatus = String(formData.get("lifecycleStatus") ?? "draft") as AssessmentLifecycleStatus;
 
-  if (!title || !description || durationMinutes <= 0) {
+  if (!title || !description) {
     redirect("/admin/assessments/new?status=error");
   }
 
@@ -61,8 +53,6 @@ async function createAssessment(formData: FormData) {
 
   const randomizeQuestions = formData.get("randomizeQuestions") === "on";
   const randomizeOptions = formData.get("randomizeOptions") === "on";
-  const startDateTime = parseOptionalDate(String(formData.get("startDateTime") ?? ""));
-  const endDateTime = parseOptionalDate(String(formData.get("endDateTime") ?? ""));
 
   const defaultTenantId = await getDefaultTenantId();
   const rawBrandingTenant = String(formData.get("assessmentTenantId") ?? "").trim();
@@ -86,10 +76,8 @@ async function createAssessment(formData: FormData) {
         title,
         description,
         assessmentType,
-        durationMinutes,
-        maxAttempts,
-        startDateTime,
-        endDateTime,
+        durationMinutes: 0,
+        maxAttempts: 1,
         randomizeQuestions,
         randomizeOptions,
         lifecycleStatus,
@@ -144,10 +132,7 @@ export default async function NewAssessmentPage({
 
       <FormCard title="Assessment details">
         <form action={createAssessment} className="grid gap-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <TextField name="title" label="Title" />
-            <TextField name="durationMinutes" label="Duration (minutes)" type="number" />
-          </div>
+          <TextField name="title" label="Title" />
 
           <label className="text-sm text-[#334155]">
             <span className="mb-1 block font-medium">Description</span>
@@ -185,19 +170,6 @@ export default async function NewAssessmentPage({
           </div>
 
           <AssessmentTenantSelect tenants={tenants} initialTenantId={defaultTenantId} />
-
-          <TextField name="maxAttempts" label="Max attempts" type="number" />
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="text-sm text-[#334155]">
-              <span className="mb-1 block font-medium">Start (optional)</span>
-              <input name="startDateTime" type="datetime-local" className="tg-input w-full" />
-            </label>
-            <label className="text-sm text-[#334155]">
-              <span className="mb-1 block font-medium">End (optional)</span>
-              <input name="endDateTime" type="datetime-local" className="tg-input w-full" />
-            </label>
-          </div>
 
           <div className="flex flex-wrap gap-6 text-sm text-[#334155]">
             <label className="flex items-center gap-2">

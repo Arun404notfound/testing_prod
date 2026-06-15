@@ -18,6 +18,11 @@ async function bulkAssignBatch(formData: FormData) {
   const assessmentId = String(formData.get("assessmentId") ?? "").trim();
   if (!batchNames.length || !assessmentId) redirect("/admin/assignments?status=error&reason=missing");
 
+  const expiresAtRaw = String(formData.get("expiresAt") ?? "").trim();
+  const durationRaw  = parseInt(String(formData.get("durationMinutes") ?? ""), 10);
+  const expiresAt       = expiresAtRaw ? new Date(expiresAtRaw) : null;
+  const durationMinutes = Number.isFinite(durationRaw) && durationRaw > 0 ? durationRaw : null;
+
   const tenantId = await getDefaultTenantId();
   const [assessment, candidates] = await Promise.all([
     prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true } }),
@@ -30,10 +35,17 @@ async function bulkAssignBatch(formData: FormData) {
   let created = 0;
   for (const candidate of candidates) {
     const existing = await prisma.assessmentAssignment.findFirst({
-      where: { candidateId: candidate.id, assessmentId, status: "assigned" },
+      where: {
+        candidateId: candidate.id,
+        assessmentId,
+        status: "assigned",
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
     });
     if (!existing) {
-      await prisma.assessmentAssignment.create({ data: { candidateId: candidate.id, assessmentId, status: "assigned" } });
+      await prisma.assessmentAssignment.create({
+        data: { candidateId: candidate.id, assessmentId, status: "assigned", expiresAt, durationMinutes },
+      });
       created++;
     }
   }
@@ -49,25 +61,31 @@ async function createAssignment(formData: FormData) {
   const assessmentId = String(formData.get("assessmentId") ?? "").trim();
   if (!candidateId || !assessmentId) redirect("/admin/assignments?status=error&reason=missing");
 
-  try {
-    const tenantId = await getDefaultTenantId();
-    const [candidate, assessment] = await Promise.all([
-      prisma.candidate.findFirst({ where: { id: candidateId, tenantId }, select: { id: true } }),
-      prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true } }),
-    ]);
-    if (!candidate || !assessment) redirect("/admin/assignments?status=error&reason=not_found");
+  const expiresAtRaw = String(formData.get("expiresAt") ?? "").trim();
+  const durationRaw  = parseInt(String(formData.get("durationMinutes") ?? ""), 10);
+  const expiresAt       = expiresAtRaw ? new Date(expiresAtRaw) : null;
+  const durationMinutes = Number.isFinite(durationRaw) && durationRaw > 0 ? durationRaw : null;
 
-    // Check for existing active assignment
-    const existing = await prisma.assessmentAssignment.findFirst({
-      where: { candidateId, assessmentId, status: "assigned" },
-    });
-    if (existing) redirect("/admin/assignments?status=error&reason=duplicate");
+  const tenantId = await getDefaultTenantId();
+  const [candidate, assessment] = await Promise.all([
+    prisma.candidate.findFirst({ where: { id: candidateId, tenantId }, select: { id: true } }),
+    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true } }),
+  ]);
+  if (!candidate || !assessment) redirect("/admin/assignments?status=error&reason=not_found");
 
-    await prisma.assessmentAssignment.create({ data: { candidateId, assessmentId, status: "assigned" } });
-  } catch (e) {
-    if (e instanceof Error && e.message.includes("NEXT_REDIRECT")) throw e;
-    redirect("/admin/assignments?status=error&reason=db");
-  }
+  const existing = await prisma.assessmentAssignment.findFirst({
+    where: {
+      candidateId,
+      assessmentId,
+      status: "assigned",
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+    },
+  });
+  if (existing) redirect("/admin/assignments?status=error&reason=duplicate");
+
+  await prisma.assessmentAssignment.create({
+    data: { candidateId, assessmentId, status: "assigned", expiresAt, durationMinutes },
+  });
 
   revalidatePath("/admin/assignments");
   revalidatePath("/candidate");
@@ -166,7 +184,19 @@ export default async function AssignmentsPage({
 
   const [candidates, assessments, assignments, batchRows] = await Promise.all([
     prisma.candidate.findMany({ where: { tenantId }, orderBy: { fullName: "asc" }, select: { id: true, fullName: true, email: true } }),
-    prisma.assessment.findMany({ where: { lifecycleStatus: "published" }, orderBy: { createdAt: "desc" }, select: { id: true, title: true } }),
+    prisma.assessment.findMany({
+      where: {
+        lifecycleStatus: "published",
+        OR: [
+          { questions: { some: {} } },
+          { items: { some: {} } },
+          { triadGroups: { some: {} } },
+          { compositionItems: { some: {} } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, title: true },
+    }),
     prisma.assessmentAssignment.findMany({
       where: { candidate: { tenantId } },
       include: {

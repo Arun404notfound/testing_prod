@@ -54,7 +54,7 @@ export async function addLikertFromPoolBulk(assessmentId: string, formData: Form
   if (!ids.length) return;
   const tenantIds = await tenantAssessmentIds(tenantId);
   const items = await prisma.assessmentItem.findMany({
-    where: { id: { in: ids }, assessmentId: { in: tenantIds }, itemType: "LIKERT" },
+    where: { id: { in: ids }, OR: [{ assessmentId: { in: tenantIds } }, { assessmentId: null }], itemType: "LIKERT" },
     select: { id: true },
   });
   const sectionId = await primarySectionId(assessmentId);
@@ -78,7 +78,7 @@ export async function addTriadFromPoolBulk(assessmentId: string, formData: FormD
   if (!ids.length) return;
   const tenantIds = await tenantAssessmentIds(tenantId);
   const groups = await prisma.triadGroup.findMany({
-    where: { id: { in: ids }, assessmentId: { in: tenantIds } },
+    where: { id: { in: ids }, OR: [{ assessmentId: { in: tenantIds } }, { assessmentId: null }] },
     select: { id: true },
   });
   const sectionId = await primarySectionId(assessmentId);

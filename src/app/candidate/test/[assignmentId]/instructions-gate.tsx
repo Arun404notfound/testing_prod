@@ -99,15 +99,17 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
               )}
             </div>
             <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                  <Clock size={20} className="text-blue-600" />
+              {durationMinutes > 0 && (
+                <div className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100">
+                    <Clock size={20} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Duration</p>
+                    <p className="text-base font-bold text-[#0F172A]">{fmt(durationMinutes)}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Duration</p>
-                  <p className="text-base font-bold text-[#0F172A]">{fmt(durationMinutes)}</p>
-                </div>
-              </div>
+              )}
               <div className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2.5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
                   <FileText size={20} className="text-indigo-600" />

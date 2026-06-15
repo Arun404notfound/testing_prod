@@ -5,7 +5,7 @@ import { addTriadFromPoolBulk } from "./actions";
 
 type AttrInfo = { code: string; category?: string | null; competencies: string[] };
 
-type TriadStatement = { id: string; statementText: string; trait: string | null };
+type TriadStatement = { id: string; statementText: string; trait: string | null; polarity: string | null };
 
 type TriadGroup = {
   id: string;
@@ -87,6 +87,8 @@ export function BulkTriadPool({
             if (info) for (const c of info.competencies) if (!groupComps.includes(c)) groupComps.push(c);
           }
 
+          const groupPolarity = g.statements[0]?.polarity ?? null;
+
           return (
             <li key={g.id} className={`flex items-start gap-3 p-3 ${isChecked ? "bg-blue-50" : ""}`}>
               <input
@@ -97,9 +99,17 @@ export function BulkTriadPool({
               />
               <div className="min-w-0 flex-1">
                 <p className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                  {g.section.title}{g.triadGroupCode ? ` · ${g.triadGroupCode}` : ""}
+                  {g.section?.title ?? "Question Pool"}{g.triadGroupCode ? ` · ${g.triadGroupCode}` : ""}
                 </p>
-                <p className="text-sm font-semibold text-[#0F172A]">{g.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-[#0F172A]">{g.title}</p>
+                  {groupPolarity === "POSITIVE" && (
+                    <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">POSITIVE</span>
+                  )}
+                  {groupPolarity === "NEGATIVE" && (
+                    <span className="rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600">NEGATIVE</span>
+                  )}
+                </div>
                 {groupComps.length > 0 && (
                   <div className="mt-1 mb-2 flex flex-wrap items-center gap-1">
                     <span className="text-[10px] font-medium text-slate-400 mr-0.5">Competencies:</span>

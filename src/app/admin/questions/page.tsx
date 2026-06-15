@@ -7,21 +7,20 @@ import { PageHeader } from "@/components/ui/page-header";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-async function getLikertSectionId(): Promise<{ assessmentId: string; sectionId: string } | null> {
-  const item = await prisma.assessmentItem.findFirst({
-    where: { itemType: "LIKERT" },
-    select: { assessmentId: true, sectionId: true },
-    orderBy: { displayOrder: "asc" },
+async function nextLikertDisplayOrder(): Promise<number> {
+  const agg = await prisma.assessmentItem.aggregate({
+    where: { sectionId: null },
+    _max: { displayOrder: true },
   });
-  return item ? { assessmentId: item.assessmentId, sectionId: item.sectionId } : null;
+  return (agg._max.displayOrder ?? 0) + 1;
 }
 
-async function getTriadSectionId(): Promise<{ assessmentId: string; sectionId: string } | null> {
-  const group = await prisma.triadGroup.findFirst({
-    select: { assessmentId: true, sectionId: true },
-    orderBy: { displayOrder: "asc" },
+async function nextTriadDisplayOrder(): Promise<number> {
+  const agg = await prisma.triadGroup.aggregate({
+    where: { sectionId: null },
+    _max: { displayOrder: true },
   });
-  return group ? { assessmentId: group.assessmentId, sectionId: group.sectionId } : null;
+  return (agg._max.displayOrder ?? 0) + 1;
 }
 
 // ─── Server Actions ───────────────────────────────────────────────────────────
@@ -36,20 +35,11 @@ async function createLikertQuestion(formData: FormData) {
 
   if (!prompt || !factor || !trait) redirect("/admin/questions?tab=likert&status=error&reason=missing");
 
-  const ctx = await getLikertSectionId();
-  if (!ctx) redirect("/admin/questions?tab=likert&status=error&reason=no_assessment");
-
-  const maxOrder = await prisma.assessmentItem.aggregate({
-    where: { sectionId: ctx.sectionId },
-    _max: { displayOrder: true },
-  });
-  const displayOrder = (maxOrder._max.displayOrder ?? 0) + 1;
+  const displayOrder = await nextLikertDisplayOrder();
 
   try {
     await prisma.assessmentItem.create({
       data: {
-        assessmentId: ctx.assessmentId,
-        sectionId: ctx.sectionId,
         itemType: "LIKERT",
         prompt,
         factor,
@@ -91,20 +81,11 @@ async function createTriadGroup(formData: FormData) {
     redirect("/admin/questions?tab=triad&status=error&reason=missing");
   }
 
-  const ctx = await getTriadSectionId();
-  if (!ctx) redirect("/admin/questions?tab=triad&status=error&reason=no_assessment");
-
-  const maxOrder = await prisma.triadGroup.aggregate({
-    where: { sectionId: ctx.sectionId },
-    _max: { displayOrder: true },
-  });
-  const displayOrder = (maxOrder._max.displayOrder ?? 0) + 1;
+  const displayOrder = await nextTriadDisplayOrder();
 
   try {
     await prisma.triadGroup.create({
       data: {
-        assessmentId: ctx.assessmentId,
-        sectionId: ctx.sectionId,
         tenantId,
         title,
         displayOrder,

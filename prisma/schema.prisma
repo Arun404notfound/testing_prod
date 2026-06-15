@@ -107,8 +107,9 @@ model Tenant {
   importJobs       ImportJob[]
   triadGroups      TriadGroup[]
   users            User[]
-  attributes       Attribute[]
-  competencies     Competency[]
+  attributes          Attribute[]
+  competencies        Competency[]
+  bigFiveFactorConfigs BigFiveFactorConfig[]
 }
 
 model User {
@@ -208,8 +209,8 @@ model AssessmentSection {
 
 model AssessmentItem {
   id             String             @id @default(cuid())
-  assessmentId   String
-  sectionId      String
+  assessmentId   String?
+  sectionId      String?
   itemType       ItemType
   prompt         String
   helpText       String?
@@ -222,15 +223,14 @@ model AssessmentItem {
   attributeId    String?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @default(now()) @updatedAt
-  assessment     Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  section        AssessmentSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  assessment     Assessment?        @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  section        AssessmentSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   likertScale    LikertScale?       @relation(fields: [likertScaleId], references: [id], onDelete: SetNull)
   attribute      Attribute?         @relation(fields: [attributeId], references: [id], onDelete: SetNull)
   options        ItemOption[]
   responses      AttemptResponse[]
   compositionUses AssessmentCompositionItem[] @relation("CompositionLikertPoolItem")
 
-  @@unique([sectionId, displayOrder])
   @@index([assessmentId])
   @@index([sectionId])
   @@index([itemType])
@@ -273,20 +273,19 @@ model TriadGroup {
   id              String             @id @default(cuid())
   tenantId        String?
   triadGroupCode  String?
-  assessmentId    String
-  sectionId       String
+  assessmentId    String?
+  sectionId       String?
   title           String
   displayOrder    Int                @default(0)
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @default(now()) @updatedAt
   tenant          Tenant?            @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  assessment      Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  section         AssessmentSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  assessment      Assessment?        @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  section         AssessmentSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   statements      TriadStatement[]
   responses       AttemptResponse[]
   compositionUses AssessmentCompositionItem[] @relation("CompositionTriadPoolGroup")
 
-  @@unique([sectionId, displayOrder])
   @@unique([tenantId, triadGroupCode])
   @@index([assessmentId])
   @@index([sectionId])
@@ -337,18 +336,21 @@ model TriadStatement {
 }
 
 model AssessmentAssignment {
-  id           String              @id @default(cuid())
-  candidateId  String
-  assessmentId String
-  status       AssignmentStatus    @default(assigned)
-  assignedAt   DateTime            @default(now())
-  completedAt  DateTime?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @default(now()) @updatedAt
-  candidate    Candidate           @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  assessment   Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  attempts     AssessmentAttempt[]
-  result       AssessmentResult?
+  id              String              @id @default(cuid())
+  candidateId     String
+  assessmentId    String
+  status          AssignmentStatus    @default(assigned)
+  assignedAt      DateTime            @default(now())
+  completedAt     DateTime?
+  expiresAt       DateTime?
+  durationMinutes Int?
+  maxAttempts     Int?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @default(now()) @updatedAt
+  candidate       Candidate           @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  assessment      Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  attempts        AssessmentAttempt[]
+  result          AssessmentResult?
 
   @@index([candidateId])
   @@index([assessmentId])
@@ -480,13 +482,52 @@ model Attribute {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 
-  tenant              Tenant?                  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  tenant              Tenant?                       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   competencyMaps      AttributeCompetencyMap[]
+  bigFiveFactorMaps   BigFiveFactorAttributeMap[]
   assessmentItems     AssessmentItem[]
   triadStatements     TriadStatement[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
+}
+
+// ─── Big Five Factor Config ───────────────────────────────────────────────────
+
+/// Per-factor scoring configuration for Big Five personality assessments.
+/// `factor` must match the factor name stored on TraitScore/AssessmentItem rows.
+model BigFiveFactorConfig {
+  id             String   @id @default(cuid())
+  tenantId       String?
+  factor         String
+  displayName    String?
+  description    String?
+  scoringFormula String   @default("WEIGHTED_AVERAGE")
+  displayOrder   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  tenant        Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  attributeMaps BigFiveFactorAttributeMap[]
+
+  @@unique([tenantId, factor])
+  @@index([tenantId])
+}
+
+model BigFiveFactorAttributeMap {
+  id       String  @id @default(cuid())
+  factorId String
+  attributeId String
+  weight   Float   @default(1.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  factor    BigFiveFactorConfig @relation(fields: [factorId], references: [id], onDelete: Cascade)
+  attribute Attribute           @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@unique([factorId, attributeId])
+  @@index([factorId])
+  @@index([attributeId])
 }
 
 model Competency {

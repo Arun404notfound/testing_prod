@@ -6,6 +6,7 @@ import {
   reconcileDefaultTechnicalWithAssessmentType,
 } from "@/lib/report-layout";
 import { tenantRowToBranding, type ReportTenantBranding } from "@/lib/report-branding";
+import { computeCompetencyScores, type CompetencyMap, type AttributeScoreInput } from "@/lib/scoring/competencyEngine";
 
 type GroupedQuestion = {
   category: string;
@@ -44,9 +45,14 @@ export type ReportTraitScoreRow = {
 
 export type ReportFactorAggregate = {
   factor: string;
+  displayName: string | null;
   score: number;
   maxScore: number;
   percent: number;
+  scaledScore: number | null;   // 1–10 if factor config with attribute mapping exists
+  band: string | null;
+  scoringFormula: string | null;
+  attributes: Array<{ name: string; weight: number; score: number; maxScore: number }>;
 };
 
 export type ReportCompetencyScore = {
@@ -93,20 +99,97 @@ function asStringArray(v: unknown): string[] {
   return v.filter((x): x is string => typeof x === "string");
 }
 
-function aggregateFactors(traits: ReportTraitScoreRow[]): ReportFactorAggregate[] {
-  const map = new Map<string, { score: number; max: number }>();
+type FactorConfigRow = {
+  factor: string;
+  displayName: string | null;
+  scoringFormula: string;
+  attributeMaps: Array<{
+    weight: number;
+    attribute: { id: string; name: string };
+  }>;
+};
+
+function aggregateFactors(
+  traits: ReportTraitScoreRow[],
+  factorConfigs: FactorConfigRow[],
+  attributeScores: AttributeScoreInput[],
+): ReportFactorAggregate[] {
+  // Build raw factor sums from trait scores (always available as fallback)
+  const rawMap = new Map<string, { score: number; max: number }>();
   for (const t of traits) {
-    const prev = map.get(t.factor) ?? { score: 0, max: 0 };
+    const prev = rawMap.get(t.factor) ?? { score: 0, max: 0 };
     prev.score += t.score;
     prev.max += t.maxScore;
-    map.set(t.factor, prev);
+    rawMap.set(t.factor, prev);
   }
-  return Array.from(map.entries()).map(([factor, agg]) => ({
-    factor,
-    score: agg.score,
-    maxScore: agg.max,
-    percent: agg.max > 0 ? Math.round((agg.score / agg.max) * 1000) / 10 : 0,
-  }));
+
+  // Build a config lookup by factor name
+  const configByFactor = new Map<string, FactorConfigRow>();
+  for (const fc of factorConfigs) configByFactor.set(fc.factor, fc);
+
+  // Build attribute score lookup
+  const attrScoreMap = new Map<string, AttributeScoreInput>();
+  for (const a of attributeScores) attrScoreMap.set(a.attributeId, a);
+
+  // Collect all factors — from configs first, then any extra from traits
+  const factorNames = new Set<string>([
+    ...factorConfigs.map((fc) => fc.factor),
+    ...rawMap.keys(),
+  ]);
+
+  const results: ReportFactorAggregate[] = [];
+
+  for (const factor of factorNames) {
+    const raw = rawMap.get(factor) ?? { score: 0, max: 0 };
+    const config = configByFactor.get(factor);
+
+    // If a config with attribute mappings exists, use computeCompetencyScores for scaled score
+    let scaledScore: number | null = null;
+    let band: string | null = null;
+    const attributesDetail: Array<{ name: string; weight: number; score: number; maxScore: number }> = [];
+
+    if (config && config.attributeMaps.length > 0) {
+      const compMap: CompetencyMap = {
+        competencyId: factor,
+        competencyName: factor,
+        scoringFormula: config.scoringFormula,
+        attributes: config.attributeMaps.map((m) => ({
+          attributeId: m.attribute.id,
+          weight: m.weight,
+        })),
+      };
+      const [result] = computeCompetencyScores(attributeScores, [compMap]);
+      if (result) {
+        scaledScore = result.scaledScore;
+        band = result.band;
+      }
+      for (const m of config.attributeMaps) {
+        const as = attrScoreMap.get(m.attribute.id);
+        attributesDetail.push({
+          name: m.attribute.name,
+          weight: m.weight,
+          score: as?.rawScore ?? 0,
+          maxScore: as?.maxScore ?? 0,
+        });
+      }
+    }
+
+    const percent = raw.max > 0 ? Math.round((raw.score / raw.max) * 1000) / 10 : 0;
+
+    results.push({
+      factor,
+      displayName: config?.displayName ?? null,
+      score: raw.score,
+      maxScore: raw.max,
+      percent,
+      scaledScore,
+      band,
+      scoringFormula: config?.scoringFormula ?? null,
+      attributes: attributesDetail,
+    });
+  }
+
+  return results.sort((a, b) => a.factor.localeCompare(b.factor));
 }
 
 function deriveFromTraits(traits: ReportTraitScoreRow[]): { strengths: string[]; concerns: string[] } {
@@ -283,7 +366,42 @@ export async function getReportPayload(
     areasOfConcern = d.concerns;
   }
 
-  const factorAggregates = aggregateFactors(traitScores);
+  // Fetch Big Five factor configs for this tenant
+  const factorConfigs = await prisma.bigFiveFactorConfig.findMany({
+    where: { tenantId: portalTenantId },
+    include: {
+      attributeMaps: {
+        include: { attribute: { select: { id: true, name: true, code: true } } },
+        orderBy: { weight: "desc" },
+      },
+    },
+  });
+
+  // Build attribute scores from trait scores (by trait name → attribute name match)
+  const attrScoreMap = new Map<string, { rawScore: number; maxScore: number }>();
+  for (const t of (attempt?.traitScores ?? [])) {
+    const prev = attrScoreMap.get(t.trait) ?? { rawScore: 0, maxScore: 0 };
+    prev.rawScore += t.score;
+    prev.maxScore += t.maxScore ?? 0;
+    attrScoreMap.set(t.trait, prev);
+  }
+  const attributeScoresForFactors: AttributeScoreInput[] = [];
+  for (const fc of factorConfigs) {
+    for (const m of fc.attributeMaps) {
+      const existing = attributeScoresForFactors.find((a) => a.attributeId === m.attribute.id);
+      if (!existing) {
+        const raw = attrScoreMap.get(m.attribute.name) ?? { rawScore: 0, maxScore: 0 };
+        attributeScoresForFactors.push({
+          attributeId: m.attribute.id,
+          attributeName: m.attribute.name,
+          rawScore: raw.rawScore,
+          maxScore: raw.maxScore,
+        });
+      }
+    }
+  }
+
+  const factorAggregates = aggregateFactors(traitScores, factorConfigs, attributeScoresForFactors);
 
   // Build competency scores
   const competencyScores: ReportCompetencyScore[] = (attempt?.competencyScores ?? []).map((cs) => ({

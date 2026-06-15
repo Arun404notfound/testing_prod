@@ -149,6 +149,68 @@ async function bulkUpdateWeights(updates: { id: string; weight: number }[]) {
   revalidatePath("/admin/competencies");
 }
 
+// ─── Big Five Factor Actions ──────────────────────────────────────────────────
+
+async function upsertFactorConfig(formData: FormData) {
+  "use server";
+  const tenantId = await getDefaultTenantId();
+  const factor = String(formData.get("factor") ?? "").trim();
+  const displayName = String(formData.get("displayName") ?? "").trim();
+  const scoringFormula = String(formData.get("scoringFormula") ?? "WEIGHTED_AVERAGE").trim();
+  if (!factor) redirect("/admin/competencies?tab=bigfive&status=error");
+  try {
+    await prisma.bigFiveFactorConfig.upsert({
+      where: { tenantId_factor: { tenantId, factor } },
+      create: { tenantId, factor, displayName: displayName || null, scoringFormula },
+      update: { displayName: displayName || null, scoringFormula },
+    });
+  } catch { redirect("/admin/competencies?tab=bigfive&status=error"); }
+  revalidatePath("/admin/competencies");
+  redirect("/admin/competencies?tab=bigfive&status=success");
+}
+
+async function deleteFactorConfig(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  await prisma.bigFiveFactorConfig.delete({ where: { id } }).catch(() => {});
+  revalidatePath("/admin/competencies");
+}
+
+async function upsertFactorAttributeMap(formData: FormData) {
+  "use server";
+  const factorId = String(formData.get("factorId") ?? "").trim();
+  const attributeId = String(formData.get("attributeId") ?? "").trim();
+  const weight = parseFloat(String(formData.get("weight") ?? "1"));
+  if (!factorId || !attributeId) redirect("/admin/competencies?tab=bigfive&status=error");
+  try {
+    await prisma.bigFiveFactorAttributeMap.upsert({
+      where: { factorId_attributeId: { factorId, attributeId } },
+      create: { factorId, attributeId, weight: isFinite(weight) ? weight : 1 },
+      update: { weight: isFinite(weight) ? weight : 1 },
+    });
+  } catch { redirect("/admin/competencies?tab=bigfive&status=error"); }
+  revalidatePath("/admin/competencies");
+  redirect("/admin/competencies?tab=bigfive&status=success");
+}
+
+async function deleteFactorAttributeMap(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  await prisma.bigFiveFactorAttributeMap.delete({ where: { id } }).catch(() => {});
+  revalidatePath("/admin/competencies");
+}
+
+async function updateFactorFormula(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id") ?? "").trim();
+  const scoringFormula = String(formData.get("scoringFormula") ?? "WEIGHTED_AVERAGE").trim();
+  if (!id) return;
+  await prisma.bigFiveFactorConfig.update({ where: { id }, data: { scoringFormula } }).catch(() => {});
+  revalidatePath("/admin/competencies");
+}
+
 // ─── Shared styles ───────────────────────────────────────────────────────────
 
 const inputCls = "w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#1D4ED8] focus:outline-none";
@@ -172,12 +234,22 @@ export default async function CompetenciesPage({
   const editCompId = sp.editCompId ?? null;
   const tenantId = await getDefaultTenantId();
 
-  const [attributes, competencies, mappings] = await Promise.all([
+  const [attributes, competencies, mappings, factorConfigs] = await Promise.all([
     prisma.attribute.findMany({ where: { tenantId }, orderBy: { code: "asc" } }),
     prisma.competency.findMany({ where: { tenantId }, orderBy: { name: "asc" } }),
     prisma.attributeCompetencyMap.findMany({
       include: { attribute: true, competency: true },
       orderBy: { competency: { name: "asc" } },
+    }),
+    prisma.bigFiveFactorConfig.findMany({
+      where: { tenantId },
+      orderBy: { displayOrder: "asc" },
+      include: {
+        attributeMaps: {
+          include: { attribute: { select: { id: true, code: true, name: true } } },
+          orderBy: { weight: "desc" },
+        },
+      },
     }),
   ]);
 
@@ -185,6 +257,7 @@ export default async function CompetenciesPage({
     { id: "attributes", label: `Attributes (${attributes.length})` },
     { id: "competencies", label: `Competencies (${competencies.length})` },
     { id: "mappings", label: `Mappings (${mappings.length})` },
+    { id: "bigfive", label: `Big Five Factors (${factorConfigs.length})` },
     { id: "formulas", label: "Scoring Formulas" },
   ];
 
@@ -582,6 +655,178 @@ export default async function CompetenciesPage({
                   })}
                 </div>
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Big Five Factors Tab ──────────────────────────────────────────── */}
+      {tab === "bigfive" && (
+        <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+
+          {/* Left: create / edit factor config */}
+          <div className="space-y-5">
+            <div className={card}>
+              <div className={cardHeader}>
+                <h2 className="text-sm font-semibold text-[#0F172A]">Add / Update Factor</h2>
+                <p className="mt-0.5 text-xs text-[#64748B]">
+                  The <strong>Factor</strong> name must exactly match what&apos;s stored on your assessment items (e.g. &quot;Extraversion&quot;).
+                </p>
+              </div>
+              <form action={upsertFactorConfig} className="space-y-4 p-5">
+                <div>
+                  <label className={labelCls}>Factor Name * (must match item factor field)</label>
+                  <input name="factor" required placeholder="e.g. Extraversion" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Display Name (optional label shown in reports)</label>
+                  <input name="displayName" placeholder="e.g. Extraversion / Surgency" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Scoring Formula</label>
+                  <select name="scoringFormula" className={inputCls}>
+                    {Object.entries(SCORING_FORMULA_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                <button type="submit" className={btnPrimary}>Save Factor Config</button>
+              </form>
+            </div>
+
+            {/* Map an attribute to a factor */}
+            <div className={card}>
+              <div className={cardHeader}>
+                <h2 className="text-sm font-semibold text-[#0F172A]">Map Attribute → Factor</h2>
+                <p className="mt-0.5 text-xs text-[#64748B]">
+                  Optional. When mapped, the factor score uses the formula + weights instead of a raw trait sum.
+                </p>
+              </div>
+              <form action={upsertFactorAttributeMap} className="space-y-4 p-5">
+                <div>
+                  <label className={labelCls}>Factor *</label>
+                  <select name="factorId" required className={inputCls}>
+                    <option value="">Select factor...</option>
+                    {factorConfigs.map((fc) => (
+                      <option key={fc.id} value={fc.id}>{fc.displayName ?? fc.factor}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Attribute *</label>
+                  <select name="attributeId" required className={inputCls}>
+                    <option value="">Select attribute...</option>
+                    {attributes.map((a) => (
+                      <option key={a.id} value={a.id}>[{a.code}] {a.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Weight (default 1.0)</label>
+                  <input name="weight" type="number" step="0.1" min="0.1" defaultValue="1.0" className={inputCls} />
+                </div>
+                {(factorConfigs.length === 0 || attributes.length === 0) && (
+                  <p className="text-xs text-amber-600">⚠ Add at least one factor config and one attribute first.</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={factorConfigs.length === 0 || attributes.length === 0}
+                  className={btnPrimary}
+                >
+                  Save Mapping
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Right: list of configured factors */}
+          <div className="space-y-4">
+            {factorConfigs.length === 0 ? (
+              <div className={`${card} px-5 py-10 text-center`}>
+                <p className="text-sm text-[#64748B]">No Big Five factor configs yet. Add one on the left.</p>
+                <p className="mt-1 text-xs text-[#94A3B8]">Without configs, factor scores fall back to the raw trait sum ratio.</p>
+              </div>
+            ) : (
+              factorConfigs.map((fc) => (
+                <div key={fc.id} className={card}>
+                  <div className={`${cardHeader} flex items-center justify-between gap-3`}>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-[#0F172A]">{fc.displayName ?? fc.factor}</h3>
+                        {fc.displayName && (
+                          <span className="rounded bg-[#F1F5F9] px-2 py-0.5 font-mono text-[11px] text-[#64748B]">{fc.factor}</span>
+                        )}
+                        <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+                          {SCORING_FORMULA_LABELS[fc.scoringFormula] ?? fc.scoringFormula}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {/* Inline formula change */}
+                      <form action={updateFactorFormula} className="flex items-center gap-2">
+                        <input type="hidden" name="id" value={fc.id} />
+                        <select name="scoringFormula" defaultValue={fc.scoringFormula} className="rounded border border-[#E2E8F0] px-2 py-1 text-xs text-[#334155]">
+                          {Object.entries(SCORING_FORMULA_LABELS).map(([v, l]) => (
+                            <option key={v} value={v}>{l}</option>
+                          ))}
+                        </select>
+                        <button type="submit" className="rounded bg-[#1D4ED8] px-2 py-1 text-[11px] font-medium text-white hover:bg-[#1e40af]">
+                          Apply
+                        </button>
+                      </form>
+                      <form action={deleteFactorConfig}>
+                        <input type="hidden" name="id" value={fc.id} />
+                        <button type="submit" className={btnDanger}>Delete</button>
+                      </form>
+                    </div>
+                  </div>
+
+                  {/* Attribute mappings for this factor */}
+                  <div className="divide-y divide-[#F1F5F9]">
+                    {fc.attributeMaps.length === 0 ? (
+                      <p className="px-5 py-3 text-xs text-[#94A3B8]">
+                        No attributes mapped — raw trait sum is used for this factor.
+                      </p>
+                    ) : (
+                      fc.attributeMaps.map((m) => (
+                        <div key={m.id} className="flex items-center justify-between px-5 py-2.5">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="rounded bg-[#EFF6FF] px-2 py-0.5 font-mono text-xs font-bold text-[#1D4ED8]">
+                              {m.attribute.code}
+                            </span>
+                            <span className="text-[#334155]">{m.attribute.name}</span>
+                            <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs text-[#475569]">
+                              w={m.weight}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {/* Inline weight update */}
+                            <form action={upsertFactorAttributeMap} className="flex items-center gap-1.5">
+                              <input type="hidden" name="factorId" value={fc.id} />
+                              <input type="hidden" name="attributeId" value={m.attribute.id} />
+                              <input
+                                name="weight"
+                                type="number"
+                                step="0.1"
+                                min="0.1"
+                                defaultValue={m.weight}
+                                className="w-20 rounded border border-[#E2E8F0] px-2 py-1 text-xs text-[#334155]"
+                              />
+                              <button type="submit" className="rounded bg-[#F1F5F9] px-2 py-1 text-[11px] font-medium text-[#475569] hover:bg-[#E2E8F0]">
+                                Update
+                              </button>
+                            </form>
+                            <form action={deleteFactorAttributeMap}>
+                              <input type="hidden" name="id" value={m.id} />
+                              <button type="submit" className={btnDanger}>Remove</button>
+                            </form>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>

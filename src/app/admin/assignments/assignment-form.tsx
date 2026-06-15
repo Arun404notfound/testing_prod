@@ -38,12 +38,39 @@ export function AssignmentForm({
     });
   }
 
+  if (assessments.length === 0) {
+    return (
+      <div id="new-assignment" className="rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+        <div className="border-b border-amber-200 bg-amber-100 px-5 py-4 flex items-center gap-2">
+          <span className="text-amber-600 text-base">⚠</span>
+          <p className="text-sm font-semibold text-amber-800">No assessments ready to assign</p>
+        </div>
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-amber-700">
+            An assessment must be <strong>published</strong> and have <strong>at least one question added via the builder</strong> before it can be assigned. To get started:
+          </p>
+          <ol className="space-y-2 text-sm text-amber-800">
+            <li className="flex items-start gap-2"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[11px] font-bold text-amber-800">1</span> Go to <strong>Assessments</strong> and open an existing assessment (or create one).</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[11px] font-bold text-amber-800">2</span> Click <strong>Open Builder</strong> and add questions from the question pool.</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[11px] font-bold text-amber-800">3</span> Make sure the assessment status is set to <strong>Published</strong>.</li>
+          </ol>
+          <a
+            href="/admin/assessments"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#1D4ED8] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1e40af] transition"
+          >
+            Go to Assessments →
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div id="new-assignment" className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden">
       {/* Header */}
       <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4">
         <p className="text-sm font-semibold text-[#0F172A]">New Assignment</p>
-        <p className="mt-0.5 text-xs text-[#64748B]">Only published assessments appear in the list below.</p>
+        <p className="mt-0.5 text-xs text-[#64748B]">Only published assessments with questions appear in the list below.</p>
       </div>
 
       <div className="p-5 space-y-5">
@@ -99,9 +126,7 @@ export function AssignmentForm({
                 {candidates.length === 0 && (
                   <p className="mt-1 text-xs text-amber-600">
                     ⚠ No candidates yet.{" "}
-                    <a href="/admin/candidates" className="underline">
-                      Add candidates first.
-                    </a>
+                    <a href="/admin/candidates" className="underline">Add candidates first.</a>
                   </p>
                 )}
               </div>
@@ -115,21 +140,40 @@ export function AssignmentForm({
                 >
                   <option value="">Select assessment…</option>
                   {assessments.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.title}
-                    </option>
+                    <option key={a.id} value={a.id}>{a.title}</option>
                   ))}
                 </select>
-                {assessments.length === 0 && (
-                  <p className="mt-1 text-xs text-amber-600">
-                    ⚠ No published assessments.{" "}
-                    <a href="/admin/assessments" className="underline">
-                      Publish one first.
-                    </a>
-                  </p>
-                )}
               </div>
             </div>
+
+            {/* Assignment settings */}
+            <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#475569]">Assignment settings</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Expiry date <span className="font-normal text-[#94A3B8]">(optional)</span></label>
+                  <input
+                    type="datetime-local"
+                    name="expiresAt"
+                    className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#1D4ED8] focus:outline-none"
+                  />
+                  <p className="mt-1 text-[10px] text-[#94A3B8]">Test locks after this date/time</p>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Duration <span className="font-normal text-[#94A3B8]">(minutes, optional)</span></label>
+                  <input
+                    type="number"
+                    name="durationMinutes"
+                    min="1"
+                    max="480"
+                    placeholder="e.g. 45"
+                    className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#1D4ED8] focus:outline-none"
+                  />
+                  <p className="mt-1 text-[10px] text-[#94A3B8]">Overrides assessment default</p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end border-t border-[#F1F5F9] pt-4">
               <button
                 type="submit"
@@ -185,21 +229,40 @@ export function AssignmentForm({
                 >
                   <option value="">Select assessment…</option>
                   {assessments.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.title}
-                    </option>
+                    <option key={a.id} value={a.id}>{a.title}</option>
                   ))}
                 </select>
-                {assessments.length === 0 && (
-                  <p className="mt-1 text-xs text-amber-600">
-                    ⚠ No published assessments.{" "}
-                    <a href="/admin/assessments" className="underline">
-                      Publish one first.
-                    </a>
-                  </p>
-                )}
               </div>
             </div>
+
+            {/* Assignment settings */}
+            <div className="rounded-lg border border-violet-100 bg-violet-50 p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">Assignment settings</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Expiry date <span className="font-normal text-[#94A3B8]">(optional)</span></label>
+                  <input
+                    type="datetime-local"
+                    name="expiresAt"
+                    className="w-full rounded-lg border border-violet-200 px-3 py-2 text-sm text-[#334155] focus:border-violet-500 focus:outline-none"
+                  />
+                  <p className="mt-1 text-[10px] text-[#94A3B8]">Test locks after this date/time</p>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Duration <span className="font-normal text-[#94A3B8]">(minutes, optional)</span></label>
+                  <input
+                    type="number"
+                    name="durationMinutes"
+                    min="1"
+                    max="480"
+                    placeholder="e.g. 45"
+                    className="w-full rounded-lg border border-violet-200 px-3 py-2 text-sm text-[#334155] focus:border-violet-500 focus:outline-none"
+                  />
+                  <p className="mt-1 text-[10px] text-[#94A3B8]">Overrides assessment default</p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end border-t border-violet-100 pt-4">
               <button
                 type="submit"

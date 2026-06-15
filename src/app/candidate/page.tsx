@@ -77,13 +77,17 @@ export default async function CandidatePage() {
       <section>
         <h2 className="mb-4 text-lg font-semibold text-[#0F172A]">Assigned Assessments</h2>
         <AssignmentsList
-          assignments={assignments.map((a) => ({
-            id: a.id,
-            status: a.status,
-            assignedAt: a.assignedAt.toISOString(),
-            assessment: { title: a.assessment.title, description: a.assessment.description ?? null },
-            result: a.result ? { id: a.result.id } : null,
-          }))}
+          assignments={assignments.map((a) => {
+            const isExpired = a.expiresAt != null && new Date() > a.expiresAt && a.status === "assigned";
+            return {
+              id: a.id,
+              status: isExpired ? "expired" : a.status,
+              assignedAt: a.assignedAt.toISOString(),
+              expiresAt: a.expiresAt ? a.expiresAt.toISOString() : null,
+              assessment: { title: a.assessment.title, description: a.assessment.description ?? null },
+              result: a.result ? { id: a.result.id } : null,
+            };
+          })}
         />
       </section>
     </main>

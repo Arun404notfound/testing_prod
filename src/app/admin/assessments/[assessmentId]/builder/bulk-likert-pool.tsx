@@ -89,9 +89,15 @@ export function BulkLikertPool({
                 className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-[#1D4ED8]"
               />
               <div className="min-w-0 flex-1">
-                <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                  {item.factor}{item.polarity ? ` · ${item.polarity}` : ""}
-                </p>
+                <div className="mb-1 flex items-center gap-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{item.factor}</p>
+                  {item.polarity === "POSITIVE" && (
+                    <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">POSITIVE</span>
+                  )}
+                  {item.polarity === "NEGATIVE" && (
+                    <span className="rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600">NEGATIVE</span>
+                  )}
+                </div>
                 <p className="text-sm text-[#0F172A]">{item.prompt}</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   {attrInfo ? (

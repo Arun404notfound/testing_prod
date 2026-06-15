@@ -7,23 +7,11 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import type { ReportPayload } from "@/lib/report-data";
 import { normalizeReportPayload } from "@/lib/normalize-report-payload";
-import { resolveReportLayout } from "@/lib/report-layout";
-import { ReportTemplatePlaceholderPage } from "@/components/reports/ReportTemplatePlaceholderPage";
-import { DisclaimerPage } from "@/components/reports/DisclaimerPage";
-import {
-  QuestionResponsesPage,
-  type QuestionResponseBlock,
-} from "@/components/reports/QuestionResponsesPage";
 import { ReportPageShell } from "@/components/reports/ReportPageShell";
 import { reportTheme } from "@/components/reports/report-theme";
-import { PsychometricGlancePage } from "@/components/reports/PsychometricGlancePage";
-import { PsychometricDashboardPage } from "@/components/reports/PsychometricDashboardPage";
-import { PsychometricBigFiveDetailPage } from "@/components/reports/PsychometricBigFiveDetailPage";
-import { PsychometricBehaviouralPage } from "@/components/reports/PsychometricBehaviouralPage";
-import { PsychometricStrengthsScorecard } from "@/components/reports/PsychometricStrengthsScorecard";
 import { ReportThemeProvider } from "@/components/reports/report-theme-context";
+import { AttributeScoresTable } from "@/components/reports/AttributeScoresTable";
 
-type QuestionReviewItem = ReportPayload["groupedQuestionReview"][string][number]["items"][number];
 
 const SUBMISSION_META: Record<string, { label: string; detail: string; color: string; bg: string; border: string }> = {
   TIMED_OUT:      { label: "Timer Expired",         detail: "The assessment time limit was reached and the test was auto-submitted.",                                    color: "#92400E", bg: "#FFFBEB", border: "#FDE68A" },
@@ -58,63 +46,6 @@ function pdfFileName(assessmentName: string) {
   return `${slug || "assessment"}-report.pdf`;
 }
 
-function buildQuestionPages(report: ReportPayload): QuestionResponseBlock[][] {
-  const blocks: QuestionResponseBlock[] = [];
-  for (const [section, categories] of Object.entries(report.groupedQuestionReview)) {
-    if (!Array.isArray(categories)) continue;
-    blocks.push({ kind: "section", section });
-    for (const categoryBlock of categories) {
-      if (!categoryBlock || typeof categoryBlock !== "object" || !Array.isArray(categoryBlock.items)) continue;
-      blocks.push({ kind: "category", section, category: String(categoryBlock.category ?? "") });
-      for (const item of categoryBlock.items) {
-        if (!item || typeof item !== "object") continue;
-        blocks.push({
-          kind: "question",
-          section,
-          category: String(categoryBlock.category ?? ""),
-          question: item as QuestionReviewItem,
-        });
-      }
-    }
-  }
-
-  const pages: QuestionResponseBlock[][] = [];
-  let currentPage: QuestionResponseBlock[] = [];
-  let usedUnits = 0;
-  const maxUnitsPerPage = 14;
-
-  const units = (b: QuestionResponseBlock) => {
-    if (b.kind === "section") return 2;
-    if (b.kind === "category") return 1;
-    return 3;
-  };
-
-  for (let i = 0; i < blocks.length; i += 1) {
-    const block = blocks[i];
-    const blockUnits = units(block);
-
-    if (usedUnits + blockUnits > maxUnitsPerPage && currentPage.length > 0) {
-      pages.push(currentPage);
-      currentPage = [];
-      usedUnits = 0;
-    }
-
-    currentPage.push(block);
-    usedUnits += blockUnits;
-
-    if (block.kind === "section") {
-      const next = blocks[i + 1];
-      if (next && usedUnits + units(next) > maxUnitsPerPage && currentPage.length > 0) {
-        pages.push(currentPage);
-        currentPage = [];
-        usedUnits = 0;
-      }
-    }
-  }
-
-  if (currentPage.length > 0) pages.push(currentPage);
-  return pages;
-}
 
 export default function ReportByIdClient() {
   const { resultId } = useParams<{ resultId: string }>();
@@ -151,8 +82,6 @@ export default function ReportByIdClient() {
       year: "numeric",
     });
   }, [report]);
-
-  const questionPages = useMemo(() => (report ? buildQuestionPages(report) : []), [report]);
 
   async function downloadPdf() {
     if (!pagesRef.current || !report) return;
@@ -207,77 +136,25 @@ export default function ReportByIdClient() {
     );
   }
 
-  const layout = resolveReportLayout(report.reportTemplateType, report.assessmentType);
-  const hasMcqReview = questionPages.length > 0;
-
-  const renderNewFormatStack = (_variant: "mcq" | "psychometric" | "triad" | "hybrid") => (
-    <>
-      <ReportPageShell>
-        <PsychometricGlancePage report={report} completedDate={completedDate} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <PsychometricDashboardPage report={report} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <PsychometricBigFiveDetailPage report={report} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <PsychometricBehaviouralPage />
-        <PsychometricStrengthsScorecard report={report} />
-      </ReportPageShell>
-      {hasMcqReview
-        ? questionPages.map((pageBlocks, index) => (
-            <ReportPageShell key={`mcq-review-${index}`}>
-              <QuestionResponsesPage pageBlocks={pageBlocks} />
-            </ReportPageShell>
-          ))
-        : null}
-      <ReportPageShell>
-        <DisclaimerPage />
-      </ReportPageShell>
-    </>
+  const renderAttributeScoresStack = () => (
+    <ReportPageShell>
+      <div className="p-8 space-y-6">
+        <div>
+          <h2 className="text-xl font-bold text-[#0F172A]">Attribute Scores</h2>
+          <p className="mt-1 text-sm text-[#64748B]">
+            Raw score range: 5 – 17 &nbsp;·&nbsp; Converted using: <span className="font-mono">1 + (raw − 5) × 9 / 12</span>
+          </p>
+        </div>
+        <AttributeScoresTable report={report} />
+      </div>
+    </ReportPageShell>
   );
 
-  const renderMcqStack = () => renderNewFormatStack("mcq");
-
-  const renderLikertStack = () => (
-    <>
-      <ReportPageShell>
-        <PsychometricGlancePage report={report} completedDate={completedDate} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <PsychometricDashboardPage report={report} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <PsychometricBigFiveDetailPage report={report} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <PsychometricBehaviouralPage />
-        <PsychometricStrengthsScorecard report={report} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <DisclaimerPage />
-      </ReportPageShell>
-    </>
-  );
-
-  const renderTriadStack = () => renderNewFormatStack("triad");
-
-  const renderPlaceholderStack = () => (
-    <>
-      <ReportPageShell>
-        <PsychometricGlancePage report={report} completedDate={completedDate} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <ReportTemplatePlaceholderPage reportTemplateType={report.reportTemplateType} />
-      </ReportPageShell>
-      <ReportPageShell>
-        <DisclaimerPage />
-      </ReportPageShell>
-    </>
-  );
-
-  const renderHybridStack = () => renderNewFormatStack("hybrid");
+  const renderMcqStack = renderAttributeScoresStack;
+  const renderLikertStack = renderAttributeScoresStack;
+  const renderTriadStack = renderAttributeScoresStack;
+  const renderPlaceholderStack = renderAttributeScoresStack;
+  const renderHybridStack = renderAttributeScoresStack;
 
   return (
     <main className="min-h-screen px-4 py-8 md:px-10" style={{ backgroundColor: reportTheme.pageBackground }}>
@@ -319,15 +196,7 @@ export default function ReportByIdClient() {
         <div ref={pagesRef} className="space-y-6">
           {report ? (
             <ReportThemeProvider branding={report.tenantBranding}>
-              {layout === "psychometric_trait"
-                ? renderLikertStack()
-                : layout === "triad_forced_choice"
-                  ? renderTriadStack()
-                  : layout === "hybrid"
-                    ? renderHybridStack()
-                    : layout === "placeholder"
-                      ? renderPlaceholderStack()
-                      : renderMcqStack()}
+              {renderAttributeScoresStack()}
             </ReportThemeProvider>
           ) : null}
         </div>

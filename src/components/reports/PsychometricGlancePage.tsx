@@ -31,7 +31,7 @@ function competencyLabelColor(label: string): { bg: string; text: string } {
 }
 
 function factorScore(f: ReportFactorAggregate): number {
-  return f.maxScore > 0 ? Math.round((f.score / f.maxScore) * 100) / 10 : 0;
+  return f.scaledScore != null ? Math.round(f.scaledScore * 100) / 10 : (f.maxScore > 0 ? Math.round((f.score / f.maxScore) * 100) / 10 : 0);
 }
 
 // --- sub-components ---------------------------------------------------------

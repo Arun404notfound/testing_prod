@@ -8,6 +8,7 @@ type Assignment = {
   id: string;
   status: string;
   assignedAt: string;
+  expiresAt: string | null;
   assessment: { title: string; description: string | null };
   result: { id: string } | null;
 };
@@ -17,6 +18,7 @@ function StatusBadge({ status }: { status: string }) {
     assigned:    { label: "Pending",     bg: "#FFF7ED", text: "#C2410C", dot: "#F97316" },
     in_progress: { label: "In Progress", bg: "#EFF6FF", text: "#1D4ED8", dot: "#3B82F6" },
     completed:   { label: "Completed",   bg: "#F0FDF4", text: "#15803D", dot: "#22C55E" },
+    expired:     { label: "Expired",     bg: "#FEF2F2", text: "#991B1B", dot: "#EF4444" },
   };
   const s = map[status] ?? { label: status, bg: "#F1F5F9", text: "#475569", dot: "#94A3B8" };
   return (
@@ -95,19 +97,24 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
         </div>
       ) : (
         filtered.map((assignment) => {
-          const isDone = assignment.status === "completed" && assignment.result;
+          const isDone    = assignment.status === "completed" && assignment.result;
+          const isExpired = assignment.status === "expired";
           return (
             <div
               key={assignment.id}
-              className="group flex flex-col gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm transition-all hover:border-[#93C5FD] hover:shadow-md md:flex-row md:items-center md:justify-between"
+              className={`group flex flex-col gap-4 rounded-2xl border bg-white p-5 shadow-sm transition-all md:flex-row md:items-center md:justify-between ${
+                isExpired ? "border-red-200 opacity-75" : "border-[#E2E8F0] hover:border-[#93C5FD] hover:shadow-md"
+              }`}
             >
               <div className="flex items-start gap-4">
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-                  style={{ background: isDone ? "#F0FDF4" : "#EFF6FF" }}
+                  style={{ background: isDone ? "#F0FDF4" : isExpired ? "#FEF2F2" : "#EFF6FF" }}
                 >
                   {isDone ? (
                     <CheckCircle2 size={24} className="text-emerald-600" />
+                  ) : isExpired ? (
+                    <ClipboardList size={24} className="text-red-400" />
                   ) : (
                     <ClipboardList size={24} className="text-[#1D4ED8]" />
                   )}
@@ -120,9 +127,14 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
                   {assignment.assessment.description && (
                     <p className="mt-1 text-sm text-[#64748B] line-clamp-2">{assignment.assessment.description}</p>
                   )}
-                  <p className="mt-2 text-xs text-[#94A3B8]">
-                    Assigned on {new Date(assignment.assignedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                  </p>
+                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-[#94A3B8]">
+                    <span>Assigned {new Date(assignment.assignedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                    {assignment.expiresAt && (
+                      <span className={isExpired ? "text-red-500 font-medium" : ""}>
+                        {isExpired ? "Expired" : "Expires"} {new Date(assignment.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -142,6 +154,10 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
                     <ChevronRight size={16} />
                   </Link>
                 </div>
+              ) : isExpired ? (
+                <span className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-400 cursor-not-allowed">
+                  Test Expired
+                </span>
               ) : (
                 <Link
                   href={`/candidate/test/${assignment.id}`}
