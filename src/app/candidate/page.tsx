@@ -26,11 +26,18 @@ export default async function CandidatePage() {
     console.error("[autoSubmitAbandoned]", e);
   }
 
-  const assignments = await prisma.assessmentAssignment.findMany({
-    where: { candidateId: session.candidateId },
-    include: { assessment: true, result: true },
-    orderBy: { assignedAt: "desc" },
-  });
+  const [assignments, activeAttempts] = await Promise.all([
+    prisma.assessmentAssignment.findMany({
+      where: { candidateId: session.candidateId },
+      include: { assessment: true, result: true },
+      orderBy: { assignedAt: "desc" },
+    }),
+    prisma.assessmentAttempt.findMany({
+      where: { candidateId: session.candidateId, status: "IN_PROGRESS" },
+      select: { assignmentId: true },
+    }),
+  ]);
+  const activeAssignmentIds = new Set(activeAttempts.map((a) => a.assignmentId));
 
   const completed = assignments.filter((a) => a.status === "completed").length;
   const pending = assignments.filter((a) => a.status === "assigned").length;
@@ -86,6 +93,7 @@ export default async function CandidatePage() {
               expiresAt: a.expiresAt ? a.expiresAt.toISOString() : null,
               assessment: { title: a.assessment.title, description: a.assessment.description ?? null },
               result: a.result ? { id: a.result.id } : null,
+              hasActiveAttempt: activeAssignmentIds.has(a.id),
             };
           })}
         />

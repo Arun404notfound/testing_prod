@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Clock,
   FileText,
@@ -8,6 +8,8 @@ import {
   Check,
   Play,
   BookOpen,
+  AlertTriangle,
+  MonitorX,
 } from "lucide-react";
 import { CandidateTestRunner } from "./test-runner";
 import type { TestBlock } from "@/lib/candidate-test-payload";
@@ -18,6 +20,9 @@ interface Props {
   assessmentTitle?: string;
   candidateName?: string;
   durationMinutes: number;
+  activeAttemptId?: string;
+  activeProgressData?: { answers?: Record<string, unknown> } | null;
+  activeStartedAt?: string;
 }
 
 function fmt(mins: number) {
@@ -36,11 +41,56 @@ const INSTRUCTIONS = [
   { heading: "Single attempt", text: "Once you submit, your responses are final and cannot be revised. This assessment can only be attempted once per assignment." },
 ];
 
-export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candidateName, durationMinutes }: Props) {
+type SessionState = "checking" | "duplicate" | "fresh";
+
+export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candidateName, durationMinutes, activeAttemptId, activeProgressData, activeStartedAt }: Props) {
   const [accepted, setAccepted] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [savedAnswers, setSavedAnswers] = useState<Record<string, unknown> | null>(null);
+  const [startedAt, setStartedAt] = useState<string | null>(activeStartedAt ?? null);
+  const [sessionState, setSessionState] = useState<SessionState>(activeAttemptId ? "checking" : "fresh");
+
+  // BroadcastChannel: detect if test is open in another tab, else auto-resume
+  useEffect(() => {
+    if (!activeAttemptId) return;
+
+    let channel: BroadcastChannel | null = null;
+    let resolved = false;
+
+    const resolve = (state: "duplicate" | "resume") => {
+      if (resolved) return;
+      resolved = true;
+      if (state === "resume") {
+        const saved = (activeProgressData?.answers ?? null) as Record<string, unknown> | null;
+        setSavedAnswers(saved);
+        if (activeStartedAt) setStartedAt(activeStartedAt);
+        setAttemptId(activeAttemptId);
+      } else {
+        setSessionState("duplicate");
+      }
+      try { channel?.close(); } catch { /* ignore */ }
+    };
+
+    try {
+      channel = new BroadcastChannel(`test-session-${assignmentId}`);
+      channel.onmessage = (e: MessageEvent) => {
+        if ((e.data as { type?: string })?.type === "pong") resolve("duplicate");
+      };
+      channel.postMessage({ type: "ping" });
+    } catch {
+      // BroadcastChannel not supported — fall through to auto-resume
+      resolve("resume");
+      return;
+    }
+
+    const timeout = setTimeout(() => resolve("resume"), 800);
+    return () => {
+      clearTimeout(timeout);
+      try { channel?.close(); } catch { /* ignore */ }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (attemptId) {
     return (
@@ -51,7 +101,53 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
         assessmentTitle={assessmentTitle}
         candidateName={candidateName}
         durationMinutes={durationMinutes}
+        savedAnswers={savedAnswers ?? undefined}
+        startedAtIso={startedAt ?? undefined}
       />
+    );
+  }
+
+  // Still pinging other tabs
+  if (sessionState === "checking") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F1F5F9] p-6">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 size={28} className="animate-spin text-blue-600" />
+          <p className="text-sm font-medium text-[#64748B]">Checking session…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Duplicate tab detected
+  if (sessionState === "duplicate") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F1F5F9] p-6">
+        <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+            <MonitorX size={30} className="text-amber-600" />
+          </div>
+          <h2 className="text-xl font-bold text-[#0F172A]">Test Already Open</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#64748B]">
+            This assessment is already running in another browser tab. To avoid losing your progress,
+            please return to that tab to continue.
+          </p>
+          <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
+            <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-600" />
+            <p className="text-xs leading-relaxed text-amber-700">
+              Continuing here will run two sessions in parallel and may cause answers to overwrite each other.
+            </p>
+          </div>
+          <div className="mt-5">
+            <a
+              href="/candidate"
+              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 text-center block"
+            >
+              Go to Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -65,11 +161,20 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
         body: JSON.stringify({ assignmentId }),
         credentials: "same-origin",
       });
-      const data = (await res.json().catch(() => ({}))) as { attemptId?: string; message?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        attemptId?: string;
+        progressData?: { answers?: Record<string, unknown> } | null;
+        startedAt?: string | null;
+        message?: string;
+      };
       if (!res.ok || !data.attemptId) {
         setStartError(data.message ?? "Could not start the assessment. Please try again.");
         return;
       }
+      if (data.progressData?.answers) {
+        setSavedAnswers(data.progressData.answers);
+      }
+      if (data.startedAt) setStartedAt(data.startedAt);
       setAttemptId(data.attemptId);
       try { sessionStorage.setItem("activeAttemptId", data.attemptId); } catch { /* ignore */ }
     } catch {

@@ -168,10 +168,14 @@ export async function POST(request: Request) {
     const existing = await prisma.assessmentAttempt.findFirst({
       where: { assignmentId: assignment.id, status: "IN_PROGRESS" },
       orderBy: { createdAt: "desc" },
-      select: { id: true },
+      select: { id: true, progressData: true, startedAt: true },
     });
     if (existing) {
-      return NextResponse.json({ attemptId: existing.id });
+      return NextResponse.json({
+        attemptId: existing.id,
+        progressData: existing.progressData ?? null,
+        startedAt: existing.startedAt?.toISOString() ?? null,
+      });
     }
 
     const lastAttempt = await prisma.assessmentAttempt.findFirst({
@@ -191,10 +195,10 @@ export async function POST(request: Request) {
         startedAt: new Date(),
         proctoringCameraGranted: true,
       },
-      select: { id: true },
+      select: { id: true, startedAt: true },
     });
 
-    return NextResponse.json({ attemptId: attempt.id });
+    return NextResponse.json({ attemptId: attempt.id, startedAt: attempt.startedAt?.toISOString() ?? null });
   } catch (e) {
     console.error("[api/candidate/attempts/start]", e);
     return NextResponse.json(

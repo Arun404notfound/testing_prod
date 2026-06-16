@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { ClipboardList, CheckCircle2, ChevronRight, Filter, X } from "lucide-react";
+import { ClipboardList, CheckCircle2, ChevronRight, Filter, X, PlayCircle } from "lucide-react";
 
 type Assignment = {
   id: string;
@@ -11,6 +11,7 @@ type Assignment = {
   expiresAt: string | null;
   assessment: { title: string; description: string | null };
   result: { id: string } | null;
+  hasActiveAttempt?: boolean;
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -97,8 +98,9 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
         </div>
       ) : (
         filtered.map((assignment) => {
-          const isDone    = assignment.status === "completed" && assignment.result;
-          const isExpired = assignment.status === "expired";
+          const isDone      = assignment.status === "completed" && assignment.result;
+          const isExpired   = assignment.status === "expired";
+          const isResumable = !isDone && !isExpired && assignment.hasActiveAttempt;
           return (
             <div
               key={assignment.id}
@@ -158,6 +160,14 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
                 <span className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-400 cursor-not-allowed">
                   Test Expired
                 </span>
+              ) : isResumable ? (
+                <Link
+                  href={`/candidate/test/${assignment.id}`}
+                  className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md"
+                >
+                  <PlayCircle size={16} />
+                  Finish Test
+                </Link>
               ) : (
                 <Link
                   href={`/candidate/test/${assignment.id}`}

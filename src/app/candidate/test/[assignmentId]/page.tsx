@@ -74,6 +74,14 @@ export default async function CandidateTestPage({
   }
   if (assignment.status === "completed") redirect("/candidate");
 
+  // Secondary guard: if a result already exists for this assignment, send the candidate there.
+  // This covers edge cases where assignment.status is stale (e.g. concurrent tab, cached page).
+  const existingResult = await prisma.assessmentResult.findFirst({
+    where: { assignmentId: assignment.id },
+    select: { id: true },
+  });
+  if (existingResult) redirect(`/candidate/reports/${existingResult.id}`);
+
   // Check expiry: if the assignment has a deadline that has passed and it's not yet started/completed
   if (assignment.expiresAt && new Date() > assignment.expiresAt && assignment.status === "assigned") {
     return (
@@ -124,6 +132,11 @@ export default async function CandidateTestPage({
     );
   }
 
+  const activeAttempt = await prisma.assessmentAttempt.findFirst({
+    where: { assignmentId: assignment.id, status: "IN_PROGRESS" },
+    select: { id: true, progressData: true, startedAt: true },
+  });
+
   return (
     <InstructionsGate
       assignmentId={assignment.id}
@@ -131,6 +144,9 @@ export default async function CandidateTestPage({
       assessmentTitle={assignment.assessment.title}
       candidateName={assignment.candidate.fullName}
       durationMinutes={durationMinutes}
+      activeAttemptId={activeAttempt?.id}
+      activeProgressData={activeAttempt?.progressData as { answers?: Record<string, unknown> } | null | undefined}
+      activeStartedAt={activeAttempt?.startedAt?.toISOString()}
     />
   );
 }

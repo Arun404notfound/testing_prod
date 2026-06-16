@@ -453,8 +453,14 @@ async function autosave(
   }
 }
 
+// Derive the index of the first unanswered block, given a set of saved answers
+function firstUnansweredIndex(blocks: TestBlock[], saved: Answers): number {
+  const idx = blocks.findIndex((b) => !isAnswered(b, saved));
+  return idx === -1 ? blocks.length - 1 : idx;
+}
+
 export function CandidateTestRunner({
-  assignmentId, blocks, assessmentTitle, candidateName, durationMinutes, attemptId,
+  assignmentId, blocks, assessmentTitle, candidateName, durationMinutes, attemptId, savedAnswers, startedAtIso,
 }: {
   assignmentId: string;
   blocks: TestBlock[];
@@ -462,10 +468,15 @@ export function CandidateTestRunner({
   candidateName?: string;
   durationMinutes?: number;
   attemptId?: string;
+  savedAnswers?: Record<string, unknown>;
+  startedAtIso?: string;
 }) {
   const router = useRouter();
-  const [answers, setAnswers] = useState<Answers>({});
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const initialAnswers = (savedAnswers ?? {}) as Answers;
+  const [answers, setAnswers] = useState<Answers>(initialAnswers);
+  const [currentIndex, setCurrentIndex] = useState(() =>
+    savedAnswers ? firstUnansweredIndex(blocks, savedAnswers as Answers) : 0
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timesUp, setTimesUp] = useState(false);
@@ -490,9 +501,11 @@ export function CandidateTestRunner({
     questionScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentIndex]);
 
-  // Debounced auto-save to DB whenever answers change (1.5 s after last keystroke)
+  // Keep answers in a ref so event listeners always see the latest value
   const answersRef = useRef(answers);
   answersRef.current = answers;
+
+  // Debounced auto-save (1.5s after each answer change)
   useEffect(() => {
     if (!attemptId) return;
     const id = setTimeout(() => {
@@ -500,6 +513,44 @@ export function CandidateTestRunner({
     }, 1500);
     return () => clearTimeout(id);
   }, [answers, attemptId, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Periodic auto-save every 15 seconds — guards against idle sessions with no answer changes
+  useEffect(() => {
+    if (!attemptId) return;
+    const id = setInterval(() => {
+      void autosave(attemptId, answersRef.current, new Set(), blocks);
+    }, 15_000);
+    return () => clearInterval(id);
+  }, [attemptId, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // BroadcastChannel: respond to pings from duplicate tabs so they can detect this session is active
+  useEffect(() => {
+    if (!attemptId) return;
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel(`test-session-${assignmentId}`);
+      channel.onmessage = (e: MessageEvent) => {
+        if ((e.data as { type?: string })?.type === "ping") {
+          channel!.postMessage({ type: "pong" });
+        }
+      };
+    } catch {
+      // BroadcastChannel not supported — skip
+    }
+    return () => {
+      try { channel?.close(); } catch { /* ignore */ }
+    };
+  }, [attemptId, assignmentId]);
+
+  // Retry save immediately when the browser comes back online after a connection drop
+  useEffect(() => {
+    if (!attemptId) return;
+    const handleOnline = () => {
+      void autosave(attemptId, answersRef.current, new Set(), blocks);
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [attemptId, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reliable save on tab close / power off via sendBeacon
   useEffect(() => {
@@ -549,7 +600,13 @@ export function CandidateTestRunner({
   }, [handleSubmit]);
 
   const effectiveDuration = (durationMinutes && durationMinutes > 0) ? durationMinutes : 0;
-  const { mm, ss, isWarning, isCritical } = useCountdownTimer(effectiveDuration * 60, handleTimesUp);
+  const initialSeconds = (() => {
+    const total = effectiveDuration * 60;
+    if (!startedAtIso || total === 0) return total;
+    const elapsed = Math.floor((Date.now() - new Date(startedAtIso).getTime()) / 1000);
+    return Math.max(0, total - elapsed);
+  })();
+  const { mm, ss, isWarning, isCritical } = useCountdownTimer(initialSeconds, handleTimesUp);
 
   const handleNext = useCallback(() => {
     if (navLockRef.current) return;
