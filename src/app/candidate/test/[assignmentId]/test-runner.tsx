@@ -50,15 +50,27 @@ function isPartialTriad(block: TestBlock, answers: Answers): boolean {
 
 // ─── Timer ───────────────────────────────────────────────────────────────────
 
-function useCountdownTimer(totalSeconds: number, onExpire: () => void) {
-  const [remaining, setRemaining] = useState(totalSeconds);
+// initialSeconds  = where the countdown starts (may be 0 if time already ran out on resume)
+// totalDurationSeconds = the full duration of this timed test (0 = untimed, never expires)
+function useCountdownTimer(initialSeconds: number, totalDurationSeconds: number, onExpire: () => void) {
+  const [remaining, setRemaining] = useState(Math.max(0, initialSeconds));
   const expiredRef = useRef(false);
   const cbRef = useRef(onExpire);
   cbRef.current = onExpire;
-  const hasTimer = totalSeconds > 0;
+  const hasTimer = totalDurationSeconds > 0;
 
   useEffect(() => {
-    if (!hasTimer) return; // no timer — never expire
+    if (!hasTimer) return; // untimed assessment — never expire
+
+    // Tab was re-opened after the timer already ran out
+    if (initialSeconds <= 0) {
+      if (!expiredRef.current) {
+        expiredRef.current = true;
+        setTimeout(() => cbRef.current(), 0);
+      }
+      return;
+    }
+
     const id = setInterval(() => {
       setRemaining((prev) => {
         if (prev <= 1) {
@@ -620,7 +632,7 @@ export function CandidateTestRunner({
     }
     return total;
   })();
-  const { mm, ss, isWarning, isCritical, remaining } = useCountdownTimer(initialSeconds, handleTimesUp);
+  const { mm, ss, isWarning, isCritical, remaining } = useCountdownTimer(initialSeconds, effectiveDuration * 60, handleTimesUp);
   remainingRef.current = remaining;
 
   const handleNext = useCallback(() => {
