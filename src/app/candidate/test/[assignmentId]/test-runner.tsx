@@ -409,16 +409,58 @@ function TimesUpOverlay({ onSubmit, submitting }: { onSubmit: () => void; submit
   );
 }
 
-function SubmittingOverlay() {
+function SubmittingOverlay({ done }: { done?: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-2xl">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-          <Loader2 size={30} className="animate-spin text-[#1D4ED8]" />
-        </div>
-        <h2 className="text-xl font-bold text-[#0F172A]">Submitting Your Responses</h2>
-        <p className="mt-2 text-sm text-[#64748B]">Please wait while your answers are being saved…</p>
+        {done ? (
+          <>
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+              <CheckCircle2 size={30} className="text-emerald-600" />
+            </div>
+            <h2 className="text-xl font-bold text-[#0F172A]">Responses Submitted!</h2>
+            <p className="mt-2 text-sm text-[#64748B]">Your answers have been saved successfully. Taking you to your report…</p>
+          </>
+        ) : (
+          <>
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
+              <Loader2 size={30} className="animate-spin text-[#1D4ED8]" />
+            </div>
+            <h2 className="text-xl font-bold text-[#0F172A]">Submitting Your Responses</h2>
+            <p className="mt-2 text-sm text-[#64748B]">Please wait while your answers are being saved…</p>
+          </>
+        )}
       </div>
+    </div>
+  );
+}
+
+type TimerWarningKind = "one_minute" | "ten_seconds";
+
+function TimerWarningToast({ kind, onDismiss }: { kind: TimerWarningKind; onDismiss: () => void }) {
+  useEffect(() => {
+    const id = setTimeout(onDismiss, 6000);
+    return () => clearTimeout(id);
+  }, [onDismiss]);
+
+  const isOneMin = kind === "one_minute";
+  return (
+    <div className={`fixed left-1/2 top-4 z-40 flex -translate-x-1/2 items-center gap-3 rounded-2xl border px-5 py-3 shadow-xl backdrop-blur-sm transition-all ${
+      isOneMin
+        ? "border-amber-300 bg-amber-50 text-amber-800"
+        : "border-rose-300 bg-rose-50 text-rose-800"
+    }`}>
+      <AlertCircle size={17} className="shrink-0" />
+      <p className="text-sm font-semibold">
+        {isOneMin ? "Only 1 minute remaining!" : "Only 10 seconds left!"}
+      </p>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="ml-1 rounded-full p-0.5 opacity-60 hover:opacity-100"
+      >
+        <X size={13} />
+      </button>
     </div>
   );
 }
@@ -493,14 +535,18 @@ export function CandidateTestRunner({
     savedAnswers ? firstUnansweredIndex(blocks, savedAnswers as Answers) : 0
   );
   const [loading, setLoading] = useState(false);
+  const [submitDone, setSubmitDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timesUp, setTimesUp] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [unansweredWarning, setUnansweredWarning] = useState(false);
+  const [timerWarning, setTimerWarning] = useState<TimerWarningKind | null>(null);
   // Prevents double-click from advancing two questions at once
   const navLockRef = useRef(false);
   // Keeps the latest remaining seconds so event-handler effects always save the correct value
   const remainingRef = useRef(0);
+  const oneMinWarned = useRef(false);
+  const tenSecWarned = useRef(false);
 
   const total = blocks.length;
   const block = blocks[currentIndex];
@@ -604,7 +650,8 @@ export function CandidateTestRunner({
         return;
       }
       try { sessionStorage.removeItem("activeAttemptId"); } catch { /* ignore */ }
-      router.push(`/candidate/reports/${data.resultId}`);
+      setSubmitDone(true);
+      setTimeout(() => router.push(`/candidate/reports/${data.resultId}`), 1500);
     } catch {
       setError("Network error — could not reach the server.");
       setLoading(false);
@@ -635,6 +682,18 @@ export function CandidateTestRunner({
   const { mm, ss, isWarning, isCritical, remaining } = useCountdownTimer(initialSeconds, effectiveDuration * 60, handleTimesUp);
   remainingRef.current = remaining;
 
+  // Timer warnings: 1 min (only for tests > 5 min total) and 10 sec
+  useEffect(() => {
+    if (effectiveDuration === 0) return;
+    if (remaining === 60 && effectiveDuration > 5 && !oneMinWarned.current) {
+      oneMinWarned.current = true;
+      setTimerWarning("one_minute");
+    } else if (remaining === 10 && !tenSecWarned.current) {
+      tenSecWarned.current = true;
+      setTimerWarning("ten_seconds");
+    }
+  }, [remaining, effectiveDuration]);
+
   const handleNext = useCallback(() => {
     if (navLockRef.current) return;
     if (!isAnswered(blocks[currentIndex], answers)) {
@@ -659,7 +718,10 @@ export function CandidateTestRunner({
 
   return (
     <>
-      {(loading || timesUp) && <SubmittingOverlay />}
+      {(loading || timesUp) && <SubmittingOverlay done={submitDone} />}
+      {timerWarning && !loading && !timesUp && (
+        <TimerWarningToast kind={timerWarning} onDismiss={() => setTimerWarning(null)} />
+      )}
       {navOpen && (
         <MobileNavDrawer blocks={blocks} answers={answers} currentIndex={currentIndex}
           onClose={() => setNavOpen(false)} />
