@@ -79,7 +79,7 @@ function useCountdownTimer(totalSeconds: number, onExpire: () => void) {
   const ss = String(remaining % 60).padStart(2, "0");
   const isWarning = remaining < 10 * 60 && remaining > 3 * 60;
   const isCritical = remaining <= 3 * 60;
-  return { mm, ss, isWarning, isCritical };
+  return { mm, ss, isWarning, isCritical, remaining };
 }
 
 // ─── Timer pill ───────────────────────────────────────────────────────────────
@@ -439,13 +439,14 @@ async function autosave(
   answers: Answers,
   skipped: Set<number>,
   blocks: TestBlock[],
+  remainingSeconds?: number,
 ) {
   try {
     const skippedKeys = [...skipped].map((i) => blocks[i]?.key).filter(Boolean);
     await fetch(`/api/candidate/attempts/${attemptId}/autosave`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers, skippedKeys }),
+      body: JSON.stringify({ answers, skippedKeys, remainingSeconds }),
       credentials: "same-origin",
     });
   } catch {
@@ -460,7 +461,7 @@ function firstUnansweredIndex(blocks: TestBlock[], saved: Answers): number {
 }
 
 export function CandidateTestRunner({
-  assignmentId, blocks, assessmentTitle, candidateName, durationMinutes, attemptId, savedAnswers, startedAtIso,
+  assignmentId, blocks, assessmentTitle, candidateName, durationMinutes, attemptId, savedAnswers, startedAtIso, savedRemainingSeconds, timerSavedAt,
 }: {
   assignmentId: string;
   blocks: TestBlock[];
@@ -470,6 +471,8 @@ export function CandidateTestRunner({
   attemptId?: string;
   savedAnswers?: Record<string, unknown>;
   startedAtIso?: string;
+  savedRemainingSeconds?: number;
+  timerSavedAt?: string;
 }) {
   const router = useRouter();
   const initialAnswers = (savedAnswers ?? {}) as Answers;
@@ -484,6 +487,8 @@ export function CandidateTestRunner({
   const [unansweredWarning, setUnansweredWarning] = useState(false);
   // Prevents double-click from advancing two questions at once
   const navLockRef = useRef(false);
+  // Keeps the latest remaining seconds so event-handler effects always save the correct value
+  const remainingRef = useRef(0);
 
   const total = blocks.length;
   const block = blocks[currentIndex];
@@ -509,7 +514,7 @@ export function CandidateTestRunner({
   useEffect(() => {
     if (!attemptId) return;
     const id = setTimeout(() => {
-      void autosave(attemptId, answersRef.current, new Set(), blocks);
+      void autosave(attemptId, answersRef.current, new Set(), blocks, remainingRef.current);
     }, 1500);
     return () => clearTimeout(id);
   }, [answers, attemptId, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -518,7 +523,7 @@ export function CandidateTestRunner({
   useEffect(() => {
     if (!attemptId) return;
     const id = setInterval(() => {
-      void autosave(attemptId, answersRef.current, new Set(), blocks);
+      void autosave(attemptId, answersRef.current, new Set(), blocks, remainingRef.current);
     }, 15_000);
     return () => clearInterval(id);
   }, [attemptId, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -546,7 +551,7 @@ export function CandidateTestRunner({
   useEffect(() => {
     if (!attemptId) return;
     const handleOnline = () => {
-      void autosave(attemptId, answersRef.current, new Set(), blocks);
+      void autosave(attemptId, answersRef.current, new Set(), blocks, remainingRef.current);
     };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
@@ -556,7 +561,7 @@ export function CandidateTestRunner({
   useEffect(() => {
     if (!attemptId) return;
     const handleUnload = () => {
-      const payload = JSON.stringify({ answers: answersRef.current, skippedKeys: [], trigger: "beforeunload" });
+      const payload = JSON.stringify({ answers: answersRef.current, skippedKeys: [], remainingSeconds: remainingRef.current, trigger: "beforeunload" });
       try {
         navigator.sendBeacon(
           `/api/candidate/attempts/${attemptId}/autosave`,
@@ -602,11 +607,21 @@ export function CandidateTestRunner({
   const effectiveDuration = (durationMinutes && durationMinutes > 0) ? durationMinutes : 0;
   const initialSeconds = (() => {
     const total = effectiveDuration * 60;
-    if (!startedAtIso || total === 0) return total;
-    const elapsed = Math.floor((Date.now() - new Date(startedAtIso).getTime()) / 1000);
-    return Math.max(0, total - elapsed);
+    if (total === 0) return 0;
+    // Prefer saved remaining + correct for gap since last save (≤1.5 s error max).
+    if (savedRemainingSeconds !== undefined && timerSavedAt) {
+      const gapSecs = Math.floor((Date.now() - new Date(timerSavedAt).getTime()) / 1000);
+      return Math.max(0, savedRemainingSeconds - gapSecs);
+    }
+    // Fallback: wall-clock from startedAt (only used on fresh start where elapsed ≈ 0).
+    if (startedAtIso) {
+      const elapsed = Math.floor((Date.now() - new Date(startedAtIso).getTime()) / 1000);
+      return Math.max(0, total - elapsed);
+    }
+    return total;
   })();
-  const { mm, ss, isWarning, isCritical } = useCountdownTimer(initialSeconds, handleTimesUp);
+  const { mm, ss, isWarning, isCritical, remaining } = useCountdownTimer(initialSeconds, handleTimesUp);
+  remainingRef.current = remaining;
 
   const handleNext = useCallback(() => {
     if (navLockRef.current) return;
@@ -618,7 +633,7 @@ export function CandidateTestRunner({
     navLockRef.current = true;
 
     if (attemptId) {
-      void autosave(attemptId, answers, new Set(), blocks);
+      void autosave(attemptId, answers, new Set(), blocks, remainingRef.current);
     }
 
     if (currentIndex < total - 1) {

@@ -24,9 +24,10 @@ export async function POST(
       return NextResponse.json({ ok: false }, { status: 400 });
     }
 
-    const { answers, skippedKeys, trigger } = body as {
+    const { answers, skippedKeys, remainingSeconds, trigger } = body as {
       answers?: Record<string, unknown>;
       skippedKeys?: string[];
+      remainingSeconds?: number;
       trigger?: string;
     };
 
@@ -50,6 +51,7 @@ export async function POST(
       answers: answers ?? {},
       skippedKeys: skippedKeys ?? [],
       savedAt: new Date().toISOString(),
+      ...(remainingSeconds !== undefined ? { remainingSeconds } : {}),
       ...(trigger ? { trigger } : {}),
     };
 

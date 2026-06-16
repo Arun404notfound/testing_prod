@@ -21,7 +21,7 @@ interface Props {
   candidateName?: string;
   durationMinutes: number;
   activeAttemptId?: string;
-  activeProgressData?: { answers?: Record<string, unknown> } | null;
+  activeProgressData?: { answers?: Record<string, unknown>; remainingSeconds?: number; savedAt?: string } | null;
   activeStartedAt?: string;
 }
 
@@ -103,6 +103,8 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
         durationMinutes={durationMinutes}
         savedAnswers={savedAnswers ?? undefined}
         startedAtIso={startedAt ?? undefined}
+        savedRemainingSeconds={activeProgressData?.remainingSeconds}
+        timerSavedAt={activeProgressData?.savedAt}
       />
     );
   }
