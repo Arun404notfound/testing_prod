@@ -176,7 +176,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Missing assignmentId" }, { status: 400 });
   }
 
-  const rawAnswers: AnswerMap =
+  const requestAnswers: AnswerMap =
     b.answers && typeof b.answers === "object" && !Array.isArray(b.answers) ? (b.answers as AnswerMap) : {};
 
   const tenantId = await getDefaultTenantId();
@@ -244,6 +244,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "No takeable items" }, { status: 400 });
   }
 
+  // Find the IN_PROGRESS attempt to update (created by /api/candidate/attempts/start).
+  // If the request body answers are empty, fall back to autosaved progressData so
+  // responses are never lost when the submit fires before answers are fully hydrated.
+  const inProgressAttempt = await prisma.assessmentAttempt.findFirst({
+    where: { assignmentId: assignment.id, status: "IN_PROGRESS", candidateId: session.candidateId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, attemptNo: true, startedAt: true, progressData: true },
+  });
+
+  const savedAnswers = (
+    inProgressAttempt?.progressData &&
+    typeof inProgressAttempt.progressData === "object" &&
+    !Array.isArray(inProgressAttempt.progressData)
+      ? (inProgressAttempt.progressData as { answers?: AnswerMap }).answers
+      : undefined
+  ) ?? {};
+
+  // Prefer live answers from the request; fall back to autosaved answers if request is empty
+  const rawAnswers: AnswerMap =
+    Object.keys(requestAnswers).length > 0 ? requestAnswers : savedAnswers;
+
   const ctx = buildScoringContext(assignment.assessment, blocks, rawAnswers);
   let scored: ReturnType<typeof scoreAssessment>;
   try {
@@ -298,33 +319,69 @@ export async function POST(req: Request) {
   const completedAt = new Date();
   const overallScore = Math.round(scored.percentage);
 
-  const lastAttempt = await prisma.assessmentAttempt.findFirst({
-    where: { assignmentId: assignment.id },
-    orderBy: { attemptNo: "desc" },
-    select: { attemptNo: true },
+  console.log("[demo-submit] scoring", {
+    assignmentId,
+    inProgressAttemptId: inProgressAttempt?.id ?? null,
+    requestAnswerCount: Object.keys(requestAnswers).length,
+    savedAnswerCount: Object.keys(savedAnswers).length,
+    rawAnswerCount: Object.keys(rawAnswers).length,
+    blockCount: blocks.length,
+    attemptResponseCount: scored.attemptResponses.length,
+    traitScoreCount: scored.traitScores.length,
+    overallScore,
   });
-  const attemptNo = (lastAttempt?.attemptNo ?? 0) + 1;
 
   try {
     const createdResult = await prisma.$transaction(async (tx) => {
-      const attempt = await tx.assessmentAttempt.create({
-        data: {
-          assignmentId: assignment.id,
-          candidateId: assignment.candidateId,
-          assessmentId: assignment.assessmentId,
-          status: "SCORED",
-          attemptNo,
-          startedAt: completedAt,
-          submittedAt: completedAt,
-          scoredAt: completedAt,
-          submissionType,
-          ...(scored.attemptResponses.length > 0
-            ? { responses: { create: scored.attemptResponses } }
-            : {}),
-        },
-        select: { id: true },
-      });
-      const attemptIdForTraits = attempt.id;
+      let attemptId: string;
+
+      if (inProgressAttempt) {
+        // Update the existing IN_PROGRESS attempt to SCORED
+        await tx.assessmentAttempt.update({
+          where: { id: inProgressAttempt.id },
+          data: {
+            status: "SCORED",
+            submittedAt: completedAt,
+            scoredAt: completedAt,
+            submissionType,
+          },
+        });
+        // Insert responses separately (nested createMany inside update is unreliable on SQLite)
+        if (scored.attemptResponses.length > 0) {
+          await tx.attemptResponse.createMany({
+            data: scored.attemptResponses.map((r) => ({ ...r, attemptId: inProgressAttempt.id })),
+          });
+        }
+        attemptId = inProgressAttempt.id;
+      } else {
+        // No IN_PROGRESS attempt found — create a fresh SCORED attempt as fallback
+        const lastAttempt = await tx.assessmentAttempt.findFirst({
+          where: { assignmentId: assignment.id },
+          orderBy: { attemptNo: "desc" },
+          select: { attemptNo: true },
+        });
+        const attemptNo = (lastAttempt?.attemptNo ?? 0) + 1;
+        const created = await tx.assessmentAttempt.create({
+          data: {
+            assignmentId: assignment.id,
+            candidateId: assignment.candidateId,
+            assessmentId: assignment.assessmentId,
+            status: "SCORED",
+            attemptNo,
+            startedAt: completedAt,
+            submittedAt: completedAt,
+            scoredAt: completedAt,
+            submissionType,
+            ...(scored.attemptResponses.length > 0
+              ? { responses: { create: scored.attemptResponses } }
+              : {}),
+          },
+          select: { id: true },
+        });
+        attemptId = created.id;
+      }
+
+      const attemptIdForTraits = attemptId;
 
       if (scored.traitScores.length > 0) {
         await tx.traitScore.createMany({
@@ -384,7 +441,7 @@ export async function POST(req: Request) {
       if (competencyScores.length > 0) {
         await tx.competencyScore.createMany({
           data: competencyScores.map((cs) => ({
-            attemptId: attempt.id,
+            attemptId: attemptId,
             competencyId: cs.competencyId,
             rawScore: cs.rawScore,
             maxScore: cs.maxScore,

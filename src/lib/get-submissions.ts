@@ -72,7 +72,7 @@ export async function getSubmissions(resultId: string) {
   const attempt = result.assignmentId
     ? await prisma.assessmentAttempt.findFirst({
         where: { assignmentId: result.assignmentId, status: "SCORED" },
-        orderBy: { attemptNo: "desc" },
+        orderBy: { scoredAt: "desc" },
         include: {
           responses: {
             include: {

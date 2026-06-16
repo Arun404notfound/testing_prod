@@ -273,8 +273,11 @@ export async function scoreAndSave(assignment: any, rawAnswers: AnswerMap, exist
  */
 export async function autoSubmitAbandonedAttempts(candidateId: string): Promise<void> {
   // Only fetch scalar fields — avoids Prisma JSON field select issues with stale bundles
+  // Only treat attempts as abandoned if they haven't been updated in the last 10 minutes.
+  // This prevents the dashboard from auto-submitting a test that is actively running in another tab.
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
   const abandoned = await prisma.assessmentAttempt.findMany({
-    where: { candidateId, status: "IN_PROGRESS" },
+    where: { candidateId, status: "IN_PROGRESS", updatedAt: { lt: tenMinutesAgo } },
     select: { id: true, assignmentId: true },
   });
 
