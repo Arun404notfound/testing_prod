@@ -111,6 +111,7 @@ export default async function CandidateTestPage({
 
   // Per-assignment duration overrides the assessment default; fall back to assessment value if not set
   const durationMinutes = assignment.durationMinutes ?? assignment.assessment.durationMinutes;
+  const durationIsOverridden = assignment.durationMinutes !== null && assignment.durationMinutes !== assignment.assessment.durationMinutes;
 
   if (accessBlocked) {
     return (
@@ -144,6 +145,8 @@ export default async function CandidateTestPage({
       assessmentTitle={assignment.assessment.title}
       candidateName={assignment.candidate.fullName}
       durationMinutes={durationMinutes}
+      assessmentDurationMinutes={assignment.assessment.durationMinutes}
+      durationIsOverridden={durationIsOverridden}
       activeAttemptId={activeAttempt?.id}
       activeProgressData={activeAttempt?.progressData as { answers?: Record<string, unknown> } | null | undefined}
       activeStartedAt={activeAttempt?.startedAt?.toISOString()}

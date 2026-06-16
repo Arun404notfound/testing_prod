@@ -20,6 +20,8 @@ interface Props {
   assessmentTitle?: string;
   candidateName?: string;
   durationMinutes: number;
+  assessmentDurationMinutes?: number;
+  durationIsOverridden?: boolean;
   activeAttemptId?: string;
   activeProgressData?: { answers?: Record<string, unknown>; remainingSeconds?: number; savedAt?: string } | null;
   activeStartedAt?: string;
@@ -43,7 +45,7 @@ const INSTRUCTIONS = [
 
 type SessionState = "checking" | "duplicate" | "fresh";
 
-export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candidateName, durationMinutes, activeAttemptId, activeProgressData, activeStartedAt }: Props) {
+export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candidateName, durationMinutes, assessmentDurationMinutes, durationIsOverridden, activeAttemptId, activeProgressData, activeStartedAt }: Props) {
   const [accepted, setAccepted] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -214,6 +216,11 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Duration</p>
                     <p className="text-base font-bold text-[#0F172A]">{fmt(durationMinutes)}</p>
+                    {durationIsOverridden && assessmentDurationMinutes && (
+                      <p className="text-[10px] text-amber-600 font-medium">
+                        Assessment default: {fmt(assessmentDurationMinutes)}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
