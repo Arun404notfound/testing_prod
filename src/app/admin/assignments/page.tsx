@@ -168,6 +168,7 @@ const STATUS_STYLES: Record<string, { label: string; cls: string; dot: string }>
   assigned: { label: "Pending", cls: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-400" },
   completed: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
   cancelled: { label: "Cancelled", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-300" },
+  expired: { label: "Expired", cls: "bg-red-50 text-red-700 border-red-200", dot: "bg-red-400" },
 };
 
 function fmtDate(d: Date) {

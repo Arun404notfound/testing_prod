@@ -8,6 +8,7 @@ const STATUS_STYLES: Record<string, { label: string; cls: string; dot: string }>
   assigned: { label: "Pending", cls: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-400" },
   completed: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
   cancelled: { label: "Cancelled", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-300" },
+  expired: { label: "Expired", cls: "bg-red-50 text-red-700 border-red-200", dot: "bg-red-400" },
 };
 
 function fmtDate(d: string) {
@@ -114,7 +115,8 @@ export function AssignmentsTable({
               {filtered.length !== assignments.length ? `${filtered.length} shown · ` : ""}
               {assignments.filter((a) => a.status === "assigned").length} pending ·{" "}
               {assignments.filter((a) => a.status === "completed").length} completed ·{" "}
-              {assignments.filter((a) => a.status === "cancelled").length} cancelled
+              {assignments.filter((a) => a.status === "cancelled").length} cancelled ·{" "}
+              {assignments.filter((a) => a.status === "expired").length} expired
             </p>
           </div>
           {hasFilters && (
@@ -158,6 +160,7 @@ export function AssignmentsTable({
             <option value="assigned">Pending</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
+            <option value="expired">Expired</option>
           </select>
         </div>
 
@@ -233,7 +236,7 @@ export function AssignmentsTable({
             </thead>
             <tbody className="divide-y divide-[#F8FAFC]">
               {filtered.map((a) => {
-                const style = STATUS_STYLES[a.status] ?? STATUS_STYLES.assigned;
+                const style = STATUS_STYLES[a.status] ?? { label: a.status, cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-300" };
                 const isSelected = selected.has(a.id);
                 return (
                   <tr key={a.id} className={`transition-colors ${isSelected ? "bg-rose-50/60" : "hover:bg-[#FAFBFE]"}`}>

@@ -241,7 +241,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
 
           {/* Single instructions card */}
-          <div className="min-w-0 flex-1 rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+          <div className="order-2 lg:order-1 min-w-0 flex-1 rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
             <div className="flex shrink-0 items-center gap-3 border-b border-[#F1F5F9] px-6 py-4">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
                 <BookOpen size={18} className="text-blue-600" />
@@ -264,7 +264,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
           </div>
 
           {/* Ready to begin panel */}
-          <div className="w-full lg:w-72 lg:shrink-0">
+          <div className="order-1 lg:order-2 w-full lg:w-72 lg:shrink-0">
             <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
 
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600">

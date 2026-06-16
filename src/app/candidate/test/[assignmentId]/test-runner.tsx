@@ -541,6 +541,7 @@ export function CandidateTestRunner({
   const [navOpen, setNavOpen] = useState(false);
   const [unansweredWarning, setUnansweredWarning] = useState(false);
   const [timerWarning, setTimerWarning] = useState<TimerWarningKind | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
   // Prevents double-click from advancing two questions at once
   const navLockRef = useRef(false);
   // Keeps the latest remaining seconds so event-handler effects always save the correct value
@@ -615,6 +616,19 @@ export function CandidateTestRunner({
     return () => window.removeEventListener("online", handleOnline);
   }, [attemptId, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Show/hide offline warning banner
+  useEffect(() => {
+    setIsOffline(!navigator.onLine);
+    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => setIsOffline(false);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+    return () => {
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
   // Reliable save on tab close / power off via sendBeacon
   useEffect(() => {
     if (!attemptId) return;
@@ -634,6 +648,10 @@ export function CandidateTestRunner({
   }, [attemptId, blocks]);
 
   const handleSubmit = useCallback(async (submissionType = "NORMAL") => {
+    if (!navigator.onLine) {
+      setError("You are offline. Please restore your internet connection before submitting.");
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -653,7 +671,7 @@ export function CandidateTestRunner({
       setSubmitDone(true);
       setTimeout(() => router.push(`/candidate/reports/${data.resultId}`), 1500);
     } catch {
-      setError("Network error — could not reach the server.");
+      setError("Your internet connection was interrupted and the submission could not be sent. Please check your connection and try again.");
       setLoading(false);
     }
   }, [assignmentId, answers, skipped, blocks, router]);
@@ -721,6 +739,12 @@ export function CandidateTestRunner({
       {(loading || timesUp) && <SubmittingOverlay done={submitDone} />}
       {timerWarning && !loading && !timesUp && (
         <TimerWarningToast kind={timerWarning} onDismiss={() => setTimerWarning(null)} />
+      )}
+      {isOffline && (
+        <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg">
+          <span>⚠</span>
+          <span>No internet connection — your answers are saved locally. Submission will resume once you&apos;re back online.</span>
+        </div>
       )}
       {navOpen && (
         <MobileNavDrawer blocks={blocks} answers={answers} currentIndex={currentIndex}

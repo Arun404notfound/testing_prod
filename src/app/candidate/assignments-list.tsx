@@ -98,14 +98,15 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
         </div>
       ) : (
         filtered.map((assignment) => {
-          const isDone      = assignment.status === "completed" && assignment.result;
-          const isExpired   = assignment.status === "expired";
-          const isResumable = !isDone && !isExpired && assignment.hasActiveAttempt;
+          const isDone       = assignment.status === "completed" && assignment.result;
+          const isExpired    = assignment.status === "expired";
+          const isCancelled  = assignment.status === "cancelled";
+          const isResumable  = !isDone && !isExpired && !isCancelled && assignment.hasActiveAttempt;
           return (
             <div
               key={assignment.id}
               className={`group flex flex-col gap-4 rounded-2xl border bg-white p-5 shadow-sm transition-all md:flex-row md:items-center md:justify-between ${
-                isExpired ? "border-red-200 opacity-75" : "border-[#E2E8F0] hover:border-[#93C5FD] hover:shadow-md"
+                isExpired || isCancelled ? "border-slate-200 opacity-60" : "border-[#E2E8F0] hover:border-[#93C5FD] hover:shadow-md"
               }`}
             >
               <div className="flex items-start gap-4">
@@ -159,6 +160,10 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
               ) : isExpired ? (
                 <span className="shrink-0 rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-400 cursor-not-allowed">
                   Test Expired
+                </span>
+              ) : isCancelled ? (
+                <span className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-5 py-2.5 text-sm font-semibold text-slate-400 cursor-not-allowed">
+                  Cancelled
                 </span>
               ) : isResumable ? (
                 <Link
