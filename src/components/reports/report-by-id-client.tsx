@@ -138,12 +138,11 @@ export default function ReportByIdClient() {
 
   const renderAttributeScoresStack = () => (
     <ReportPageShell>
-      <div className="p-8 space-y-6">
+      <div className="p-4 sm:p-8 space-y-6">
         <div>
           <h2 className="text-xl font-bold text-[#0F172A]">Attribute Scores</h2>
-          <p className="mt-1 text-sm text-[#64748B]">
-            Raw score range: 5 – 17 &nbsp;·&nbsp; Converted using: <span className="font-mono">1 + (raw − 5) × 9 / 12</span>
-          </p>
+          <p className="mt-1 text-sm text-[#64748B]">Raw score range: 5 – 17</p>
+          <p className="text-xs text-[#94A3B8] font-mono mt-0.5">1 + (raw − 5) × 9 / 12</p>
         </div>
         <AttributeScoresTable report={report} />
       </div>
@@ -159,33 +158,33 @@ export default function ReportByIdClient() {
   return (
     <main className="min-h-screen px-4 py-8 md:px-10" style={{ backgroundColor: reportTheme.pageBackground }}>
       <div className="mx-auto max-w-6xl">
-        <div className="mb-5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Link href={backHref} className="text-sm font-medium hover:underline" style={{ color: reportTheme.accent }}>
-              ← {backLabel}
-            </Link>
+        <div className="mb-5 space-y-3">
+          <Link href={backHref} className="inline-flex items-center gap-1 text-sm font-medium hover:underline" style={{ color: reportTheme.accent }}>
+            ← {backLabel}
+          </Link>
+          <div className="flex items-center justify-between gap-3">
             <h1 className="text-xl font-semibold" style={{ color: reportTheme.primary }}>
               Report Preview
             </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            {isCandidate && (
-              <Link
-                href={`/candidate/reports/${resultId}/submissions`}
-                className="rounded-md border px-4 py-2 text-sm font-medium transition hover:opacity-80"
-                style={{ borderColor: reportTheme.primary, color: reportTheme.primary }}
+            <div className="flex items-center gap-2">
+              {isCandidate && (
+                <Link
+                  href={`/candidate/reports/${resultId}/submissions`}
+                  className="rounded-lg border px-3 py-2 text-xs font-semibold transition hover:opacity-80"
+                  style={{ borderColor: reportTheme.primary, color: reportTheme.primary }}
+                >
+                  View Submission
+                </Link>
+              )}
+              <button
+                onClick={downloadPdf}
+                disabled={downloading}
+                className="rounded-lg px-3 py-2 text-xs font-semibold text-white transition disabled:opacity-70"
+                style={{ backgroundColor: reportTheme.primary }}
               >
-                View Submission
-              </Link>
-            )}
-            <button
-              onClick={downloadPdf}
-              disabled={downloading}
-              className="rounded-md px-4 py-2 text-sm font-medium text-white transition disabled:opacity-70"
-              style={{ backgroundColor: reportTheme.primary }}
-            >
-              {downloading ? "Generating..." : "Download PDF"}
-            </button>
+                {downloading ? "Generating…" : "Download PDF"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -193,7 +192,7 @@ export default function ReportByIdClient() {
           <SubmissionTypeBanner submissionType={report.submissionType} />
         )}
 
-        <div ref={pagesRef} className="space-y-6">
+        <div ref={pagesRef} className="space-y-6 overflow-x-auto">
           {report ? (
             <ReportThemeProvider branding={report.tenantBranding}>
               {renderAttributeScoresStack()}

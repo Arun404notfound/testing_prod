@@ -168,7 +168,7 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
               ) : isResumable ? (
                 <Link
                   href={`/candidate/test/${assignment.id}`}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md"
+                  className="inline-flex w-full justify-center shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md md:w-auto"
                 >
                   <PlayCircle size={16} />
                   Finish Test
@@ -176,7 +176,7 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
               ) : (
                 <Link
                   href={`/candidate/test/${assignment.id}`}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#1D4ED8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] hover:shadow-md"
+                  className="inline-flex w-full justify-center shrink-0 items-center gap-2 rounded-xl bg-[#1D4ED8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] hover:shadow-md md:w-auto"
                 >
                   Start Test
                   <ChevronRight size={16} />

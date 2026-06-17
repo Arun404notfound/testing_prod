@@ -189,7 +189,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 px-8 py-6">
+    <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 px-4 py-4 md:px-8 md:py-6">
       <div className="mx-auto w-full max-w-6xl">
 
         {/* ── Header card ─────────────────────────────────────────────── */}
@@ -241,14 +241,14 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
 
           {/* Single instructions card */}
-          <div className="order-2 lg:order-1 min-w-0 flex-1 rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
+          <div className="order-1 min-w-0 flex-1 rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
             <div className="flex shrink-0 items-center gap-3 border-b border-[#F1F5F9] px-6 py-4">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
                 <BookOpen size={18} className="text-blue-600" />
               </div>
               <h2 className="text-sm font-bold text-[#0F172A]">Before You Begin</h2>
             </div>
-            <ol className="max-h-[360px] divide-y divide-[#F1F5F9] overflow-y-auto">
+            <ol className="divide-y divide-[#F1F5F9] lg:max-h-[360px] lg:overflow-y-auto">
               {INSTRUCTIONS.map(({ heading, text }, i) => (
                 <li key={heading} className="flex gap-4 px-6 py-4">
                   <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
@@ -264,7 +264,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
           </div>
 
           {/* Ready to begin panel */}
-          <div className="order-1 lg:order-2 w-full lg:w-72 lg:shrink-0">
+          <div className="order-2 w-full lg:w-72 lg:shrink-0">
             <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
 
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600">

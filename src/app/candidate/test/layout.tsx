@@ -4,7 +4,7 @@
  */
 export default function CandidateTestSegmentLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative z-[25] flex h-full flex-col min-h-0 w-full min-w-0 max-w-full pointer-events-auto isolate">
+    <div className="relative z-[25] flex min-h-full flex-col w-full min-w-0 max-w-full pointer-events-auto isolate">
       {children}
     </div>
   );

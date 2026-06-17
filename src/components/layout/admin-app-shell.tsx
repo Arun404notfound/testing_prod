@@ -89,7 +89,7 @@ export function AdminAppShell({
         <div className="border-b border-[#F1F5F9] px-5 py-5 shrink-0">
           <div className="relative h-11 w-full">
             <Image
-              src="/tg-logo.jpg"
+              src="/TG Logo.png"
               alt="TechGrah Innovations"
               fill
               className="object-contain object-left"

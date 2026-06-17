@@ -19,19 +19,11 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-screen bg-white">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-[52%] flex-col justify-between bg-gradient-to-br from-[#1D4ED8] via-[#1E40AF] to-[#1e3a8a] p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[52%] flex-col justify-center bg-gradient-to-br from-[#1D4ED8] via-[#1E40AF] to-[#1e3a8a] p-12 relative overflow-hidden">
         {/* Decorative circles */}
         <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-white/5" />
         <div className="pointer-events-none absolute bottom-12 -left-20 h-72 w-72 rounded-full bg-white/5" />
         <div className="pointer-events-none absolute top-1/2 right-8 h-48 w-48 rounded-full bg-white/5" />
-
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <div className="relative h-10 w-44">
-              <Image src="/tg-logo.jpg" alt="TechGrah Innovations" fill className="object-contain object-left" sizes="176px" priority />
-            </div>
-          </div>
-        </div>
 
         <div className="relative space-y-6 max-w-md">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5">
@@ -66,15 +58,15 @@ export default async function LoginPage({
 
       {/* Right login form */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-[#F8FAFC] lg:bg-white">
-        {/* Mobile logo */}
-        <div className="mb-8 lg:hidden">
-          <div className="relative h-10 w-40">
-            <Image src="/tg-logo.jpg" alt="TechGrah Innovations" fill className="object-contain" sizes="160px" priority />
-          </div>
-        </div>
-
         <div className="w-full max-w-sm">
-          <div className="mb-8">
+          {/* Logo */}
+          <div className="mb-8 flex justify-center">
+            <div className="relative h-20 w-64">
+              <Image src="/TG Logo.png" alt="TechGrah Innovations" fill className="object-contain" sizes="256px" priority />
+            </div>
+          </div>
+
+          <div className="mb-8 text-center">
             <h2 className="text-2xl font-bold text-[#0F172A]">Welcome back</h2>
             <p className="mt-2 text-sm text-[#64748B]">Sign in to your workspace account</p>
           </div>
@@ -86,6 +78,7 @@ export default async function LoginPage({
           </p>
         </div>
       </div>
+
     </div>
   );
 }

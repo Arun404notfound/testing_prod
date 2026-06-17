@@ -9,11 +9,10 @@ export function ReportPageShell({ children }: { children: ReactNode }) {
     backgroundColor: theme.cardBackground,
     color: theme.primary,
     borderColor: theme.border,
-    width: "210mm",
     minHeight: "297mm",
   };
   return (
-    <div className="report-page mx-auto rounded-md border px-10 py-10 shadow-sm" style={style}>
+    <div className="report-page mx-auto w-full rounded-md border px-2 py-4 shadow-sm sm:px-10 sm:py-10 sm:w-[210mm]" style={style}>
       {children}
     </div>
   );

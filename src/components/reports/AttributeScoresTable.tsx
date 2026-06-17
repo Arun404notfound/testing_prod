@@ -35,10 +35,10 @@ export function AttributeScoresTable({ report }: { report: ReportPayload }) {
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="bg-[#1D4ED8] text-white">
-            <th className="px-4 py-3 text-left font-semibold">Factor</th>
-            <th className="px-4 py-3 text-left font-semibold">Attribute</th>
-            <th className="px-4 py-3 text-center font-semibold">Raw Score<br /><span className="text-[11px] font-normal opacity-80">(5 – 17)</span></th>
-            <th className="px-4 py-3 text-center font-semibold">Score<br /><span className="text-[11px] font-normal opacity-80">(out of 10)</span></th>
+            <th className="px-2 py-3 text-left font-semibold sm:px-4">Factor</th>
+            <th className="px-2 py-3 text-left font-semibold sm:px-4">Attribute</th>
+            <th className="px-2 py-3 text-center font-semibold sm:px-4">Raw Score<br /><span className="text-[11px] font-normal opacity-80">(5 – 17)</span></th>
+            <th className="px-2 py-3 text-center font-semibold sm:px-4">Score<br /><span className="text-[11px] font-normal opacity-80">(out of 10)</span></th>
           </tr>
         </thead>
         <tbody>
@@ -47,10 +47,10 @@ export function AttributeScoresTable({ report }: { report: ReportPayload }) {
             const isEven = i % 2 === 0;
             return (
               <tr key={`${r.factor}-${r.trait}`} className={isEven ? "bg-white" : "bg-[#F8FAFC]"}>
-                <td className="px-4 py-2.5 text-[#475569] text-xs">{r.factor}</td>
-                <td className="px-4 py-2.5 font-medium text-[#0F172A]">{r.trait}</td>
-                <td className="px-4 py-2.5 text-center tabular-nums text-[#334155]">{r.score}</td>
-                <td className="px-4 py-2.5 text-center tabular-nums font-semibold text-[#1D4ED8]">{converted}</td>
+                <td className="px-2 py-2.5 text-[#475569] text-xs sm:px-4">{r.factor}</td>
+                <td className="px-2 py-2.5 font-medium text-[#0F172A] sm:px-4">{r.trait}</td>
+                <td className="px-2 py-2.5 text-center tabular-nums text-[#334155] sm:px-4">{r.score}</td>
+                <td className="px-2 py-2.5 text-center tabular-nums font-semibold text-[#1D4ED8] sm:px-4">{converted}</td>
               </tr>
             );
           })}

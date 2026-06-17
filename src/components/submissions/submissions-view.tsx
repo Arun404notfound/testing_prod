@@ -175,19 +175,25 @@ export function SubmissionsView({ data }: { data: SubmissionsData }) {
                     <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-slate-400">{item.factor}</p>
                   )}
                   <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((v) => (
-                      <div
-                        key={v}
-                        className={`flex flex-1 flex-col items-center rounded-lg border py-2 text-xs ${
-                          response?.numericValue === v
-                            ? "border-[#1D4ED8] bg-[#EFF6FF] font-bold text-[#1D4ED8]"
-                            : "border-[#E2E8F0] text-[#94A3B8]"
-                        }`}
-                      >
-                        <span className="text-sm font-semibold">{v}</span>
-                        <span className="mt-0.5 text-center text-[10px] leading-tight">{LIKERT_LABELS[v]}</span>
-                      </div>
-                    ))}
+                    {[1, 2, 3, 4, 5].map((v) => {
+                      const isSelected = response?.numericValue === v;
+                      return (
+                        <div
+                          key={v}
+                          className={`flex flex-1 flex-col items-center rounded-lg border py-2 text-xs ${
+                            isSelected
+                              ? "border-[#1D4ED8] bg-[#EFF6FF] font-bold text-[#1D4ED8]"
+                              : "border-[#E2E8F0] text-[#94A3B8]"
+                          }`}
+                        >
+                          <span className="text-sm font-semibold">{v}</span>
+                          <span className="mt-0.5 hidden text-center text-[10px] leading-tight sm:block">{LIKERT_LABELS[v]}</span>
+                          {isSelected && (
+                            <span className="mt-0.5 text-center text-[10px] leading-tight sm:hidden">{LIKERT_LABELS[v]}</span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );

@@ -95,13 +95,13 @@ export function CandidateAppShell({
 
         {/* Top bar — fixed height, shrinks nothing */}
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-white px-4 sm:px-6">
-          <div className="relative h-7 w-28">
+          <div className="relative h-10 w-36">
             <Image
-              src="/tg-logo.jpg"
+              src="/TG Logo.png"
               alt="TechGrah"
               fill
               className="object-contain object-left"
-              sizes="112px"
+              sizes="144px"
               priority
             />
           </div>
@@ -122,8 +122,8 @@ export function CandidateAppShell({
           </div>
         </header>
 
-        {/* Content area: flex-1 + min-h-0 = fills remaining height exactly, no overflow */}
-        <div className="min-h-0 flex-1 overflow-hidden">
+        {/* Content area: flex-1 + min-h-0 = fills remaining height exactly; overflow-y-auto allows instructions page to scroll while test runner content fits exactly */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {children}
         </div>
       </div>
@@ -148,18 +148,18 @@ export function CandidateAppShell({
         } lg:block`}
       >
         <div className="flex h-full flex-col">
-          <div className="border-b border-[#F1F5F9] p-5">
-            <div className="relative h-10 w-full">
+          <div className="border-b border-[#F1F5F9] px-5 py-4">
+            <div className="relative h-10 w-36">
               <Image
-                src="/tg-logo.jpg"
+                src="/TG Logo.png"
                 alt="TechGrah Innovations"
                 fill
                 className="object-contain object-left"
-                sizes="200px"
+                sizes="144px"
                 priority
               />
             </div>
-            <p className="mt-2 text-[10px] font-semibold uppercase tracking-widest text-[#94A3B8]">
+            <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#94A3B8]">
               Assessment Portal
             </p>
           </div>

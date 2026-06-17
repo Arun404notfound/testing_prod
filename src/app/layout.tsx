@@ -15,7 +15,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TechGrah Innovations | Assessment Portal",
   description: "Modern SaaS assessment platform demo",
-  icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({
