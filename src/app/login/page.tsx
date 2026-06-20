@@ -68,13 +68,13 @@ export default async function LoginPage({
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-white">
         <div className="w-full max-w-sm">
           {/* Logo */}
-          <div className="mb-8 flex justify-center">
+          <div className="mb-4 flex justify-center">
             <div className="relative h-20 w-64">
               <Image src="/Logo 1.webp" alt="TechGrah Innovations" fill className="object-contain" sizes="256px" priority />
             </div>
           </div>
 
-          <div className="mb-8 text-center">
+          <div className="mb-6 text-center">
             <h2 className="text-2xl font-bold text-[#0F172A]">Welcome back</h2>
             <p className="mt-2 text-sm text-[#64748B]">Sign in to your workspace account</p>
           </div>
