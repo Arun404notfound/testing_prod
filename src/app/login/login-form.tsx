@@ -37,9 +37,9 @@ export function LoginForm({
 
       {/* Email */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-[#334155]">Email address</label>
+        <label className="mb-1 block text-sm font-medium text-[#334155]">Email address</label>
         <div className="relative">
-          <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+          <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
           <input
             name="email"
             type="email"
@@ -48,16 +48,16 @@ export function LoginForm({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@company.com"
-            className="tg-input w-full pl-10"
+            className="w-full rounded-lg border border-[#CBD5E1] bg-white py-2 pl-9 pr-3 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#0F766E] focus:outline-none focus:ring-2 focus:ring-[#0F766E]/10 transition"
           />
         </div>
       </div>
 
       {/* Password */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-[#334155]">Password</label>
+        <label className="mb-1 block text-sm font-medium text-[#334155]">Password</label>
         <div className="relative">
-          <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+          <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
           <input
             name="password"
             type={showPassword ? "text" : "password"}
@@ -66,20 +66,20 @@ export function LoginForm({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••••"
-            className="tg-input w-full pl-10 pr-10"
+            className="w-full rounded-lg border border-[#CBD5E1] bg-white py-2 pl-9 pr-9 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#0F766E] focus:outline-none focus:ring-2 focus:ring-[#0F766E]/10 transition"
           />
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] transition"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] transition"
             tabIndex={-1}
           >
-            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+            {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
         </div>
       </div>
 
-      <button type="submit" className="w-full py-3 text-base font-semibold mt-2 rounded-xl bg-[#0F766E] hover:bg-[#0D9488] text-white transition">
+      <button type="submit" className="w-full py-2.5 text-sm font-semibold mt-1 rounded-lg bg-[#0F766E] hover:bg-[#0D9488] text-white transition">
         Sign in
       </button>
     </form>
