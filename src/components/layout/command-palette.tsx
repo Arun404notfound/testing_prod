@@ -6,7 +6,7 @@ import { Search, ClipboardList, Users, Brain, ArrowRight, Loader2, X } from "luc
 
 interface SearchResults {
   assessments: { id: string; title: string; status: string; type: string }[];
-  candidates: { id: string; fullName: string | null; user: { email: string } }[];
+  candidates: { id: string; fullName: string; email: string }[];
   competencies: { id: string; name: string }[];
 }
 
@@ -115,8 +115,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 {results!.candidates.map((c) => (
                   <ResultRow
                     key={c.id}
-                    primary={c.fullName ?? c.user.email}
-                    secondary={c.fullName ? c.user.email : ""}
+                    primary={c.fullName}
+                    secondary={c.email}
                     onClick={() => navigate(`/admin/candidates`)}
                   />
                 ))}

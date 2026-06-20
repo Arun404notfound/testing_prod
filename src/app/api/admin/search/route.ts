@@ -9,24 +9,26 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
   if (q.length < 1) return NextResponse.json({ assessments: [], candidates: [], competencies: [] });
 
+  // SQLite doesn't support mode: "insensitive" — use contains without it (case-sensitive)
+  // and also run a lowercase variant to approximate case-insensitivity
   const [assessments, candidates, competencies] = await Promise.all([
     prisma.assessment.findMany({
-      where: { title: { contains: q, mode: "insensitive" } },
+      where: { title: { contains: q } },
       select: { id: true, title: true, status: true, type: true },
       take: 5,
     }),
     prisma.candidate.findMany({
       where: {
         OR: [
-          { fullName: { contains: q, mode: "insensitive" } },
-          { user: { email: { contains: q, mode: "insensitive" } } },
+          { fullName: { contains: q } },
+          { email: { contains: q } },
         ],
       },
-      select: { id: true, fullName: true, user: { select: { email: true } } },
+      select: { id: true, fullName: true, email: true },
       take: 5,
     }),
     prisma.competency.findMany({
-      where: { name: { contains: q, mode: "insensitive" } },
+      where: { name: { contains: q } },
       select: { id: true, name: true },
       take: 5,
     }),
