@@ -215,7 +215,7 @@ export function CandidateAppShell({
       </aside>
 
       {/* Main */}
-      <div className="min-w-0 lg:pl-60">
+      <div className="min-w-0 lg:pl-60 overflow-x-hidden">
         <header className="sticky top-0 z-20 border-b border-[#EAECF0] bg-white/95 px-4 py-2.5 backdrop-blur-md sm:px-6">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div className="flex items-center gap-3">

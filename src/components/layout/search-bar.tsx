@@ -85,7 +85,7 @@ export function SearchBar() {
   const noResults = results && !hasResults && query.trim().length > 0 && !loading;
 
   return (
-    <div ref={containerRef} className="relative w-72 shrink-0">
+    <div ref={containerRef} className="relative w-full max-w-xs shrink min-w-0">
       {/* Input */}
       <div className="relative">
         {loading
