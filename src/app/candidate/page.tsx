@@ -47,7 +47,7 @@ export default async function CandidatePage() {
     <main className="tg-page space-y-8">
 
       {/* Hero banner */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#2563EB] to-[#1D4EDB] px-6 py-8 text-white md:px-10 md:py-10">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0B1D3A] via-[#0F766E] to-[#10B981] px-6 py-8 text-white md:px-10 md:py-10">
         <div
           className="pointer-events-none absolute inset-0"
           style={{
