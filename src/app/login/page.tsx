@@ -45,22 +45,20 @@ export default async function LoginPage({
           <p className="text-[1.0625rem] text-white/75 leading-[1.75] font-light">
             Evidence-based Big Five personality profiling. Competency mapping. Detailed candidate reports — all in one platform.
           </p>
-
-          {/* Assess. Analyze. Advance. tagline — decrypted on view */}
-          <div className="pt-6">
-            <AnimatedTagline />
-          </div>
         </div>
 
-        {/* Bottom: footer */}
+        {/* Bottom: tagline + footer */}
         <div className="absolute bottom-10 left-14">
-          <p className="text-[12px] text-white/40">© 2026 TechGrah Innovations Pvt. Ltd.</p>
-          <p className="text-[12px] text-white/40 flex items-center gap-1 mt-0.5">
-            Powered by AI-backed psychometrics
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-emerald-400 opacity-60">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </p>
+          <AnimatedTagline />
+          <div className="mt-3">
+            <p className="text-[12px] text-white/40">© 2026 TechGrah Innovations Pvt. Ltd.</p>
+            <p className="text-[12px] text-white/40 flex items-center gap-1 mt-0.5">
+              Powered by AI-backed psychometrics
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-emerald-400 opacity-60">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </p>
+          </div>
         </div>
       </div>
 
