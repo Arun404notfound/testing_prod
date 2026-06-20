@@ -19,7 +19,7 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-screen bg-white">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-[48%] flex-col justify-between bg-gradient-to-br from-[#0B1D3A] via-[#0F766E] to-[#10B981] px-14 py-14 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[48%] flex-col justify-center bg-gradient-to-br from-[#0B1D3A] via-[#0F766E] to-[#10B981] px-14 py-14 relative overflow-hidden">
         {/* Decorative wave on right edge */}
         <svg className="pointer-events-none absolute right-0 inset-y-0 h-full" viewBox="0 0 80 800" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M80,0 C40,200 60,400 20,600 C0,700 40,750 80,800 L80,0Z" fill="white" fillOpacity="0.04" />
@@ -59,7 +59,7 @@ export default async function LoginPage({
         </div>
 
         {/* Bottom: footer */}
-        <div className="relative">
+        <div className="absolute bottom-10 left-14">
           <p className="text-[12px] text-white/40">© 2026 TechGrah Innovations Pvt. Ltd.</p>
           <p className="text-[12px] text-white/40 flex items-center gap-1 mt-0.5">
             Powered by AI-backed psychometrics
