@@ -178,7 +178,7 @@ function LikertQuestion({ block, answers, setAnswers }: {
       <p className="text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{block.prompt}</p>
 
       {/* Desktop: horizontal 5-col scale */}
-      <div className="hidden sm:block">
+      <div className="hidden lg:block">
         <div className="grid grid-cols-5 gap-2">
           {LIKERT_OPTS.map((opt) => {
             const sel = val === opt.value;
@@ -212,8 +212,8 @@ function LikertQuestion({ block, answers, setAnswers }: {
         </div>
       </div>
 
-      {/* Mobile: vertical stacked */}
-      <div className="space-y-2 sm:hidden">
+      {/* Mobile/tablet: vertical stacked */}
+      <div className="space-y-2 lg:hidden">
         {LIKERT_OPTS.map((opt) => {
           const sel = val === opt.value;
           return (

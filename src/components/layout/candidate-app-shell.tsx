@@ -57,7 +57,7 @@ export function CandidateAppShell({
           <p className="mt-2 text-center text-sm leading-relaxed text-[#475569]">
             You are currently in the middle of an assessment. Your answers are being auto-saved, but signing out will leave the test incomplete.
           </p>
-          <p className="mt-2 text-center text-sm text-[#64748B]">
+          <p className="mt-2 text-center text-sm text-[#6B7280]">
             Your answered questions will be <span className="font-semibold text-[#0F766E]">auto-submitted</span> if you sign out now.
           </p>
         </div>
@@ -90,11 +90,11 @@ export function CandidateAppShell({
   if (isTestPage) {
     return (
       /* h-screen + overflow-hidden = browser viewport is the only scroll root */
-      <div className="flex h-screen flex-col overflow-hidden bg-[#F8FAFC] text-[#334155]">
+      <div className="flex h-screen flex-col overflow-hidden bg-[#F4F6F9] text-[#1F2937]">
         {showSignOutWarning && <SignOutWarningModal />}
 
         {/* Top bar — fixed height, shrinks nothing */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-white px-4 sm:px-6">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#EAECF0] bg-white px-4 sm:px-6">
           <div className="relative h-10 w-36">
             <Image
               src="/Logo 1.webp"
@@ -132,24 +132,24 @@ export function CandidateAppShell({
 
   /* ── NORMAL PAGES: regular scrollable layout with sidebar ───────────────── */
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#334155]">
+    <div className="min-h-screen bg-[#F4F6F9] text-[#1F2937]">
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/30 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-20 bg-black/20 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-60 border-r border-[#1E3A5F] bg-[#0B1D3A] transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 w-60 bg-white border-r border-[#EAECF0] shadow-sm flex flex-col transition-transform duration-300 lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } lg:block`}
       >
         <div className="flex h-full flex-col">
-          <div className="border-b border-[#1E3A5F] px-5 py-4">
-            <div className="relative h-10 w-36">
+          <div className="px-5 pt-6 pb-4 shrink-0">
+            <div className="relative h-9 w-36">
               <Image
                 src="/Logo 1.webp"
                 alt="TechGrah Innovations"
@@ -159,71 +159,83 @@ export function CandidateAppShell({
                 priority
               />
             </div>
-            <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#64748B]">
+            <p className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#9CA3AF]">
               Assessment Portal
             </p>
           </div>
 
-          <nav className="flex-1 space-y-1 p-4">
+          <nav className="flex-1 space-y-0.5 px-3 py-2">
             <Link
               href="/candidate"
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
+              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all ${
                 pathname === "/candidate"
-                  ? "bg-[#1E3A5F] text-[#10B981]"
-                  : "text-[#94A3B8] hover:bg-[#1E3A5F] hover:text-white"
+                  ? "bg-[#E6F7F1] text-[#0F766E]"
+                  : "text-[#6B7280] hover:bg-[#F4F6F9] hover:text-[#1F2937]"
               }`}
             >
-              <LayoutDashboard size={16} />
+              <LayoutDashboard size={15} className={pathname === "/candidate" ? "text-[#0F766E]" : "text-[#9CA3AF]"} />
               My Assessments
+              {pathname === "/candidate" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#0F766E]" />}
             </Link>
           </nav>
 
-          <div className="border-t border-[#1E3A5F] p-4">
-            <div className="flex items-center gap-3 rounded-xl bg-[#1E3A5F] px-3 py-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-xs font-bold text-white">
-                {initials || email.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-white">{email}</p>
-                <p className="text-[10px] text-[#64748B]">Candidate</p>
+          {/* Wave decoration + user footer */}
+          <div className="shrink-0 relative overflow-hidden">
+            <svg viewBox="0 0 240 80" className="w-full text-[#E6F7F1] pointer-events-none select-none" preserveAspectRatio="none" aria-hidden>
+              <path d="M0,60 C60,20 120,80 180,40 C210,20 230,50 240,45 L240,80 L0,80 Z" fill="currentColor" />
+              <path d="M0,70 C50,40 100,75 160,55 C200,42 225,60 240,58 L240,80 L0,80 Z" fill="#D1FAE5" opacity="0.6" />
+            </svg>
+            <div className="px-3 pb-4 -mt-2 relative z-10">
+              <div className="rounded-xl border border-[#EAECF0] bg-white shadow-sm">
+                <div className="flex items-center gap-2.5 px-3 py-2.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-[10px] font-bold text-white">
+                    {initials || email.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-semibold text-[#111827]">{email}</p>
+                    <p className="text-[10px] text-[#9CA3AF]">Candidate</p>
+                  </div>
+                </div>
+                <div className="border-t border-[#F3F4F6]">
+                  <form action={logoutAction}>
+                    <button
+                      type="submit"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-[12px] font-medium text-[#6B7280] rounded-b-xl hover:bg-rose-50 hover:text-rose-600 transition"
+                    >
+                      <LogOut size={13} />
+                      Sign out
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
-            <form action={logoutAction} className="mt-2">
-              <button
-                type="submit"
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#94A3B8] transition hover:bg-rose-900/30 hover:text-rose-400"
-              >
-                <LogOut size={14} />
-                Sign out
-              </button>
-            </form>
           </div>
         </div>
       </aside>
 
       {/* Main */}
       <div className="min-w-0 lg:pl-60">
-        <header className="sticky top-0 z-20 border-b border-[#E2E8F0] bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-20 border-b border-[#EAECF0] bg-white/95 px-4 py-2.5 backdrop-blur-md sm:px-6">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                className="rounded-lg border border-[#E2E8F0] p-1.5 text-[#334155] lg:hidden"
+                className="rounded-lg border border-[#E5E7EB] p-1.5 text-[#6B7280] lg:hidden"
                 onClick={() => setMobileOpen((v) => !v)}
                 aria-label="Toggle navigation"
               >
-                {mobileOpen ? <X size={16} /> : <Menu size={16} />}
+                {mobileOpen ? <X size={15} /> : <Menu size={15} />}
               </button>
-              <span className="text-sm font-semibold text-[#0F172A] lg:hidden">
+              <span className="text-sm font-semibold text-[#111827] lg:hidden">
                 Candidate Portal
               </span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="hidden max-w-[220px] truncate text-xs text-[#64748B] sm:inline">
+            <div className="flex items-center gap-2">
+              <span className="hidden max-w-[220px] truncate text-[12px] text-[#6B7280] sm:inline">
                 {email}
               </span>
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-xs font-bold text-white">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-[10px] font-bold text-white">
                 {initials || email.slice(0, 2).toUpperCase()}
               </div>
             </div>
