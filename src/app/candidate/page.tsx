@@ -1,4 +1,4 @@
-﻿import { ClipboardList, CheckCircle2, Clock } from "lucide-react";
+import { ClipboardList, CheckCircle2, Clock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireCandidateRoleSession } from "@/lib/auth/require-user";
 import { autoSubmitAbandonedAttempts } from "@/lib/score-and-save";
@@ -47,7 +47,7 @@ export default async function CandidatePage() {
     <main className="tg-page space-y-8">
 
       {/* Hero banner */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0F766E] via-[#0F766E] to-[#0D9488] px-6 py-8 text-white md:px-10 md:py-10">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#2563EB] via-[#2563EB] to-[#1D4EDB] px-6 py-8 text-white md:px-10 md:py-10">
         <div
           className="pointer-events-none absolute inset-0"
           style={{

@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TenantBrandingFields } from "@/components/admin/tenant-branding-fields";
 import { prisma } from "@/lib/prisma";
@@ -22,7 +22,7 @@ export default async function EditTenantPage({
     <main className="tg-page mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[#0F172A]">Edit tenant</h1>
-        <Link href="/admin/tenants" className="text-sm font-medium text-[#0F766E] hover:underline">
+        <Link href="/admin/tenants" className="text-sm font-medium text-[#2563EB] hover:underline">
           All tenants
         </Link>
       </div>

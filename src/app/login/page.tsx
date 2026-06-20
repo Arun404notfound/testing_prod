@@ -1,4 +1,4 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getOptionalSession } from "@/lib/auth/require-user";
 import { LoginForm } from "./login-form";
@@ -19,7 +19,7 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-screen bg-white">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-[52%] flex-col justify-center bg-gradient-to-br from-[#0B1D3A] via-[#0F766E] to-[#10B981] px-14 py-14 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[52%] flex-col justify-center bg-gradient-to-br from-[#0B1D3A] via-[#2563EB] to-[#1D4EDB] px-14 py-14 relative overflow-hidden">
         {/* Decorative blobs */}
         <div className="pointer-events-none absolute -top-32 -right-32 h-[480px] w-[480px] rounded-full bg-white/5 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 -left-24 h-80 w-80 rounded-full bg-white/5 blur-2xl" />

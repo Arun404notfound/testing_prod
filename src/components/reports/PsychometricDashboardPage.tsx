@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { ReportPayload, ReportTraitScoreRow, ReportCompetencyScore } from "@/lib/report-data";
 import { useReportTheme } from "./report-theme-context";
@@ -19,7 +19,7 @@ function competencyLabel(band: string): string {
 
 function competencyColors(label: string): { bg: string; text: string; border: string } {
   if (label === "Key Strength") return { bg: "#ECFDF5", text: "#065F46", border: "#6EE7B7" };
-  if (label === "Strong Capability") return { bg: "#E6F7F1", text: "#0D9488", border: "#6EE7B7" };
+  if (label === "Strong Capability") return { bg: "#EFF6FF", text: "#1D4EDB", border: "#6EE7B7" };
   return { bg: "#FFF7ED", text: "#9A3412", border: "#FDBA74" };
 }
 
@@ -107,7 +107,7 @@ function CompetencyCard({
                 {attrRows.map(({ name, trait }) => (
                   <tr key={name} className="border-t border-[#F1F5F9]">
                     <td className="py-1.5 pr-4 text-[#374151]">{name}</td>
-                    <td className="py-1.5 text-right font-semibold text-[#1F2937]">
+                    <td className="py-1.5 text-right font-semibold text-[#0F172A]">
                       {trait ? displayAttrScore(trait).toFixed(1) : <span className="text-[#CBD5E1]">—</span>}
                     </td>
                   </tr>

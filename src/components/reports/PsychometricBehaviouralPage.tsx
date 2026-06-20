@@ -49,7 +49,7 @@ export function PsychometricBehaviouralPage() {
             {BEHAVIOURAL_INSIGHTS.map((row, i) => (
               <tr key={row.dimension} className={i > 0 ? "border-t border-[#F1F5F9]" : ""}>
                 <td className="py-4 pl-5 pr-4 align-top">
-                  <span className="font-semibold text-[#1F2937]">{row.dimension}</span>
+                  <span className="font-semibold text-[#0F172A]">{row.dimension}</span>
                 </td>
                 <td className="py-4 pl-4 pr-5 leading-relaxed text-[#475569]">{row.insight}</td>
               </tr>

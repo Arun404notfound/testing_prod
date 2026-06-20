@@ -1,11 +1,11 @@
-﻿import type { CSSProperties } from "react";
+import type { CSSProperties } from "react";
 
 /** TechGrah portal report — hex only, PDF-safe */
 export const reportTheme = {
   primary: "#0b1d3a",
-  secondary: "#1f2937",
-  accent: "#0f766e",
-  accentLight: "#e6f7f1",
+  secondary: "#0f172a",
+  accent: "#2563eb",
+  accentLight: "#eff6ff",
   correct: "#10b981",
   incorrect: "#ef4444",
   muted: "#6b7280",

@@ -99,7 +99,7 @@ export function SearchBar() {
           onChange={(e) => handleChange(e.target.value)}
           onFocus={() => { if (query.trim()) setOpen(true); }}
           placeholder="Search assessments, candidates…"
-          className="w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] py-2 pl-8 pr-3 text-[13px] text-[#374151] placeholder:text-[#9CA3AF] focus:border-[#0F766E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0F766E]/10 transition"
+          className="w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] py-2 pl-8 pr-3 text-[13px] text-[#374151] placeholder:text-[#9CA3AF] focus:border-[#2563EB] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2563EB]/10 transition"
         />
       </div>
 
@@ -138,10 +138,10 @@ export function SearchBar() {
                       key={a.id}
                       type="button"
                       onClick={() => navigate(`/admin/assessments/${a.id}/builder`)}
-                      className="group flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-[#F4F6F9] transition"
+                      className="group flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-[#F8FAFC] transition"
                     >
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#E6F7F1]">
-                        <ClipboardList size={13} className="text-[#0F766E]" />
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EFF6FF]">
+                        <ClipboardList size={13} className="text-[#2563EB]" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px] font-medium text-[#111827]">{a.title}</p>
@@ -149,7 +149,7 @@ export function SearchBar() {
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${STATUS_COLOR[a.lifecycleStatus] ?? "text-slate-500 bg-slate-100"}`}>
                         {a.lifecycleStatus.toLowerCase()}
                       </span>
-                      <ArrowRight size={12} className="shrink-0 text-[#D1D5DB] group-hover:text-[#0F766E] transition" />
+                      <ArrowRight size={12} className="shrink-0 text-[#D1D5DB] group-hover:text-[#2563EB] transition" />
                     </button>
                   ))}
                 </>
@@ -166,16 +166,16 @@ export function SearchBar() {
                       key={c.id}
                       type="button"
                       onClick={() => navigate(`/admin/candidates`)}
-                      className="group flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-[#F4F6F9] transition"
+                      className="group flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-[#F8FAFC] transition"
                     >
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-[10px] font-bold text-white">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2563EB] to-[#1D4EDB] text-[10px] font-bold text-white">
                         {c.fullName.slice(0, 1).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px] font-medium text-[#111827]">{c.fullName}</p>
                         <p className="truncate text-[11px] text-[#9CA3AF]">{c.email}</p>
                       </div>
-                      <ArrowRight size={12} className="shrink-0 text-[#D1D5DB] group-hover:text-[#0F766E] transition" />
+                      <ArrowRight size={12} className="shrink-0 text-[#D1D5DB] group-hover:text-[#2563EB] transition" />
                     </button>
                   ))}
                 </>

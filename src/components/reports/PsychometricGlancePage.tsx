@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { ReportPayload, ReportFactorAggregate, ReportCompetencyScore } from "@/lib/report-data";
 import { useReportTheme } from "./report-theme-context";
@@ -11,7 +11,7 @@ function InfoCell({ label, value, muted }: { label: string; value: string; muted
       <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: muted }}>
         {label}
       </p>
-      <p className="mt-0.5 text-sm font-medium text-[#1F2937]">{value}</p>
+      <p className="mt-0.5 text-sm font-medium text-[#0F172A]">{value}</p>
     </div>
   );
 }
@@ -26,7 +26,7 @@ function competencyLabel(band: string): string {
 
 function competencyLabelColor(label: string): { bg: string; text: string } {
   if (label === "Key Strength") return { bg: "#ECFDF5", text: "#065F46" };
-  if (label === "Strong Capability") return { bg: "#E6F7F1", text: "#0D9488" };
+  if (label === "Strong Capability") return { bg: "#EFF6FF", text: "#1D4EDB" };
   return { bg: "#FFF7ED", text: "#9A3412" };
 }
 
@@ -42,8 +42,8 @@ function CompetencySnapshotRow({ competency }: { competency: ReportCompetencySco
   const score = competency.scaledScore.toFixed(1);
   return (
     <tr className="border-t border-[#E5E7EB]">
-      <td className="py-2 pr-4 text-sm font-medium text-[#1F2937]">{competency.competencyName}</td>
-      <td className="py-2 pr-4 text-sm font-bold text-[#1F2937]">{score} / 10</td>
+      <td className="py-2 pr-4 text-sm font-medium text-[#0F172A]">{competency.competencyName}</td>
+      <td className="py-2 pr-4 text-sm font-bold text-[#0F172A]">{score} / 10</td>
       <td className="py-2">
         <span
           className="rounded-full px-3 py-0.5 text-xs font-semibold"
@@ -77,7 +77,7 @@ function BigFiveBar({
           style={{ width: `${pct}%`, backgroundColor: accentColor }}
         />
       </div>
-      <span className="w-10 text-right text-sm font-bold text-[#1F2937]">{score.toFixed(1)}</span>
+      <span className="w-10 text-right text-sm font-bold text-[#0F172A]">{score.toFixed(1)}</span>
     </div>
   );
 }
@@ -129,7 +129,7 @@ export function PsychometricGlancePage({
         <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.muted }}>
           Psychometric Assessment Report
         </p>
-        <h2 className="mt-1 text-2xl font-bold text-[#1F2937]">{report.assessmentName}</h2>
+        <h2 className="mt-1 text-2xl font-bold text-[#0F172A]">{report.assessmentName}</h2>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <InfoCell label="Candidate" value={report.candidateName} muted={theme.muted} />
           <InfoCell label="Role" value={report.candidateRole || "—"} muted={theme.muted} />
@@ -189,12 +189,12 @@ export function PsychometricGlancePage({
       </div>
 
       {/* Personality Archetype — placeholder */}
-      <div className="rounded-xl border border-[#BFDBFE] bg-[#E6F7F1] p-5">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#0D9488]">
+      <div className="rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-5">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#1D4EDB]">
           Personality Archetype
         </p>
         <p className="text-base font-bold text-[#1E3A8A]">The Influential Connector</p>
-        <p className="mt-2 text-sm leading-relaxed text-[#0D9488]">
+        <p className="mt-2 text-sm leading-relaxed text-[#1D4EDB]">
           You naturally build relationships, engage others, and create positive interactions. You tend to be energetic,
           expressive, and comfortable in social environments. Your profile suggests strong communication capabilities
           and emotional balance, while greater structure and planning may further enhance performance.

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import type { ReportPayload, ReportTraitScoreRow } from "@/lib/report-data";
 import { useReportTheme } from "./report-theme-context";
@@ -125,10 +125,10 @@ export function PsychometricStrengthsScorecard({ report }: { report: ReportPaylo
                     <span className="font-medium">{t.trait}</span>
                     <span className="ml-2 text-xs text-[#9CA3AF]">{t.factor}</span>
                   </td>
-                  <td className="py-2 pr-4 text-right text-[#1F2937]">{t.score}</td>
-                  <td className="py-2 pr-4 text-right text-[#1F2937]">{t.maxScore}</td>
-                  <td className="py-2 pr-4 text-right text-[#1F2937]">{Math.round(t.percent)}%</td>
-                  <td className="py-2 pr-1 text-right font-semibold text-[#1F2937]">
+                  <td className="py-2 pr-4 text-right text-[#0F172A]">{t.score}</td>
+                  <td className="py-2 pr-4 text-right text-[#0F172A]">{t.maxScore}</td>
+                  <td className="py-2 pr-4 text-right text-[#0F172A]">{Math.round(t.percent)}%</td>
+                  <td className="py-2 pr-1 text-right font-semibold text-[#0F172A]">
                     {attrScore(t).toFixed(1)}
                   </td>
                 </tr>
@@ -148,7 +148,7 @@ export function PsychometricStrengthsScorecard({ report }: { report: ReportPaylo
         <div className="space-y-4">
           {PDP_PRIORITIES.map((p) => (
             <div key={p.title}>
-              <p className="mb-1.5 text-sm font-semibold text-[#1F2937]">{p.title}</p>
+              <p className="mb-1.5 text-sm font-semibold text-[#0F172A]">{p.title}</p>
               <ul className="space-y-0.5">
                 {p.bullets.map((b, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-sm text-[#475569]">

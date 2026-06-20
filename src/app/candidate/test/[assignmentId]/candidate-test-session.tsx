@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -260,7 +260,7 @@ export function CandidateTestSession({
           {gateError ? <p style={{ marginBottom: 12, color: "#b91c1c" }}>{gateError}</p> : null}
           {completedResultId ? (
             <p style={{ marginBottom: 12 }}>
-              <Link href={`/candidate/reports/${completedResultId}`} className="text-sm font-medium text-[#0F766E] hover:underline">
+              <Link href={`/candidate/reports/${completedResultId}`} className="text-sm font-medium text-[#2563EB] hover:underline">
                 View report
               </Link>
             </p>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo, useTransition } from "react";
 import { CheckCircle2, ChevronDown } from "lucide-react";
@@ -78,7 +78,7 @@ export function WeightEditorPanel({
           <select
             value={selectedId}
             onChange={(e) => handleSelect(e.target.value)}
-            className="w-full appearance-none rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#0F766E] focus:outline-none pr-8"
+            className="w-full appearance-none rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#2563EB] focus:outline-none pr-8"
           >
             <option value="">Select competency…</option>
             {competencies.map((c) => (
@@ -112,7 +112,7 @@ export function WeightEditorPanel({
                       return (
                         <tr key={m.id} className={changed ? "bg-teal-50/50" : ""}>
                           <td className="px-4 py-2.5">
-                            <span className="rounded bg-[#E6F7F1] px-2 py-0.5 font-mono text-xs font-bold text-[#0F766E]">
+                            <span className="rounded bg-[#EFF6FF] px-2 py-0.5 font-mono text-xs font-bold text-[#2563EB]">
                               {m.attribute.code}
                             </span>
                           </td>
@@ -126,8 +126,8 @@ export function WeightEditorPanel({
                               onChange={(e) =>
                                 setWeights((prev) => ({ ...prev, [m.id]: e.target.value }))
                               }
-                              className={`w-24 rounded border px-2 py-1 text-sm focus:outline-none focus:border-[#0F766E] ${
-                                changed ? "border-[#0F766E] bg-white" : "border-[#E2E8F0]"
+                              className={`w-24 rounded border px-2 py-1 text-sm focus:outline-none focus:border-[#2563EB] ${
+                                changed ? "border-[#2563EB] bg-white" : "border-[#E2E8F0]"
                               }`}
                             />
                           </td>
@@ -154,7 +154,7 @@ export function WeightEditorPanel({
                   type="button"
                   onClick={handleSave}
                   disabled={pending || !hasChanges}
-                  className="rounded-lg bg-[#0F766E] px-4 py-2 text-sm font-medium text-white hover:bg-[#0d9488] disabled:opacity-40 transition"
+                  className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1d4edb] disabled:opacity-40 transition"
                 >
                   {pending ? "Saving…" : `Update All Weights`}
                 </button>

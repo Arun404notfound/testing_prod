@@ -1,7 +1,7 @@
-﻿/** Defaults for tenant branding forms (create + edit fallbacks). */
+/** Defaults for tenant branding forms (create + edit fallbacks). */
 export const TENANT_BRANDING_FORM_DEFAULTS = {
-  primary: "#0F766E",
-  secondary: "#0F766E",
+  primary: "#2563EB",
+  secondary: "#2563EB",
   accent: "#34D399",
 } as const;
 

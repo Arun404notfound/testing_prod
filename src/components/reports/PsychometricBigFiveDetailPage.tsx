@@ -48,7 +48,7 @@ function FactorCard({
               style={{ width: `${pct}%`, backgroundColor: accentColor }}
             />
           </div>
-          <span className="text-sm font-bold text-[#1F2937]">{score.toFixed(1)}</span>
+          <span className="text-sm font-bold text-[#0F172A]">{score.toFixed(1)}</span>
           <span className="text-xs text-[#94A3B8]">/ 10</span>
         </div>
       </div>
@@ -79,9 +79,9 @@ function FactorCard({
                   return (
                     <tr key={t.trait} className="border-t border-[#F1F5F9]">
                       <td className="py-1.5 pr-4 text-[#374151]">{t.trait}</td>
-                      <td className="py-1.5 pr-4 text-right text-[#1F2937]">{t.score}</td>
-                      <td className="py-1.5 pr-4 text-right text-[#1F2937]">{Math.round(t.percent)}%</td>
-                      <td className="py-1.5 text-right font-semibold text-[#1F2937]">{score.toFixed(1)}</td>
+                      <td className="py-1.5 pr-4 text-right text-[#0F172A]">{t.score}</td>
+                      <td className="py-1.5 pr-4 text-right text-[#0F172A]">{Math.round(t.percent)}%</td>
+                      <td className="py-1.5 text-right font-semibold text-[#0F172A]">{score.toFixed(1)}</td>
                     </tr>
                   );
                 })}

@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Prisma } from "@/generated/prisma/client";
 import { AssessmentTenantSelect } from "@/components/admin/assessment-tenant-select";
@@ -316,7 +316,7 @@ export default async function AssessmentBuilderPage({
               type="submit"
               className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
                 assessment.lifecycleStatus === "draft"
-                  ? "border-[#0F766E] bg-teal-50 text-[#0F766E]"
+                  ? "border-[#2563EB] bg-teal-50 text-[#2563EB]"
                   : "border-slate-200 bg-white text-slate-700"
               }`}
             >
@@ -541,15 +541,15 @@ export default async function AssessmentBuilderPage({
 
       {assessmentType === "HYBRID" ? (
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("mcq")}>
+          <Link className="text-[#2563EB] hover:underline" href={hybridTabHref("mcq")}>
             MCQ tab
           </Link>
           <span className="text-slate-300">|</span>
-          <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("likert")}>
+          <Link className="text-[#2563EB] hover:underline" href={hybridTabHref("likert")}>
             Likert tab
           </Link>
           <span className="text-slate-300">|</span>
-          <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("triad")}>
+          <Link className="text-[#2563EB] hover:underline" href={hybridTabHref("triad")}>
             Triad tab
           </Link>
         </div>

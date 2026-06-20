@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSubmissions } from "@/lib/get-submissions";
 import { SubmissionsView } from "@/components/submissions/submissions-view";
@@ -25,10 +25,10 @@ export default async function AdminSubmissionsPage({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <Link href="/admin/reports" className="inline-flex items-center gap-1 text-sm font-medium text-[#0F766E] hover:underline">
+          <Link href="/admin/reports" className="inline-flex items-center gap-1 text-sm font-medium text-[#2563EB] hover:underline">
             ← All Reports
           </Link>
-          <Link href={`/admin/reports/${resultId}`} className="text-sm font-medium text-[#0F766E] hover:underline">
+          <Link href={`/admin/reports/${resultId}`} className="text-sm font-medium text-[#2563EB] hover:underline">
             Open Report
           </Link>
         </div>

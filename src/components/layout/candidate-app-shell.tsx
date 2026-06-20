@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -58,7 +58,7 @@ export function CandidateAppShell({
             You are currently in the middle of an assessment. Your answers are being auto-saved, but signing out will leave the test incomplete.
           </p>
           <p className="mt-2 text-center text-sm text-[#6B7280]">
-            Your answered questions will be <span className="font-semibold text-[#0F766E]">auto-submitted</span> if you sign out now.
+            Your answered questions will be <span className="font-semibold text-[#2563EB]">auto-submitted</span> if you sign out now.
           </p>
         </div>
         <div className="flex border-t border-[#F1F5F9]">
@@ -66,7 +66,7 @@ export function CandidateAppShell({
             type="button"
             disabled={submittingAndOut}
             onClick={() => setShowSignOutWarning(false)}
-            className="flex-1 py-4 text-sm font-semibold text-[#0F766E] hover:bg-[#F8FAFC] transition disabled:opacity-50"
+            className="flex-1 py-4 text-sm font-semibold text-[#2563EB] hover:bg-[#F8FAFC] transition disabled:opacity-50"
           >
             Stay &amp; Continue
           </button>
@@ -90,7 +90,7 @@ export function CandidateAppShell({
   if (isTestPage) {
     return (
       /* h-screen + overflow-hidden = browser viewport is the only scroll root */
-      <div className="flex h-screen flex-col overflow-hidden bg-[#F4F6F9] text-[#1F2937]">
+      <div className="flex h-screen flex-col overflow-hidden bg-[#F8FAFC] text-[#0F172A]">
         {showSignOutWarning && <SignOutWarningModal />}
 
         {/* Top bar — fixed height, shrinks nothing */}
@@ -109,7 +109,7 @@ export function CandidateAppShell({
             <span className="hidden max-w-[220px] truncate text-xs text-[#64748B] sm:inline">
               {email}
             </span>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-xs font-bold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2563EB] to-[#1D4EDB] text-xs font-bold text-white">
               {initials || email.slice(0, 2).toUpperCase()}
             </div>
             <button
@@ -132,7 +132,7 @@ export function CandidateAppShell({
 
   /* ── NORMAL PAGES: regular scrollable layout with sidebar ───────────────── */
   return (
-    <div className="min-h-screen bg-[#F4F6F9] text-[#1F2937]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
@@ -170,26 +170,26 @@ export function CandidateAppShell({
               onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all ${
                 pathname === "/candidate"
-                  ? "bg-[#E6F7F1] text-[#0F766E]"
-                  : "text-[#6B7280] hover:bg-[#F4F6F9] hover:text-[#1F2937]"
+                  ? "bg-[#EFF6FF] text-[#2563EB]"
+                  : "text-[#6B7280] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
               }`}
             >
-              <LayoutDashboard size={15} className={pathname === "/candidate" ? "text-[#0F766E]" : "text-[#9CA3AF]"} />
+              <LayoutDashboard size={15} className={pathname === "/candidate" ? "text-[#2563EB]" : "text-[#9CA3AF]"} />
               My Assessments
-              {pathname === "/candidate" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#0F766E]" />}
+              {pathname === "/candidate" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#2563EB]" />}
             </Link>
           </nav>
 
           {/* Wave decoration + user footer */}
           <div className="shrink-0 relative overflow-hidden">
-            <svg viewBox="0 0 240 80" className="w-full text-[#E6F7F1] pointer-events-none select-none" preserveAspectRatio="none" aria-hidden>
+            <svg viewBox="0 0 240 80" className="w-full text-[#EFF6FF] pointer-events-none select-none" preserveAspectRatio="none" aria-hidden>
               <path d="M0,60 C60,20 120,80 180,40 C210,20 230,50 240,45 L240,80 L0,80 Z" fill="currentColor" />
               <path d="M0,70 C50,40 100,75 160,55 C200,42 225,60 240,58 L240,80 L0,80 Z" fill="#D1FAE5" opacity="0.6" />
             </svg>
             <div className="px-3 pb-4 -mt-2 relative z-10">
               <div className="rounded-xl border border-[#EAECF0] bg-white shadow-sm">
                 <div className="flex items-center gap-2.5 px-3 py-2.5">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-[10px] font-bold text-white">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2563EB] to-[#1D4EDB] text-[10px] font-bold text-white">
                     {initials || email.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -235,7 +235,7 @@ export function CandidateAppShell({
               <span className="hidden max-w-[220px] truncate text-[12px] text-[#6B7280] sm:inline">
                 {email}
               </span>
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-[10px] font-bold text-white">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2563EB] to-[#1D4EDB] text-[10px] font-bold text-white">
                 {initials || email.slice(0, 2).toUpperCase()}
               </div>
             </div>

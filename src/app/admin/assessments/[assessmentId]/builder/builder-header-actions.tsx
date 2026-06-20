@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -46,7 +46,7 @@ export function BuilderHeaderActions({
 
       <Link
         href={assignHref}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-[#0F766E] bg-[#0F766E] px-4 py-2 text-sm font-medium text-white hover:bg-[#0d9488] transition"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-[#2563EB] bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1d4edb] transition"
       >
         Assign now →
       </Link>

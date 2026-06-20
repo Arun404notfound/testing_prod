@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 
@@ -56,7 +56,7 @@ export function AssignmentForm({
           </ol>
           <a
             href="/admin/assessments"
-            className="inline-flex items-center gap-2 rounded-lg bg-[#0F766E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#0d9488] transition"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#2563EB] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4edb] transition"
           >
             Go to Assessments →
           </a>
@@ -83,7 +83,7 @@ export function AssignmentForm({
               onClick={() => setType("individual")}
               className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                 type === "individual"
-                  ? "bg-[#0F766E] text-white shadow-sm"
+                  ? "bg-[#2563EB] text-white shadow-sm"
                   : "text-[#64748B] hover:text-[#334155]"
               }`}
             >
@@ -114,7 +114,7 @@ export function AssignmentForm({
                 <select
                   name="candidateId"
                   required
-                  className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#0F766E] focus:outline-none"
+                  className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#2563EB] focus:outline-none"
                 >
                   <option value="">Select candidate…</option>
                   {candidates.map((c) => (
@@ -136,7 +136,7 @@ export function AssignmentForm({
                   name="assessmentId"
                   required
                   defaultValue={defaultAssessmentId ?? ""}
-                  className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#0F766E] focus:outline-none"
+                  className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#2563EB] focus:outline-none"
                 >
                   <option value="">Select assessment…</option>
                   {assessments.map((a) => (
@@ -155,7 +155,7 @@ export function AssignmentForm({
                   <input
                     type="datetime-local"
                     name="expiresAt"
-                    className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#0F766E] focus:outline-none"
+                    className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#2563EB] focus:outline-none"
                   />
                   <p className="mt-1 text-[10px] text-[#94A3B8]">Test locks after this date/time</p>
                 </div>
@@ -167,7 +167,7 @@ export function AssignmentForm({
                     min="1"
                     max="480"
                     placeholder="e.g. 45"
-                    className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#0F766E] focus:outline-none"
+                    className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#2563EB] focus:outline-none"
                   />
                   <p className="mt-1 text-[10px] text-[#94A3B8]">Overrides assessment default</p>
                 </div>
@@ -178,7 +178,7 @@ export function AssignmentForm({
               <button
                 type="submit"
                 disabled={candidates.length === 0 || assessments.length === 0}
-                className="rounded-xl bg-[#0F766E] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#0d9488] disabled:opacity-40 transition"
+                className="rounded-xl bg-[#2563EB] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4edb] disabled:opacity-40 transition"
               >
                 Assign to Candidate
               </button>

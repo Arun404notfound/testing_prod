@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
@@ -17,7 +17,7 @@ type Assignment = {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; bg: string; text: string; dot: string }> = {
     assigned:    { label: "Pending",     bg: "#FFF7ED", text: "#C2410C", dot: "#F97316" },
-    in_progress: { label: "In Progress", bg: "#E6F7F1", text: "#0F766E", dot: "#10B981" },
+    in_progress: { label: "In Progress", bg: "#EFF6FF", text: "#2563EB", dot: "#10B981" },
     completed:   { label: "Completed",   bg: "#F0FDF4", text: "#15803D", dot: "#22C55E" },
     expired:     { label: "Expired",     bg: "#FEF2F2", text: "#991B1B", dot: "#EF4444" },
   };
@@ -62,7 +62,7 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#334155] focus:border-[#0F766E] focus:outline-none"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#334155] focus:border-[#2563EB] focus:outline-none"
           >
             <option value="">All statuses</option>
             <option value="assigned">Pending</option>
@@ -91,7 +91,7 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
           <button
             type="button"
             onClick={() => setFilterStatus("")}
-            className="mt-2 text-sm text-[#0F766E] hover:underline"
+            className="mt-2 text-sm text-[#2563EB] hover:underline"
           >
             Clear filter
           </button>
@@ -112,14 +112,14 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
               <div className="flex items-start gap-4">
                 <div
                   className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-                  style={{ background: isDone ? "#F0FDF4" : isExpired ? "#FEF2F2" : "#E6F7F1" }}
+                  style={{ background: isDone ? "#F0FDF4" : isExpired ? "#FEF2F2" : "#EFF6FF" }}
                 >
                   {isDone ? (
                     <CheckCircle2 size={24} className="text-emerald-600" />
                   ) : isExpired ? (
                     <ClipboardList size={24} className="text-red-400" />
                   ) : (
-                    <ClipboardList size={24} className="text-[#0F766E]" />
+                    <ClipboardList size={24} className="text-[#2563EB]" />
                   )}
                 </div>
                 <div className="min-w-0">
@@ -176,7 +176,7 @@ export function AssignmentsList({ assignments }: { assignments: Assignment[] }) 
               ) : (
                 <Link
                   href={`/candidate/test/${assignment.id}`}
-                  className="inline-flex w-full justify-center shrink-0 items-center gap-2 rounded-xl bg-[#0F766E] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D9488] hover:shadow-md md:w-auto"
+                  className="inline-flex w-full justify-center shrink-0 items-center gap-2 rounded-xl bg-[#2563EB] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1D4EDB] hover:shadow-md md:w-auto"
                 >
                   Start Test
                   <ChevronRight size={16} />

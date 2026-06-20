@@ -80,7 +80,7 @@ export function AdminAppShell({
   )?.label ?? "Admin";
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9] text-[#1F2937]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
@@ -133,17 +133,17 @@ export function AdminAppShell({
                       onClick={() => setMobileOpen(false)}
                       className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150 ${
                         active
-                          ? "bg-[#E6F7F1] text-[#0F766E]"
-                          : "text-[#6B7280] hover:bg-[#F4F6F9] hover:text-[#1F2937]"
+                          ? "bg-[#EFF6FF] text-[#2563EB]"
+                          : "text-[#6B7280] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
                       }`}
                     >
                       <Icon
                         size={15}
-                        className={active ? "text-[#0F766E]" : "text-[#9CA3AF]"}
+                        className={active ? "text-[#2563EB]" : "text-[#9CA3AF]"}
                       />
                       {item.label}
                       {active && (
-                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#0F766E]" />
+                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
                       )}
                     </Link>
                   );
@@ -158,7 +158,7 @@ export function AdminAppShell({
           {/* Teal wave decoration */}
           <svg
             viewBox="0 0 240 80"
-            className="w-full text-[#E6F7F1] pointer-events-none select-none"
+            className="w-full text-[#EFF6FF] pointer-events-none select-none"
             preserveAspectRatio="none"
             aria-hidden
           >
@@ -179,9 +179,9 @@ export function AdminAppShell({
               <button
                 type="button"
                 onClick={() => setUserMenuOpen((v) => !v)}
-                className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-t-xl hover:bg-[#F4F6F9] transition"
+                className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-t-xl hover:bg-[#F8FAFC] transition"
               >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-[10px] font-bold text-white">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2563EB] to-[#1D4EDB] text-[10px] font-bold text-white">
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1 text-left">

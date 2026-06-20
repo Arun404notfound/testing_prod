@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { Search, X } from "lucide-react";
@@ -110,7 +110,7 @@ export default async function ReportsIndexPage({
               : `${results.length} total result${results.length === 1 ? "" : "s"}`}
           </p>
         </div>
-        <Link href="/admin/dashboard" className="text-sm font-medium text-[#0F766E] hover:underline">
+        <Link href="/admin/dashboard" className="text-sm font-medium text-[#2563EB] hover:underline">
           Back to dashboard
         </Link>
       </div>
@@ -132,7 +132,7 @@ export default async function ReportsIndexPage({
                 defaultValue={assessmentQ}
                 placeholder="e.g. Testing1"
                 list="assessment-options"
-                className="w-full rounded-lg border border-[#E2E8F0] py-2 pl-8 pr-3 text-sm text-[#334155] placeholder-[#CBD5E1] focus:border-[#0F766E] focus:outline-none focus:ring-1 focus:ring-[#0F766E]"
+                className="w-full rounded-lg border border-[#E2E8F0] py-2 pl-8 pr-3 text-sm text-[#334155] placeholder-[#CBD5E1] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
               />
               <datalist id="assessment-options">
                 {assessmentOptions.map((name) => (
@@ -154,7 +154,7 @@ export default async function ReportsIndexPage({
                 name="candidate"
                 defaultValue={candidateQ}
                 placeholder="e.g. Alex Chen"
-                className="w-full rounded-lg border border-[#E2E8F0] py-2 pl-8 pr-3 text-sm text-[#334155] placeholder-[#CBD5E1] focus:border-[#0F766E] focus:outline-none focus:ring-1 focus:ring-[#0F766E]"
+                className="w-full rounded-lg border border-[#E2E8F0] py-2 pl-8 pr-3 text-sm text-[#334155] placeholder-[#CBD5E1] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
               />
             </div>
           </div>
@@ -171,7 +171,7 @@ export default async function ReportsIndexPage({
                 name="employeeId"
                 defaultValue={employeeIdQ}
                 placeholder="e.g. EMP001"
-                className="w-full rounded-lg border border-[#E2E8F0] py-2 pl-8 pr-3 text-sm text-[#334155] placeholder-[#CBD5E1] focus:border-[#0F766E] focus:outline-none focus:ring-1 focus:ring-[#0F766E]"
+                className="w-full rounded-lg border border-[#E2E8F0] py-2 pl-8 pr-3 text-sm text-[#334155] placeholder-[#CBD5E1] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
               />
             </div>
           </div>
@@ -197,7 +197,7 @@ export default async function ReportsIndexPage({
           <div className="flex items-center gap-2">
             <button
               type="submit"
-              className="rounded-lg bg-[#0F766E] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0D9488]"
+              className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1D4EDB]"
             >
               Apply
             </button>
@@ -239,7 +239,7 @@ export default async function ReportsIndexPage({
           <p className="text-sm font-semibold text-[#0F172A]">
             Completed Results
             {hasFilter && (
-              <span className="ml-2 rounded-full bg-[#0F766E] px-2 py-0.5 text-[10px] font-bold text-white">
+              <span className="ml-2 rounded-full bg-[#2563EB] px-2 py-0.5 text-[10px] font-bold text-white">
                 {results.length} filtered
               </span>
             )}
@@ -304,7 +304,7 @@ export default async function ReportsIndexPage({
                   <td className="px-5 py-3">
                     <Link
                       href={`/admin/reports/${result.id}`}
-                      className="font-medium text-[#0F766E] hover:underline"
+                      className="font-medium text-[#2563EB] hover:underline"
                     >
                       Open Report
                     </Link>
@@ -330,7 +330,7 @@ export default async function ReportsIndexPage({
                     {hasFilter && (
                       <Link
                         href={clearUrl}
-                        className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-[#0F766E] hover:underline"
+                        className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-[#2563EB] hover:underline"
                       >
                         <X size={13} /> Clear all filters
                       </Link>
@@ -368,7 +368,7 @@ function FilterChip({
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-full border border-[#D1FAE5] bg-[#E6F7F1] px-2.5 py-0.5 text-xs font-medium text-[#0F766E] transition hover:bg-blue-100"
+      className="inline-flex items-center gap-1.5 rounded-full border border-[#D1FAE5] bg-[#EFF6FF] px-2.5 py-0.5 text-xs font-medium text-[#2563EB] transition hover:bg-blue-100"
     >
       <span className="text-[#94A3B8]">{label}:</span>
       {value}

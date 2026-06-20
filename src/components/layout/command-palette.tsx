@@ -169,13 +169,13 @@ function ResultRow({ primary, secondary, onClick }: { primary: string; secondary
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-[#F4F6F9] transition"
+      className="group flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-[#F8FAFC] transition"
     >
       <div className="min-w-0">
         <p className="truncate text-[13px] font-medium text-[#111827]">{primary}</p>
         {secondary && <p className="truncate text-[11px] text-[#9CA3AF]">{secondary}</p>}
       </div>
-      <ArrowRight size={13} className="shrink-0 text-[#D1D5DB] group-hover:text-[#0F766E] transition" />
+      <ArrowRight size={13} className="shrink-0 text-[#D1D5DB] group-hover:text-[#2563EB] transition" />
     </button>
   );
 }
