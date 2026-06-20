@@ -26,16 +26,13 @@ export default async function LoginPage({
           <path d="M80,100 C50,300 70,500 30,700 L80,800 L80,100Z" fill="white" fillOpacity="0.03" />
         </svg>
 
-        {/* Top: badge */}
-        <div>
+        {/* Middle: main copy */}
+        <div className="relative space-y-5 max-w-lg">
           <div className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[13px] font-semibold text-white/90 tracking-wide">Psychometric Assessment Portal</span>
           </div>
-        </div>
 
-        {/* Middle: main copy */}
-        <div className="relative space-y-5 max-w-lg">
           <div>
             <h1 className="text-[2.75rem] font-extrabold text-white leading-[1.15] tracking-tight">
               Unlock talent insights with precision assessments
