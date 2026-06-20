@@ -118,7 +118,7 @@ export default async function NewAssessmentPage({
         title="New assessment"
         subtitle="Define metadata, then pick questions or imported pool items in the builder."
         right={
-          <Link href="/admin/assessments" className="text-sm font-medium text-[#2563EB] hover:underline">
+          <Link href="/admin/assessments" className="text-sm font-medium text-[#0F766E] hover:underline">
             Back to list
           </Link>
         }

@@ -25,10 +25,10 @@ export default async function AdminSubmissionsPage({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <Link href="/admin/reports" className="inline-flex items-center gap-1 text-sm font-medium text-[#2563EB] hover:underline">
+          <Link href="/admin/reports" className="inline-flex items-center gap-1 text-sm font-medium text-[#0F766E] hover:underline">
             ← All Reports
           </Link>
-          <Link href={`/admin/reports/${resultId}`} className="text-sm font-medium text-[#2563EB] hover:underline">
+          <Link href={`/admin/reports/${resultId}`} className="text-sm font-medium text-[#0F766E] hover:underline">
             Open Report
           </Link>
         </div>

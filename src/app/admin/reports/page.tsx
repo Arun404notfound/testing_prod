@@ -110,7 +110,7 @@ export default async function ReportsIndexPage({
               : `${results.length} total result${results.length === 1 ? "" : "s"}`}
           </p>
         </div>
-        <Link href="/admin/dashboard" className="text-sm font-medium text-[#2563EB] hover:underline">
+        <Link href="/admin/dashboard" className="text-sm font-medium text-[#0F766E] hover:underline">
           Back to dashboard
         </Link>
       </div>
@@ -304,7 +304,7 @@ export default async function ReportsIndexPage({
                   <td className="px-5 py-3">
                     <Link
                       href={`/admin/reports/${result.id}`}
-                      className="font-medium text-[#2563EB] hover:underline"
+                      className="font-medium text-[#0F766E] hover:underline"
                     >
                       Open Report
                     </Link>
@@ -330,7 +330,7 @@ export default async function ReportsIndexPage({
                     {hasFilter && (
                       <Link
                         href={clearUrl}
-                        className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-[#2563EB] hover:underline"
+                        className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-[#0F766E] hover:underline"
                       >
                         <X size={13} /> Clear all filters
                       </Link>

@@ -84,7 +84,7 @@ export default async function AssessmentsPage() {
         subtitle="Create assessments, add items in the builder, then publish before assigning."
         right={
           <div className="flex items-center gap-3">
-            <Link href="/admin/dashboard" className="text-sm font-medium text-[#2563EB] hover:underline">
+            <Link href="/admin/dashboard" className="text-sm font-medium text-[#0F766E] hover:underline">
               Back to dashboard
             </Link>
             <Link href="/admin/assessments/new" className="tg-button-primary text-sm">
@@ -98,7 +98,7 @@ export default async function AssessmentsPage() {
         {assessments.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-white px-6 py-12 text-center text-sm text-[#64748B]">
             No assessments yet.{" "}
-            <Link href="/admin/assessments/new" className="font-medium text-[#2563EB] hover:underline">
+            <Link href="/admin/assessments/new" className="font-medium text-[#0F766E] hover:underline">
               Create one →
             </Link>
           </div>

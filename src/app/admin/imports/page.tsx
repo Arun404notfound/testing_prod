@@ -128,7 +128,7 @@ export default async function ImportsPage({
           title="Imports"
           subtitle="Upload CSV/XLSX files for candidates and items."
           right={
-            <Link href="/admin/dashboard" className="text-sm font-medium text-[#2563EB] hover:underline">
+            <Link href="/admin/dashboard" className="text-sm font-medium text-[#0F766E] hover:underline">
               Back to dashboard
             </Link>
           }
@@ -299,7 +299,7 @@ export default async function ImportsPage({
                   <td className="px-3 py-2">{job.successRows}</td>
                   <td className="px-3 py-2">{job.failedRows}</td>
                   <td className="px-3 py-2">
-                    <Link href={`/admin/imports?jobId=${job.id}`} className="text-[#2563EB] hover:underline">
+                    <Link href={`/admin/imports?jobId=${job.id}`} className="text-[#0F766E] hover:underline">
                       View
                     </Link>
                   </td>

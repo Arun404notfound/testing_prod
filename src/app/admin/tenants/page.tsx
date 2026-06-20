@@ -20,7 +20,7 @@ export default async function AdminTenantsPage({
             Client logos and colors apply to assessment experience and generated reports. The admin portal keeps TechGrah styling.
           </p>
         </div>
-        <Link href="/admin/dashboard" className="text-sm font-medium text-[#2563EB] hover:underline">
+        <Link href="/admin/dashboard" className="text-sm font-medium text-[#0F766E] hover:underline">
           Back to dashboard
         </Link>
       </div>
@@ -68,7 +68,7 @@ export default async function AdminTenantsPage({
                     </div>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <Link href={`/admin/tenants/${t.id}`} className="font-medium text-[#2563EB] hover:underline">
+                    <Link href={`/admin/tenants/${t.id}`} className="font-medium text-[#0F766E] hover:underline">
                       Edit
                     </Link>
                   </td>

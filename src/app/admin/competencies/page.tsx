@@ -364,7 +364,7 @@ export default async function CompetenciesPage({
                       <td className="px-5 py-3 font-medium text-[#0F172A]">{a.name}</td>
                       <td className="px-5 py-3 text-xs text-[#64748B]">{a.category ?? "—"}</td>
                       <td className="px-5 py-3 flex items-center gap-3">
-                        <a href={`/admin/competencies?tab=attributes&editAttrId=${a.id}`} className="text-xs text-[#2563EB] hover:underline">Edit</a>
+                        <a href={`/admin/competencies?tab=attributes&editAttrId=${a.id}`} className="text-xs text-[#0F766E] hover:underline">Edit</a>
                         <form action={deleteAttribute}>
                           <input type="hidden" name="id" value={a.id} />
                           <button type="submit" className={btnDanger}>Delete</button>
@@ -465,7 +465,7 @@ export default async function CompetenciesPage({
                               </div>
                             </div>
                             <div className="flex items-center gap-3 shrink-0">
-                              <a href={`/admin/competencies?tab=competencies&editCompId=${c.id}`} className="text-xs text-[#2563EB] hover:underline">Edit</a>
+                              <a href={`/admin/competencies?tab=competencies&editCompId=${c.id}`} className="text-xs text-[#0F766E] hover:underline">Edit</a>
                               <form action={deleteCompetency}>
                                 <input type="hidden" name="id" value={c.id} />
                                 <button type="submit" className={btnDanger}>Delete</button>

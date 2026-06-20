@@ -283,7 +283,7 @@ export default async function QuestionsPage({
         ))}
         <span className="ml-auto text-[#94A3B8]">
           Change formula at{" "}
-          <Link href="/admin/competencies?tab=competencies" className="text-[#2563EB] hover:underline">Competencies</Link>
+          <Link href="/admin/competencies?tab=competencies" className="text-[#0F766E] hover:underline">Competencies</Link>
         </span>
       </div>
 
@@ -553,7 +553,7 @@ export default async function QuestionsPage({
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                       <span className="rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-xs font-semibold text-[#2563EB]">{compMaps.length} attributes</span>
                       <span className="rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] text-[#475569]">Formula: {comp.scoringFormula.replace("_", " ")}</span>
-                      <Link href="/admin/competencies?tab=competencies" className="text-[11px] text-[#2563EB] hover:underline">Edit formula →</Link>
+                      <Link href="/admin/competencies?tab=competencies" className="text-[11px] text-[#0F766E] hover:underline">Edit formula →</Link>
                     </div>
                   </div>
                 </div>
@@ -602,7 +602,7 @@ export default async function QuestionsPage({
           {competencies.length === 0 && (
             <div className={`${card} px-5 py-10 text-center`}>
               <p className="text-sm text-[#64748B]">No competencies yet.</p>
-              <Link href="/admin/competencies" className="mt-3 inline-block text-sm font-medium text-[#2563EB] hover:underline">Set up competencies →</Link>
+              <Link href="/admin/competencies" className="mt-3 inline-block text-sm font-medium text-[#0F766E] hover:underline">Set up competencies →</Link>
             </div>
           )}
         </div>

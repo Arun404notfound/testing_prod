@@ -541,15 +541,15 @@ export default async function AssessmentBuilderPage({
 
       {assessmentType === "HYBRID" ? (
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link className="text-[#2563EB] hover:underline" href={hybridTabHref("mcq")}>
+          <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("mcq")}>
             MCQ tab
           </Link>
           <span className="text-slate-300">|</span>
-          <Link className="text-[#2563EB] hover:underline" href={hybridTabHref("likert")}>
+          <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("likert")}>
             Likert tab
           </Link>
           <span className="text-slate-300">|</span>
-          <Link className="text-[#2563EB] hover:underline" href={hybridTabHref("triad")}>
+          <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("triad")}>
             Triad tab
           </Link>
         </div>

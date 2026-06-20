@@ -224,7 +224,7 @@ export default async function AdminDashboardPage() {
               )}
             </ul>
             <div className="border-t border-[#E2E8F0] bg-white px-4 py-2">
-              <Link href="/admin/candidates" className="text-xs font-medium text-[#2563EB] hover:underline">
+              <Link href="/admin/candidates" className="text-xs font-medium text-[#0F766E] hover:underline">
                 View all candidates →
               </Link>
             </div>
@@ -255,7 +255,7 @@ export default async function AdminDashboardPage() {
                       {a.assignment?.result?.id ? (
                         <Link
                           href={`/admin/reports/${a.assignment.result.id}`}
-                          className="font-medium text-[#2563EB] hover:underline"
+                          className="font-medium text-[#0F766E] hover:underline"
                         >
                           Report
                         </Link>
@@ -266,7 +266,7 @@ export default async function AdminDashboardPage() {
               )}
             </ul>
             <div className="border-t border-[#E2E8F0] bg-white px-4 py-2">
-              <Link href="/admin/assignments" className="text-xs font-medium text-[#2563EB] hover:underline">
+              <Link href="/admin/assignments" className="text-xs font-medium text-[#0F766E] hover:underline">
                 Manage assignments →
               </Link>
             </div>
@@ -292,7 +292,7 @@ export default async function AdminDashboardPage() {
                       <span className="text-sm font-semibold tabular-nums text-[#0F172A]">
                         {Math.round(r.overallScore)}%
                       </span>
-                      <Link href={`/admin/reports/${r.id}`} className="text-xs font-medium text-[#2563EB] hover:underline">
+                      <Link href={`/admin/reports/${r.id}`} className="text-xs font-medium text-[#0F766E] hover:underline">
                         Open
                       </Link>
                     </div>
@@ -301,7 +301,7 @@ export default async function AdminDashboardPage() {
               )}
             </ul>
             <div className="border-t border-[#E2E8F0] bg-white px-4 py-2">
-              <Link href="/admin/reports" className="text-xs font-medium text-[#2563EB] hover:underline">
+              <Link href="/admin/reports" className="text-xs font-medium text-[#0F766E] hover:underline">
                 All reports →
               </Link>
             </div>
