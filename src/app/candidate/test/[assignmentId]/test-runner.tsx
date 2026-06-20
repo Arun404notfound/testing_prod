@@ -755,7 +755,7 @@ export function CandidateTestRunner({
         ROOT: h-full forces the container to fit the parent exactly.
         flex-col stacks: [sub-header] + [body].
       */}
-      <div className="flex h-full flex-col overflow-hidden bg-[#F1F5F9]">
+      <div className="flex flex-1 flex-col overflow-hidden bg-[#F4F6F9]">
 
         {/* ── Sub-header ─────────────────────────────────────────────────────
             shrink-0: never shrinks. Shows assessment name + counter + timer.
