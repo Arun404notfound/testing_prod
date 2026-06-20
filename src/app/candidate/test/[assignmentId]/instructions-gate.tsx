@@ -116,7 +116,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F1F5F9] p-6">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 size={28} className="animate-spin text-blue-600" />
+          <Loader2 size={28} className="animate-spin text-[#0F766E]" />
           <p className="text-sm font-medium text-[#64748B]">Checking session…</p>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
           <div className="mt-5">
             <a
               href="/candidate"
-              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 text-center block"
+              className="w-full rounded-xl bg-[#0F766E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0D9488] text-center block"
             >
               Go to Dashboard
             </a>
@@ -189,15 +189,15 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 to-blue-50/40 px-4 py-4 md:px-8 md:py-6">
+    <div className="bg-[#F4F6F9] px-4 py-4 md:px-8 md:py-6">
       <div className="mx-auto w-full max-w-6xl">
 
         {/* ── Header card ─────────────────────────────────────────────── */}
         <div className="mb-5 overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
-          <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500" />
+          <div className="h-1.5 w-full bg-gradient-to-r from-[#0F766E] via-[#10B981] to-[#0D9488]" />
           <div className="flex flex-wrap items-center justify-between gap-4 px-7 py-4">
             <div>
-              <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-blue-500">
+              <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-[#0F766E]">
                 Assessment Instructions
               </p>
               <h1 className="text-2xl font-extrabold leading-tight text-[#0F172A]">
@@ -210,8 +210,8 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
             <div className="flex flex-wrap gap-3">
               {durationMinutes > 0 && (
                 <div className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2.5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100">
-                    <Clock size={20} className="text-blue-600" />
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E6F7F1]">
+                    <Clock size={20} className="text-[#0F766E]" />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Duration</p>
@@ -225,8 +225,8 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
                 </div>
               )}
               <div className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100">
-                  <FileText size={20} className="text-indigo-600" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E6F7F1]">
+                  <FileText size={20} className="text-[#0F766E]" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#94A3B8]">Questions</p>
@@ -243,15 +243,15 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
           {/* Single instructions card */}
           <div className="order-1 min-w-0 flex-1 rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
             <div className="flex shrink-0 items-center gap-3 border-b border-[#F1F5F9] px-6 py-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50">
-                <BookOpen size={18} className="text-blue-600" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#E6F7F1]">
+                <BookOpen size={18} className="text-[#0F766E]" />
               </div>
               <h2 className="text-sm font-bold text-[#0F172A]">Before You Begin</h2>
             </div>
             <ol className="divide-y divide-[#F1F5F9] lg:max-h-[360px] lg:overflow-y-auto">
               {INSTRUCTIONS.map(({ heading, text }, i) => (
                 <li key={heading} className="flex gap-4 px-6 py-4">
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0F766E] text-[11px] font-bold text-white">
                     {i + 1}
                   </span>
                   <div>
@@ -267,7 +267,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
           <div className="order-2 w-full lg:w-72 lg:shrink-0">
             <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm">
 
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0F766E]">
                 <Play size={24} className="text-white" fill="white" />
               </div>
 
@@ -284,8 +284,8 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
                   onClick={() => setAccepted((v) => !v)}
                   className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-all ${
                     accepted
-                      ? "border-blue-600 bg-blue-600"
-                      : "border-[#CBD5E1] bg-white hover:border-blue-400"
+                      ? "border-[#0F766E] bg-[#0F766E]"
+                      : "border-[#CBD5E1] bg-white hover:border-[#0F766E]"
                   }`}
                 >
                   {accepted && <Check size={12} className="text-white" strokeWidth={3} />}
@@ -307,7 +307,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
                 onClick={() => void handleStart()}
                 className={`mt-5 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${
                   accepted && !starting
-                    ? "bg-blue-600 text-white hover:bg-teal-700 active:scale-[0.98] shadow-md shadow-blue-200"
+                    ? "bg-[#0F766E] text-white hover:bg-[#0D9488] active:scale-[0.98] shadow-md shadow-teal-200"
                     : "cursor-not-allowed bg-[#F1F5F9] text-[#94A3B8]"
                 }`}
               >

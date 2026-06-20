@@ -122,8 +122,8 @@ export function CandidateAppShell({
           </div>
         </header>
 
-        {/* Content area: flex-1 + min-h-0 = fills remaining height exactly; overflow-y-auto allows instructions page to scroll while test runner content fits exactly */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        {/* Content area: flex-1 + min-h-0 = fills remaining height exactly. overflow-hidden so test-runner's h-full resolves against a definite height. */}
+        <div className="min-h-0 flex-1 overflow-hidden">
           {children}
         </div>
       </div>
