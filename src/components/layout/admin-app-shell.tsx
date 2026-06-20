@@ -13,16 +13,15 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Search,
   UserPlus,
   Users,
   X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { logoutAction } from "@/app/actions/auth";
 import type { UserRole } from "@/generated/prisma/enums";
-import { CommandPalette } from "./command-palette";
+import { SearchBar } from "./search-bar";
 import { UserMenu } from "./user-menu";
 
 const navGroups = [
@@ -67,19 +66,6 @@ export function AdminAppShell({
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [paletteOpen, setPaletteOpen] = useState(false);
-
-  // ⌘K / Ctrl+K opens command palette
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setPaletteOpen((v) => !v);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
   const initials = user.email
     .split("@")[0]
     .split(/[._-]/)
@@ -236,16 +222,8 @@ export function AdminAppShell({
               {mobileOpen ? <X size={15} /> : <Menu size={15} />}
             </button>
 
-            {/* Search trigger — opens command palette */}
-            <button
-              type="button"
-              onClick={() => setPaletteOpen(true)}
-              className="flex w-72 shrink-0 items-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-left text-[13px] text-[#9CA3AF] hover:border-[#0F766E]/40 hover:bg-white transition"
-            >
-              <Search size={14} className="shrink-0" />
-              <span className="flex-1">Search assessments, candidates…</span>
-              <span className="hidden sm:flex items-center gap-0.5 text-[10px] font-mono border border-[#E5E7EB] rounded bg-white px-1 py-0.5">⌘K</span>
-            </button>
+            {/* Inline search dropdown */}
+            <SearchBar />
 
             {/* Spacer */}
             <div className="flex-1" />
@@ -258,7 +236,6 @@ export function AdminAppShell({
         <div className="mx-auto max-w-7xl p-4 sm:p-6">{children}</div>
       </div>
 
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }
