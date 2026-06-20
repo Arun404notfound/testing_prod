@@ -1,42 +1,23 @@
 "use client";
 
-import DecryptedText from "@/components/ui/DecryptedText";
+import RotatingText from "@/components/ui/RotatingText";
 
 export function AnimatedTagline() {
   return (
-    <p className="text-[2rem] font-extrabold tracking-tight">
-      <DecryptedText
-        text="Assess"
-        animateOn="view"
-        sequential
-        revealDirection="start"
-        speed={60}
-        className="text-white"
-        encryptedClassName="text-emerald-400/60"
+    <div className="flex items-center gap-2 text-[2rem] font-extrabold tracking-tight">
+      <RotatingText
+        texts={["Assess", "Analyze", "Advance"]}
+        mainClassName="overflow-hidden text-white"
+        splitLevelClassName="overflow-hidden"
+        staggerFrom="last"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "-120%" }}
+        staggerDuration={0.03}
+        transition={{ type: "spring", damping: 30, stiffness: 400 }}
+        rotationInterval={2000}
       />
       <span className="text-emerald-400">.</span>
-      <span> </span>
-      <DecryptedText
-        text="Analyze"
-        animateOn="view"
-        sequential
-        revealDirection="start"
-        speed={60}
-        className="text-white"
-        encryptedClassName="text-emerald-400/60"
-      />
-      <span className="text-emerald-400">.</span>
-      <span> </span>
-      <DecryptedText
-        text="Advance"
-        animateOn="view"
-        sequential
-        revealDirection="start"
-        speed={60}
-        className="text-white"
-        encryptedClassName="text-emerald-400/60"
-      />
-      <span className="text-white/40">.</span>
-    </p>
+    </div>
   );
 }
