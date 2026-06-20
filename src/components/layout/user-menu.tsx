@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, LogOut, Shield, User } from "lucide-react";
+import { ChevronDown, LogOut, Shield } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import type { UserRole } from "@/generated/prisma/enums";
 
@@ -54,16 +54,7 @@ export function UserMenu({ email, role, initials }: { email: string; role: UserR
             </div>
           </div>
 
-          {/* Menu items */}
           <div className="py-1">
-            <div className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#6B7280]">
-              <User size={14} className="text-[#9CA3AF]" />
-              <span>Profile</span>
-              <span className="ml-auto text-[10px] text-[#D1D5DB] font-medium">Coming soon</span>
-            </div>
-          </div>
-
-          <div className="border-t border-[#F3F4F6] py-1">
             <form action={logoutAction}>
               <button
                 type="submit"
