@@ -17,7 +17,6 @@ export function AnimatedTagline() {
         transition={{ type: "spring", damping: 30, stiffness: 400 }}
         rotationInterval={2000}
       />
-      <span className="text-emerald-400">.</span>
     </div>
   );
 }
