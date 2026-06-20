@@ -212,7 +212,7 @@ export function AdminAppShell({
       <div className="lg:pl-60">
         {/* Top bar */}
         <header className="sticky top-0 z-20 border-b border-[#EAECF0] bg-white/95 backdrop-blur-md">
-          <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2.5 sm:px-6">
+          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:px-6">
             {/* Mobile menu toggle */}
             <button
               className="rounded-lg border border-[#E5E7EB] p-1.5 text-[#6B7280] lg:hidden shrink-0"
@@ -222,14 +222,14 @@ export function AdminAppShell({
               {mobileOpen ? <X size={15} /> : <Menu size={15} />}
             </button>
 
-            {/* Search */}
-            <div className="flex-1 max-w-md">
+            {/* Search — fixed width, left-aligned */}
+            <div className="w-72 shrink-0">
               <div className="relative">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
                 <input
                   type="search"
                   placeholder="Search assessments, tags, or competencies..."
-                  className="w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] py-2 pl-8 pr-3 text-[13px] text-[#374151] placeholder:text-[#9CA3AF] focus:border-[#0F766E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0F766E]/10 transition"
+                  className="w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] py-2 pl-8 pr-14 text-[13px] text-[#374151] placeholder:text-[#9CA3AF] focus:border-[#0F766E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0F766E]/10 transition"
                 />
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 text-[10px] text-[#9CA3AF] font-mono border border-[#E5E7EB] rounded px-1 py-0.5">
                   ⌘K
@@ -237,7 +237,10 @@ export function AdminAppShell({
               </div>
             </div>
 
-            {/* Right: bell + user */}
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* Right corner: bell + user */}
             <div className="flex items-center gap-2 shrink-0">
               <button className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white text-[#6B7280] hover:bg-[#F4F6F9] transition">
                 <Bell size={15} />
