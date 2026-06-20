@@ -64,7 +64,7 @@ export default async function LoginPage({
           {/* Logo */}
           <div className="mb-8 flex justify-center">
             <div className="relative h-20 w-64">
-              <Image src="/Logo 1.webp" alt="TechGrah Innovations" fill className="object-contain" sizes="256px" priority />
+              <Image src="/logo_login.webp" alt="TechGrah Innovations" fill className="object-contain" sizes="256px" priority />
             </div>
           </div>
 
