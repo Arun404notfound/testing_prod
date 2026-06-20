@@ -101,7 +101,7 @@ function TimerPill({ mm, ss, isWarning, isCritical }: { mm: string; ss: string; 
     <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-sm font-bold tabular-nums transition-colors ${
       isCritical ? "border-rose-300 bg-rose-50 text-rose-600"
       : isWarning ? "border-amber-300 bg-amber-50 text-amber-600"
-      : "border-teal-200 bg-teal-50 text-[#2563EB]"
+      : "border-teal-200 bg-teal-50 text-[#0F766E]"
     }`}>
       <Clock size={13} className={isCritical || isWarning ? "animate-pulse" : ""} />
       {mm}:{ss}
@@ -129,7 +129,7 @@ function QuestionNavigator({ blocks, answers, currentIndex }: {
                 key={b.key}
                 className={`flex h-8 w-full items-center justify-center rounded-lg text-xs font-semibold select-none ${
                   cur
-                    ? "bg-[#2563EB] text-white shadow-sm"
+                    ? "bg-[#0F766E] text-white shadow-sm"
                     : done
                     ? "bg-emerald-100 text-emerald-700"
                     : "bg-[#F1F5F9] text-[#64748B]"
@@ -143,7 +143,7 @@ function QuestionNavigator({ blocks, answers, currentIndex }: {
       </div>
       <div className="mt-3 space-y-1.5 border-t border-[#F1F5F9] pt-3">
         {[
-          { cls: "bg-[#2563EB]", label: "Current" },
+          { cls: "bg-[#0F766E]", label: "Current" },
           { cls: "bg-emerald-400", label: "Answered" },
           { cls: "bg-[#E2E8F0]", label: "Not answered" },
         ].map(({ cls, label }) => (
@@ -189,16 +189,16 @@ function LikertQuestion({ block, answers, setAnswers }: {
                 onClick={() => setAnswers((a) => ({ ...a, [block.key]: opt.value }))}
                 className={`flex flex-col items-center gap-2 rounded-2xl border-2 px-2 py-4 text-center transition-all duration-150 ${
                   sel
-                    ? "border-[#2563EB] bg-gradient-to-b from-[#EFF6FF] to-[#D1FAE5] shadow-md"
+                    ? "border-[#0F766E] bg-gradient-to-b from-[#E6F7F1] to-[#D1FAE5] shadow-md"
                     : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
                 }`}
               >
                 <span className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold transition-all ${
-                  sel ? "border-[#2563EB] bg-[#2563EB] text-white" : "border-[#CBD5E1] text-[#475569]"
+                  sel ? "border-[#0F766E] bg-[#0F766E] text-white" : "border-[#CBD5E1] text-[#475569]"
                 }`}>
                   {opt.value}
                 </span>
-                <span className={`text-[11px] font-medium leading-tight ${sel ? "text-[#1D4EDB]" : "text-[#64748B]"}`}>
+                <span className={`text-[11px] font-medium leading-tight ${sel ? "text-[#0D9488]" : "text-[#64748B]"}`}>
                   {opt.label}
                 </span>
               </button>
@@ -222,15 +222,15 @@ function LikertQuestion({ block, answers, setAnswers }: {
               type="button"
               onClick={() => setAnswers((a) => ({ ...a, [block.key]: opt.value }))}
               className={`flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                sel ? "border-[#2563EB] bg-[#EFF6FF]" : "border-[#E2E8F0] bg-white"
+                sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white"
               }`}
             >
               <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all ${
-                sel ? "border-[#2563EB] bg-[#2563EB] text-white" : "border-[#CBD5E1] text-[#475569]"
+                sel ? "border-[#0F766E] bg-[#0F766E] text-white" : "border-[#CBD5E1] text-[#475569]"
               }`}>
                 {opt.value}
               </span>
-              <span className={`text-sm font-medium ${sel ? "text-[#1D4EDB]" : "text-[#334155]"}`}>
+              <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>
                 {opt.label}
               </span>
             </button>
@@ -268,16 +268,16 @@ function McqQuestion({ block, answers, setAnswers }: {
               type="button"
               onClick={() => setAnswers((a) => ({ ...a, [block.key]: opt.id }))}
               className={`group flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                sel ? "border-[#2563EB] bg-[#EFF6FF]" : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
+                sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
               }`}
             >
               <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all ${
-                sel ? "bg-[#2563EB] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#2563EB]"
+                sel ? "bg-[#0F766E] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#0F766E]"
               }`}>
                 {letter}
               </span>
-              <span className={`text-sm font-medium ${sel ? "text-[#1D4EDB]" : "text-[#334155]"}`}>{opt.label}</span>
-              {sel && <CheckCircle2 size={16} className="ml-auto shrink-0 text-[#2563EB]" />}
+              <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
+              {sel && <CheckCircle2 size={16} className="ml-auto shrink-0 text-[#0F766E]" />}
             </button>
           );
         })}
@@ -401,7 +401,7 @@ function TimesUpOverlay({ onSubmit, submitting }: { onSubmit: () => void; submit
         <h2 className="text-2xl font-bold text-[#0F172A]">Time&apos;s Up!</h2>
         <p className="mt-2 text-sm text-[#64748B]">Your allotted time has ended. Your responses will now be submitted.</p>
         <button type="button" onClick={onSubmit} disabled={submitting}
-          className="mt-6 w-full rounded-xl bg-[#2563EB] py-3 text-sm font-semibold text-white transition hover:bg-[#1D4EDB] disabled:opacity-60">
+          className="mt-6 w-full rounded-xl bg-[#0F766E] py-3 text-sm font-semibold text-white transition hover:bg-[#0D9488] disabled:opacity-60">
           {submitting ? <span className="flex items-center justify-center gap-2"><Loader2 size={15} className="animate-spin" />Submitting…</span> : "Submit My Responses"}
         </button>
       </div>
@@ -423,8 +423,8 @@ function SubmittingOverlay({ done }: { done?: boolean }) {
           </>
         ) : (
           <>
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-              <Loader2 size={30} className="animate-spin text-[#2563EB]" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#E6F7F1]">
+              <Loader2 size={30} className="animate-spin text-[#0F766E]" />
             </div>
             <h2 className="text-xl font-bold text-[#0F172A]">Submitting Your Responses</h2>
             <p className="mt-2 text-sm text-[#64748B]">Please wait while your answers are being saved…</p>
@@ -778,7 +778,7 @@ export function CandidateTestRunner({
           </div>
           {/* Progress bar */}
           <div className="h-[3px] bg-[#E8EDF2]">
-            <div className="h-full bg-gradient-to-r from-[#2563EB] to-[#34D399] transition-all duration-500" style={{ width: `${progress}%` }} />
+            <div className="h-full bg-gradient-to-r from-[#0F766E] to-[#10B981] transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
@@ -811,7 +811,7 @@ export function CandidateTestRunner({
 
                 {/* Breadcrumb / meta */}
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#2563EB]">
+                  <span className="rounded-full bg-[#E6F7F1] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#0F766E]">
                     {block.section}
                   </span>
                   <span className="text-[11px] text-[#94A3B8]">
@@ -880,7 +880,7 @@ export function CandidateTestRunner({
                   <button
                     type="button"
                     onClick={handleNext}
-                    className="flex items-center gap-1.5 rounded-xl bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1D4EDB]"
+                    className="flex items-center gap-1.5 rounded-xl bg-[#0F766E] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0D9488]"
                   >
                     <span>Next</span>
                     <ChevronRight size={16} />
