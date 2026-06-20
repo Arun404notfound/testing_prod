@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { Search, ClipboardList, Users, ArrowRight, Loader2 } from "lucide-react";
 
 interface SearchResults {
-  assessments: { id: string; title: string; status: string }[];
+  assessments: { id: string; title: string; lifecycleStatus: string }[];
   candidates: { id: string; fullName: string; email: string }[];
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  published: "text-emerald-600 bg-emerald-50",
-  draft: "text-amber-600 bg-amber-50",
-  archived: "text-slate-500 bg-slate-100",
+  PUBLISHED: "text-emerald-600 bg-emerald-50",
+  DRAFT: "text-amber-600 bg-amber-50",
+  ARCHIVED: "text-slate-500 bg-slate-100",
 };
 
 export function SearchBar() {
@@ -146,8 +146,8 @@ export function SearchBar() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[13px] font-medium text-[#111827]">{a.title}</p>
                       </div>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${STATUS_COLOR[a.status] ?? "text-slate-500 bg-slate-100"}`}>
-                        {a.status}
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${STATUS_COLOR[a.lifecycleStatus] ?? "text-slate-500 bg-slate-100"}`}>
+                        {a.lifecycleStatus.toLowerCase()}
                       </span>
                       <ArrowRight size={12} className="shrink-0 text-[#D1D5DB] group-hover:text-[#0F766E] transition" />
                     </button>

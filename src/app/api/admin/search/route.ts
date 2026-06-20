@@ -12,8 +12,8 @@ export async function GET(req: NextRequest) {
   const pattern = `%${q.toLowerCase()}%`;
 
   const [assessments, candidates] = await Promise.all([
-    prisma.$queryRaw<{ id: string; title: string; status: string }[]>`
-      SELECT id, title, status
+    prisma.$queryRaw<{ id: string; title: string; lifecycleStatus: string }[]>`
+      SELECT id, title, lifecycleStatus
       FROM "Assessment"
       WHERE lower(title) LIKE ${pattern}
       LIMIT 5
