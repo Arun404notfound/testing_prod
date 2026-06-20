@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { loginAction } from "@/app/actions/auth";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export function LoginForm({
   next,
@@ -12,6 +13,7 @@ export function LoginForm({
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={loginAction} className="space-y-5">
@@ -33,35 +35,51 @@ export function LoginForm({
         </div>
       )}
 
+      {/* Email */}
       <div>
         <label className="mb-1.5 block text-sm font-medium text-[#334155]">Email address</label>
-        <input
-          name="email"
-          type="email"
-          autoComplete="username"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="tg-input w-full"
-          placeholder="you@company.com"
-        />
+        <div className="relative">
+          <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+          <input
+            name="email"
+            type="email"
+            autoComplete="username"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@company.com"
+            className="tg-input w-full pl-10"
+          />
+        </div>
       </div>
 
+      {/* Password */}
       <div>
         <label className="mb-1.5 block text-sm font-medium text-[#334155]">Password</label>
-        <input
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="tg-input w-full"
-          placeholder="••••••••"
-        />
+        <div className="relative">
+          <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] pointer-events-none" />
+          <input
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••••"
+            className="tg-input w-full pl-10 pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] transition"
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+          </button>
+        </div>
       </div>
 
-      <button type="submit" className="tg-button-primary w-full py-3 text-base font-semibold mt-2">
+      <button type="submit" className="w-full py-3 text-base font-semibold mt-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4EDB] text-white transition">
         Sign in
       </button>
     </form>

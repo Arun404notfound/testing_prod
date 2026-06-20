@@ -19,47 +19,62 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-screen bg-white">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-[52%] flex-col justify-center bg-gradient-to-br from-[#0B1D3A] via-[#0F766E] to-[#10B981] px-14 py-14 relative overflow-hidden">
-        {/* Decorative blobs */}
-        <div className="pointer-events-none absolute -top-32 -right-32 h-[480px] w-[480px] rounded-full bg-white/5 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 -left-24 h-80 w-80 rounded-full bg-white/5 blur-2xl" />
-        <div className="pointer-events-none absolute top-1/2 right-0 h-56 w-56 rounded-full bg-emerald-400/10 blur-2xl" />
+      <div className="hidden lg:flex lg:w-[48%] flex-col justify-between bg-gradient-to-br from-[#0B1D3A] via-[#0F766E] to-[#10B981] px-14 py-14 relative overflow-hidden">
+        {/* Decorative wave on right edge */}
+        <svg className="pointer-events-none absolute right-0 inset-y-0 h-full" viewBox="0 0 80 800" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M80,0 C40,200 60,400 20,600 C0,700 40,750 80,800 L80,0Z" fill="white" fillOpacity="0.04" />
+          <path d="M80,100 C50,300 70,500 30,700 L80,800 L80,100Z" fill="white" fillOpacity="0.03" />
+        </svg>
 
-        {/* Main copy — badge sits right above heading */}
-        <div className="relative space-y-6 max-w-lg">
+        {/* Top: badge */}
+        <div>
           <div className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur-sm">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[13px] font-semibold text-white/90 tracking-wide">Psychometric Assessment Portal</span>
           </div>
+        </div>
 
-          <h1 className="text-[2.75rem] font-extrabold text-white leading-[1.15] tracking-tight">
-            Unlock talent insights with precision assessments
-          </h1>
+        {/* Middle: main copy */}
+        <div className="relative space-y-5 max-w-lg">
+          <div>
+            <h1 className="text-[2.75rem] font-extrabold text-white leading-[1.15] tracking-tight">
+              Unlock talent insights with precision assessments
+            </h1>
+            {/* Green accent underline */}
+            <div className="mt-4 h-[3px] w-16 rounded-full bg-emerald-400" />
+          </div>
+
           <p className="text-[1.0625rem] text-white/75 leading-[1.75] font-light">
             Evidence-based Big Five personality profiling. Competency mapping. Detailed candidate reports — all in one platform.
           </p>
 
-          <div className="grid grid-cols-3 gap-3 pt-2">
-            {[
-              { label: "Accuracy", value: "Big Five" },
-              { label: "Questions", value: "50" },
-              { label: "Report", value: "Auto" },
-            ].map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 text-center backdrop-blur-sm">
-                <p className="text-2xl font-bold text-white tracking-tight">{stat.value}</p>
-                <p className="mt-1 text-[11px] font-semibold text-white/55 uppercase tracking-[0.12em]">{stat.label}</p>
-              </div>
-            ))}
+          {/* Assess. Analyze. Advance. tagline */}
+          <div className="pt-6">
+            <p className="text-[2rem] font-extrabold tracking-tight">
+              <span className="text-white">Assess</span>
+              <span className="text-emerald-400">.</span>
+              <span className="text-white"> Analyze</span>
+              <span className="text-emerald-400">.</span>
+              <span className="text-white"> Advance</span>
+              <span className="text-white/40">.</span>
+            </p>
           </div>
+        </div>
 
-          <p className="pt-4 text-[12px] font-medium text-white/40 tracking-wide">
-            © 2026 TechGrah Innovations Pvt. Ltd. · Powered by AI-backed psychometrics
+        {/* Bottom: footer */}
+        <div className="relative">
+          <p className="text-[12px] text-white/40">© 2026 TechGrah Innovations Pvt. Ltd.</p>
+          <p className="text-[12px] text-white/40 flex items-center gap-1 mt-0.5">
+            Powered by AI-backed psychometrics
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-emerald-400 opacity-60">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </p>
         </div>
       </div>
 
       {/* Right login form */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-[#F8FAFC] lg:bg-white">
+      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 bg-white">
         <div className="w-full max-w-sm">
           {/* Logo */}
           <div className="mb-8 flex justify-center">
@@ -80,7 +95,6 @@ export default async function LoginPage({
           </p>
         </div>
       </div>
-
     </div>
   );
 }
