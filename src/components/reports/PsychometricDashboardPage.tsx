@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ReportPayload, ReportTraitScoreRow, ReportCompetencyScore } from "@/lib/report-data";
 import { useReportTheme } from "./report-theme-context";
@@ -19,7 +19,7 @@ function competencyLabel(band: string): string {
 
 function competencyColors(label: string): { bg: string; text: string; border: string } {
   if (label === "Key Strength") return { bg: "#ECFDF5", text: "#065F46", border: "#6EE7B7" };
-  if (label === "Strong Capability") return { bg: "#EFF6FF", text: "#1E40AF", border: "#93C5FD" };
+  if (label === "Strong Capability") return { bg: "#E6F7F1", text: "#0D9488", border: "#6EE7B7" };
   return { bg: "#FFF7ED", text: "#9A3412", border: "#FDBA74" };
 }
 

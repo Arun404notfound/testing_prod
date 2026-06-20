@@ -1,4 +1,4 @@
-import type { AttemptResponseRow, SubmissionsData } from "@/lib/get-submissions";
+﻿import type { AttemptResponseRow, SubmissionsData } from "@/lib/get-submissions";
 
 const LIKERT_LABELS: Record<number, string> = { 1: "Strongly Disagree", 2: "Disagree", 3: "Neutral", 4: "Agree", 5: "Strongly Agree" };
 
@@ -182,7 +182,7 @@ export function SubmissionsView({ data }: { data: SubmissionsData }) {
                           key={v}
                           className={`flex flex-1 flex-col items-center rounded-lg border py-2 text-xs ${
                             isSelected
-                              ? "border-[#1D4ED8] bg-[#EFF6FF] font-bold text-[#1D4ED8]"
+                              ? "border-[#0F766E] bg-[#E6F7F1] font-bold text-[#0F766E]"
                               : "border-[#E2E8F0] text-[#94A3B8]"
                           }`}
                         >

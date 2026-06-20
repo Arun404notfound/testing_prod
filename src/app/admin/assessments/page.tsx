@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -84,7 +84,7 @@ export default async function AssessmentsPage() {
         subtitle="Create assessments, add items in the builder, then publish before assigning."
         right={
           <div className="flex items-center gap-3">
-            <Link href="/admin/dashboard" className="text-sm font-medium text-[#1D4ED8] hover:underline">
+            <Link href="/admin/dashboard" className="text-sm font-medium text-[#0F766E] hover:underline">
               Back to dashboard
             </Link>
             <Link href="/admin/assessments/new" className="tg-button-primary text-sm">
@@ -98,7 +98,7 @@ export default async function AssessmentsPage() {
         {assessments.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-white px-6 py-12 text-center text-sm text-[#64748B]">
             No assessments yet.{" "}
-            <Link href="/admin/assessments/new" className="font-medium text-[#1D4ED8] hover:underline">
+            <Link href="/admin/assessments/new" className="font-medium text-[#0F766E] hover:underline">
               Create one →
             </Link>
           </div>
@@ -192,7 +192,7 @@ export default async function AssessmentsPage() {
                   <div className="shrink-0">
                     <Link
                       href={`/admin/assessments/${assessment.id}/builder`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2 text-sm font-medium text-[#1D4ED8] hover:bg-[#EFF6FF] transition"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2 text-sm font-medium text-[#0F766E] hover:bg-[#E6F7F1] transition"
                     >
                       Open Builder →
                     </Link>
@@ -234,7 +234,7 @@ export default async function AssessmentsPage() {
                             title={a.name}
                           >
                             {/* Attribute code + name */}
-                            <span className="rounded border border-[#DBEAFE] bg-[#EFF6FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#1D4ED8]">
+                            <span className="rounded border border-[#D1FAE5] bg-[#E6F7F1] px-1.5 py-0.5 text-[10px] font-semibold text-[#0F766E]">
                               {a.code}
                             </span>
                             <span className="text-[10px] text-[#475569]">{a.name}</span>

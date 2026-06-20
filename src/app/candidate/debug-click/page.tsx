@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -17,7 +17,7 @@ export default function CandidateDebugClickPage() {
       </p>
       <button
         type="button"
-        className="rounded-lg bg-[#1D4ED8] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1E40AF]"
+        className="rounded-lg bg-[#0F766E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0D9488]"
         onClick={() => setCount((c) => c + 1)}
       >
         Candidate Layout Click Test

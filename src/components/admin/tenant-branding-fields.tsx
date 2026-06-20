@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -219,7 +219,7 @@ export function TenantBrandingFields({
             name="logoFile"
             accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
             onChange={onLogoFileChange}
-            className="block w-full cursor-pointer text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[#1D4ED8] file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:bg-[#1E40AF]"
+            className="block w-full cursor-pointer text-sm file:mr-3 file:rounded-md file:border-0 file:bg-[#0F766E] file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-white hover:file:bg-[#0D9488]"
           />
         </div>
       </div>

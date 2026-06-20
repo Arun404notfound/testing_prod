@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -81,15 +81,15 @@ export function AdminAppShell({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-64 border-r border-[#E2E8F0] bg-white flex flex-col transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 w-64 border-r border-[#1E3A5F] bg-[#0B1D3A] flex flex-col transition-transform duration-300 lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } lg:flex`}
       >
         {/* Logo block */}
-        <div className="border-b border-[#F1F5F9] px-5 py-5 shrink-0">
+        <div className="border-b border-[#1E3A5F] px-5 py-5 shrink-0">
           <div className="relative h-11 w-full">
             <Image
-              src="/TG Logo.png"
+              src="/Logo 1.webp"
               alt="TechGrah Innovations"
               fill
               className="object-contain object-left"
@@ -97,7 +97,7 @@ export function AdminAppShell({
               priority
             />
           </div>
-          <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">
+          <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.15em] text-[#64748B]">
             Admin · Assessment Portal
           </p>
         </div>
@@ -106,7 +106,7 @@ export function AdminAppShell({
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
           {navGroups.map((group) => (
             <div key={group.label}>
-              <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-[#CBD5E1]">
+              <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-widest text-[#475569]">
                 {group.label}
               </p>
               <div className="space-y-0.5">
@@ -123,14 +123,14 @@ export function AdminAppShell({
                       onClick={() => setMobileOpen(false)}
                       className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                         active
-                          ? "bg-[#EFF6FF] text-[#1D4ED8]"
-                          : "text-[#475569] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                          ? "bg-[#1E3A5F] text-[#10B981]"
+                          : "text-[#94A3B8] hover:bg-[#1E3A5F] hover:text-white"
                       }`}
                     >
-                      <Icon size={16} className={active ? "text-[#1D4ED8]" : "text-[#94A3B8]"} />
+                      <Icon size={16} className={active ? "text-[#10B981]" : "text-[#64748B]"} />
                       {item.label}
                       {active && (
-                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#1D4ED8]" />
+                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#10B981]" />
                       )}
                     </Link>
                   );
@@ -141,20 +141,20 @@ export function AdminAppShell({
         </nav>
 
         {/* User footer */}
-        <div className="shrink-0 border-t border-[#F1F5F9] p-4">
-          <div className="flex items-center gap-3 rounded-xl bg-[#F8FAFC] px-3 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-xs font-bold text-white">
+        <div className="shrink-0 border-t border-[#1E3A5F] p-4">
+          <div className="flex items-center gap-3 rounded-xl bg-[#1E3A5F] px-3 py-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-xs font-bold text-white">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-[#0F172A]">{user.email}</p>
-              <p className="text-[10px] text-[#94A3B8]">{user.role.replace("_", " ")}</p>
+              <p className="truncate text-xs font-semibold text-white">{user.email}</p>
+              <p className="text-[10px] text-[#64748B]">{user.role.replace("_", " ")}</p>
             </div>
           </div>
           <form action={logoutAction} className="mt-2">
             <button
               type="submit"
-              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#475569] transition hover:bg-rose-50 hover:text-rose-600"
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#94A3B8] transition hover:bg-rose-900/30 hover:text-rose-400"
             >
               <LogOut size={14} />
               Sign out
@@ -191,7 +191,7 @@ export function AdminAppShell({
               <span className="hidden text-xs text-[#94A3B8] sm:inline">
                 {user.email}
               </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-xs font-bold text-white">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-xs font-bold text-white">
                 {initials}
               </div>
             </div>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSubmissions } from "@/lib/get-submissions";
 import { SubmissionsView } from "@/components/submissions/submissions-view";
@@ -18,11 +18,11 @@ export default async function CandidateSubmissionsPage({
     <main className="tg-page space-y-6">
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/candidate" className="inline-flex items-center gap-1 text-sm font-medium text-[#1D4ED8] hover:underline">
+          <Link href="/candidate" className="inline-flex items-center gap-1 text-sm font-medium text-[#0F766E] hover:underline">
             ← My Assessments
           </Link>
           <span className="text-[#CBD5E1]">·</span>
-          <Link href={`/candidate/reports/${resultId}`} className="inline-flex items-center gap-1.5 rounded-lg border border-[#1D4ED8] px-3 py-1.5 text-sm font-semibold text-[#1D4ED8] hover:bg-blue-50 transition">
+          <Link href={`/candidate/reports/${resultId}`} className="inline-flex items-center gap-1.5 rounded-lg border border-[#0F766E] px-3 py-1.5 text-sm font-semibold text-[#0F766E] hover:bg-teal-50 transition">
             View Report →
           </Link>
         </div>

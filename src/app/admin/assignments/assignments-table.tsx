@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
@@ -137,7 +137,7 @@ export function AssignmentsTable({
             <select
               value={filterBatch}
               onChange={(e) => { setFilterBatch(e.target.value); setSelected(new Set()); }}
-              className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#334155] focus:border-[#1D4ED8] focus:outline-none"
+              className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#334155] focus:border-[#0F766E] focus:outline-none"
             >
               <option value="">All batches</option>
               {batches.map((b) => <option key={b} value={b}>{b}</option>)}
@@ -146,7 +146,7 @@ export function AssignmentsTable({
           <select
             value={filterAssessment}
             onChange={(e) => { setFilterAssessment(e.target.value); setSelected(new Set()); }}
-            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#334155] focus:border-[#1D4ED8] focus:outline-none"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#334155] focus:border-[#0F766E] focus:outline-none"
           >
             <option value="">All assessments</option>
             {allAssessments.map(([id, title]) => <option key={id} value={id}>{title}</option>)}
@@ -154,7 +154,7 @@ export function AssignmentsTable({
           <select
             value={filterStatus}
             onChange={(e) => { setFilterStatus(e.target.value); setSelected(new Set()); }}
-            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#334155] focus:border-[#1D4ED8] focus:outline-none"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#334155] focus:border-[#0F766E] focus:outline-none"
           >
             <option value="">All statuses</option>
             <option value="assigned">Pending</option>
@@ -269,7 +269,7 @@ export function AssignmentsTable({
                       <div className="flex items-center gap-2">
                         {a.result?.id && (
                           <Link href={`/admin/reports/${a.result.id}`}
-                            className="rounded-lg border border-[#E2E8F0] px-2.5 py-1 text-xs font-medium text-[#1D4ED8] hover:bg-[#EFF6FF] transition">
+                            className="rounded-lg border border-[#E2E8F0] px-2.5 py-1 text-xs font-medium text-[#0F766E] hover:bg-[#E6F7F1] transition">
                             Report
                           </Link>
                         )}

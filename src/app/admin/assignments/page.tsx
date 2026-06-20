@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ClipboardCheck, Clock, UserCheck } from "lucide-react";
@@ -267,7 +267,7 @@ export default async function AssignmentsPage({
         {[
           { label: "Pending", value: pending, icon: Clock, cls: "text-amber-600", bg: "bg-amber-50" },
           { label: "Completed", value: completed, icon: ClipboardCheck, cls: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "Total", value: assignments.length, icon: UserCheck, cls: "text-[#1D4ED8]", bg: "bg-[#EFF6FF]" },
+          { label: "Total", value: assignments.length, icon: UserCheck, cls: "text-[#0F766E]", bg: "bg-[#E6F7F1]" },
         ].map((s) => {
           const Icon = s.icon;
           return (

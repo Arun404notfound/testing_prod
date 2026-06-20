@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ReportPayload } from "@/lib/report-data";
 
@@ -34,7 +34,7 @@ export function AttributeScoresTable({ report }: { report: ReportPayload }) {
     <div className="w-full overflow-x-auto">
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="bg-[#1D4ED8] text-white">
+          <tr className="bg-[#0F766E] text-white">
             <th className="px-2 py-3 text-left font-semibold sm:px-4">Factor</th>
             <th className="px-2 py-3 text-left font-semibold sm:px-4">Attribute</th>
             <th className="px-2 py-3 text-center font-semibold sm:px-4">Raw Score<br /><span className="text-[11px] font-normal opacity-80">(5 – 17)</span></th>
@@ -50,7 +50,7 @@ export function AttributeScoresTable({ report }: { report: ReportPayload }) {
                 <td className="px-2 py-2.5 text-[#475569] text-xs sm:px-4">{r.factor}</td>
                 <td className="px-2 py-2.5 font-medium text-[#0F172A] sm:px-4">{r.trait}</td>
                 <td className="px-2 py-2.5 text-center tabular-nums text-[#334155] sm:px-4">{r.score}</td>
-                <td className="px-2 py-2.5 text-center tabular-nums font-semibold text-[#1D4ED8] sm:px-4">{converted}</td>
+                <td className="px-2 py-2.5 text-center tabular-nums font-semibold text-[#0F766E] sm:px-4">{converted}</td>
               </tr>
             );
           })}

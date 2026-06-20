@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -145,7 +145,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
           <div className="mt-5">
             <a
               href="/candidate"
-              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 text-center block"
+              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 text-center block"
             >
               Go to Dashboard
             </a>
@@ -243,7 +243,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
           {/* Single instructions card */}
           <div className="order-1 min-w-0 flex-1 rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
             <div className="flex shrink-0 items-center gap-3 border-b border-[#F1F5F9] px-6 py-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50">
                 <BookOpen size={18} className="text-blue-600" />
               </div>
               <h2 className="text-sm font-bold text-[#0F172A]">Before You Begin</h2>
@@ -307,7 +307,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
                 onClick={() => void handleStart()}
                 className={`mt-5 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all ${
                   accepted && !starting
-                    ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-md shadow-blue-200"
+                    ? "bg-blue-600 text-white hover:bg-teal-700 active:scale-[0.98] shadow-md shadow-blue-200"
                     : "cursor-not-allowed bg-[#F1F5F9] text-[#94A3B8]"
                 }`}
               >

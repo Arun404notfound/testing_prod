@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useReportTheme } from "@/components/reports/report-theme-context";
 
@@ -22,7 +22,7 @@ function bandColor(band: string): { bg: string; text: string; border: string } {
     case "Exceptional":
       return { bg: "#ECFDF5", text: "#065F46", border: "#6EE7B7" };
     case "Strong":
-      return { bg: "#EFF6FF", text: "#1E40AF", border: "#93C5FD" };
+      return { bg: "#E6F7F1", text: "#0D9488", border: "#6EE7B7" };
     case "Moderate":
       return { bg: "#FFFBEB", text: "#92400E", border: "#FCD34D" };
     case "Developing":
@@ -155,7 +155,7 @@ export function CompetencyReportPage({ competencies, heading = "Competency Profi
                           key={a.code}
                           className="flex items-center gap-2 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2"
                         >
-                          <span className="font-mono text-xs font-bold text-[#1D4ED8]">{a.code}</span>
+                          <span className="font-mono text-xs font-bold text-[#0F766E]">{a.code}</span>
                           <span className="text-xs text-[#334155]">{a.name}</span>
                         </div>
                       ))}

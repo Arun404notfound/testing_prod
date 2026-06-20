@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { UserCheck, Users } from "lucide-react";
@@ -97,7 +97,7 @@ function Field({ label, name, value, type = "text", placeholder }: {
       <label className="mb-1 block text-xs font-medium text-[#475569]">{label}</label>
       <input
         name={name} type={type} defaultValue={value ?? ""} placeholder={placeholder ?? label}
-        className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#1D4ED8] focus:outline-none"
+        className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#0F766E] focus:outline-none"
         required
       />
     </div>
@@ -156,7 +156,7 @@ export default async function CandidatesPage({
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {[
-          { label: "Total Candidates", value: allCandidates.length, icon: Users, cls: "text-[#1D4ED8]", bg: "bg-[#EFF6FF]" },
+          { label: "Total Candidates", value: allCandidates.length, icon: Users, cls: "text-[#0F766E]", bg: "bg-[#E6F7F1]" },
           { label: "Login Linked", value: linked, icon: UserCheck, cls: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "Default Password", value: DEFAULT_CANDIDATE_LOGIN_PASSWORD, icon: null, cls: "", bg: "" },
         ].map((s, i) => (
@@ -202,7 +202,7 @@ export default async function CandidatesPage({
             )}
             <div className="mt-5 flex justify-end gap-3 border-t border-[#F1F5F9] pt-5">
               <Link href="/admin/candidates" className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">Cancel</Link>
-              <button type="submit" className="rounded-lg bg-[#1D4ED8] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1e40af]">
+              <button type="submit" className="rounded-lg bg-[#0F766E] px-5 py-2 text-sm font-semibold text-white hover:bg-[#0d9488]">
                 {editingCandidate ? "Save Changes" : "Add Candidate"}
               </button>
             </div>

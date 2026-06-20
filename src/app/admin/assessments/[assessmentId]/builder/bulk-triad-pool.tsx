@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { addTriadFromPoolBulk } from "./actions";
@@ -63,14 +63,14 @@ export function BulkTriadPool({
             type="checkbox"
             checked={allChecked}
             onChange={toggleAll}
-            className="h-4 w-4 rounded border-slate-300 accent-[#1D4ED8]"
+            className="h-4 w-4 rounded border-slate-300 accent-[#0F766E]"
           />
           Select all ({groups.length - selectedIds.size} not added)
         </label>
         {newlyChecked.length > 0 && (
           <form action={handleBulkAdd}>
             {newlyChecked.map((id) => <input key={id} type="hidden" name="ids" value={id} />)}
-            <button type="submit" className="rounded-md bg-[#1D4ED8] px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+            <button type="submit" className="rounded-md bg-[#0F766E] px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700">
               Add {newlyChecked.length} selected
             </button>
           </form>
@@ -90,12 +90,12 @@ export function BulkTriadPool({
           const groupPolarity = g.statements[0]?.polarity ?? null;
 
           return (
-            <li key={g.id} className={`flex items-start gap-3 p-3 ${isChecked ? "bg-blue-50" : ""}`}>
+            <li key={g.id} className={`flex items-start gap-3 p-3 ${isChecked ? "bg-teal-50" : ""}`}>
               <input
                 type="checkbox"
                 checked={isChecked}
                 onChange={() => toggleOne(g.id)}
-                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-[#1D4ED8]"
+                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-[#0F766E]"
               />
               <div className="min-w-0 flex-1">
                 <p className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
@@ -130,7 +130,7 @@ export function BulkTriadPool({
                           <div className="mt-1 flex flex-wrap items-center gap-1">
                             {sAttrInfo ? (
                               <>
-                                <span className="inline-flex items-center gap-1 rounded border border-[#DBEAFE] bg-[#EFF6FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#1D4ED8]">
+                                <span className="inline-flex items-center gap-1 rounded border border-[#D1FAE5] bg-[#E6F7F1] px-1.5 py-0.5 text-[10px] font-semibold text-[#0F766E]">
                                   [{sAttrInfo.code}] {s.trait}
                                 </span>
                                 {sAttrInfo.competencies.map((c) => (

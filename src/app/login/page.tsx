@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getOptionalSession } from "@/lib/auth/require-user";
 import { LoginForm } from "./login-form";
@@ -19,7 +19,7 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-screen bg-white">
       {/* Left branding panel */}
-      <div className="hidden lg:flex lg:w-[52%] flex-col justify-center bg-gradient-to-br from-[#1D4ED8] via-[#1E40AF] to-[#1e3a8a] p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[52%] flex-col justify-center bg-gradient-to-br from-[#0B1D3A] via-[#0F766E] to-[#10B981] p-12 relative overflow-hidden">
         {/* Decorative circles */}
         <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-white/5" />
         <div className="pointer-events-none absolute bottom-12 -left-20 h-72 w-72 rounded-full bg-white/5" />
@@ -33,7 +33,7 @@ export default async function LoginPage({
           <h1 className="text-4xl font-bold text-white leading-tight">
             Unlock talent insights with precision assessments
           </h1>
-          <p className="text-base text-blue-100 leading-relaxed">
+          <p className="text-base text-teal-100 leading-relaxed">
             Evidence-based Big Five personality profiling. Competency mapping. Detailed candidate reports — all in one platform.
           </p>
 
@@ -45,13 +45,13 @@ export default async function LoginPage({
             ].map((stat) => (
               <div key={stat.label} className="rounded-xl border border-white/15 bg-white/10 px-3 py-3 text-center backdrop-blur-sm">
                 <p className="text-xl font-bold text-white">{stat.value}</p>
-                <p className="mt-0.5 text-[11px] text-blue-200 uppercase tracking-wide">{stat.label}</p>
+                <p className="mt-0.5 text-[11px] text-teal-200 uppercase tracking-wide">{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="relative text-xs text-blue-300/70">
+        <p className="relative text-xs text-teal-200/70">
           © 2026 TechGrah Innovations Pvt. Ltd. · Powered by AI-backed psychometrics
         </p>
       </div>
@@ -62,7 +62,7 @@ export default async function LoginPage({
           {/* Logo */}
           <div className="mb-8 flex justify-center">
             <div className="relative h-20 w-64">
-              <Image src="/TG Logo.png" alt="TechGrah Innovations" fill className="object-contain" sizes="256px" priority />
+              <Image src="/Logo 1.webp" alt="TechGrah Innovations" fill className="object-contain" sizes="256px" priority />
             </div>
           </div>
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { addLikertFromPoolBulk } from "./actions";
@@ -61,14 +61,14 @@ export function BulkLikertPool({
             type="checkbox"
             checked={allChecked}
             onChange={toggleAll}
-            className="h-4 w-4 rounded border-slate-300 accent-[#1D4ED8]"
+            className="h-4 w-4 rounded border-slate-300 accent-[#0F766E]"
           />
           Select all ({items.length - selectedIds.size} not added)
         </label>
         {newlyChecked.length > 0 && (
           <form action={handleBulkAdd}>
             {newlyChecked.map((id) => <input key={id} type="hidden" name="ids" value={id} />)}
-            <button type="submit" className="rounded-md bg-[#1D4ED8] px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+            <button type="submit" className="rounded-md bg-[#0F766E] px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700">
               Add {newlyChecked.length} selected
             </button>
           </form>
@@ -81,12 +81,12 @@ export function BulkLikertPool({
           const isAdded = selectedIds.has(item.id);
           const isChecked = checked.has(item.id);
           return (
-            <li key={item.id} className={`flex items-start gap-3 p-3 ${isChecked ? "bg-blue-50" : ""}`}>
+            <li key={item.id} className={`flex items-start gap-3 p-3 ${isChecked ? "bg-teal-50" : ""}`}>
               <input
                 type="checkbox"
                 checked={isChecked}
                 onChange={() => toggleOne(item.id)}
-                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-[#1D4ED8]"
+                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-[#0F766E]"
               />
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex items-center gap-2">
@@ -102,7 +102,7 @@ export function BulkLikertPool({
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   {attrInfo ? (
                     <>
-                      <span className="inline-flex items-center gap-1 rounded border border-[#DBEAFE] bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-semibold text-[#1D4ED8]">
+                      <span className="inline-flex items-center gap-1 rounded border border-[#D1FAE5] bg-[#E6F7F1] px-2 py-0.5 text-[11px] font-semibold text-[#0F766E]">
                         [{attrInfo.code}] {item.trait}
                       </span>
                       {attrInfo.competencies.map((c) => (

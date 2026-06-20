@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -15,7 +15,7 @@ import { AttributeScoresTable } from "@/components/reports/AttributeScoresTable"
 
 const SUBMISSION_META: Record<string, { label: string; detail: string; color: string; bg: string; border: string }> = {
   TIMED_OUT:      { label: "Timer Expired",         detail: "The assessment time limit was reached and the test was auto-submitted.",                                    color: "#92400E", bg: "#FFFBEB", border: "#FDE68A" },
-  SIGNED_OUT:     { label: "Signed Out Mid-Test",   detail: "The candidate chose to sign out before completing the assessment. All saved answers were submitted.",       color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE" },
+  SIGNED_OUT:     { label: "Signed Out Mid-Test",   detail: "The candidate chose to sign out before completing the assessment. All saved answers were submitted.",       color: "#0D9488", bg: "#E6F7F1", border: "#BFDBFE" },
   TAB_CLOSED:     { label: "Tab / Window Closed",   detail: "The browser tab or window was closed before the assessment was formally submitted. Progress was auto-saved and submitted on next login.", color: "#5B21B6", bg: "#F5F3FF", border: "#DDD6FE" },
   AUTO_SUBMITTED: { label: "Technical Interruption", detail: "The assessment was interrupted — possibly due to a power loss, browser crash, or connectivity issue — and was auto-submitted with the last saved progress on the candidate's next login.", color: "#991B1B", bg: "#FEF2F2", border: "#FECACA" },
 };

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 
 const DEFAULT_TENANT = {
   name: "TechGrah Demo Client",
@@ -6,7 +6,7 @@ const DEFAULT_TENANT = {
   logoUrl: null as string | null,
   primaryColor: "#1f2937",
   secondaryColor: "#4b5563",
-  accentColor: "#1d4ed8",
+  accentColor: "#0f766e",
   disclaimerText: null as string | null,
 };
 

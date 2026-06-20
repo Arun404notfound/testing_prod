@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, useRef, useEffect, useTransition } from "react";
 import Link from "next/link";
@@ -105,7 +105,7 @@ function BatchCombobox({
                 <button
                   type="button"
                   onClick={() => select("all")}
-                  className={`flex w-full items-center justify-between px-3 py-2 text-sm transition hover:bg-[#F8FAFC] ${value === "all" ? "font-semibold text-[#1D4ED8] bg-[#EFF6FF]" : "text-[#334155]"}`}
+                  className={`flex w-full items-center justify-between px-3 py-2 text-sm transition hover:bg-[#F8FAFC] ${value === "all" ? "font-semibold text-[#0F766E] bg-[#E6F7F1]" : "text-[#334155]"}`}
                 >
                   <span>All Candidates</span>
                   <span className="text-xs text-[#94A3B8]">{totalCount}</span>
@@ -353,7 +353,7 @@ export function CandidatesTable({
                 return (
                   <tr
                     key={c.id}
-                    className={`transition-colors ${isSelected ? "bg-rose-50/60" : editId === c.id ? "bg-[#EFF6FF]" : "hover:bg-[#FAFBFE]"}`}
+                    className={`transition-colors ${isSelected ? "bg-rose-50/60" : editId === c.id ? "bg-[#E6F7F1]" : "hover:bg-[#FAFBFE]"}`}
                   >
                     <td className="px-4 py-3.5">
                       <input

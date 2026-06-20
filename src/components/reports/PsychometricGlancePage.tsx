@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ReportPayload, ReportFactorAggregate, ReportCompetencyScore } from "@/lib/report-data";
 import { useReportTheme } from "./report-theme-context";
@@ -26,7 +26,7 @@ function competencyLabel(band: string): string {
 
 function competencyLabelColor(label: string): { bg: string; text: string } {
   if (label === "Key Strength") return { bg: "#ECFDF5", text: "#065F46" };
-  if (label === "Strong Capability") return { bg: "#EFF6FF", text: "#1E40AF" };
+  if (label === "Strong Capability") return { bg: "#E6F7F1", text: "#0D9488" };
   return { bg: "#FFF7ED", text: "#9A3412" };
 }
 
@@ -189,17 +189,17 @@ export function PsychometricGlancePage({
       </div>
 
       {/* Personality Archetype — placeholder */}
-      <div className="rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-5">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#1E40AF]">
+      <div className="rounded-xl border border-[#BFDBFE] bg-[#E6F7F1] p-5">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#0D9488]">
           Personality Archetype
         </p>
         <p className="text-base font-bold text-[#1E3A8A]">The Influential Connector</p>
-        <p className="mt-2 text-sm leading-relaxed text-[#1E40AF]">
+        <p className="mt-2 text-sm leading-relaxed text-[#0D9488]">
           You naturally build relationships, engage others, and create positive interactions. You tend to be energetic,
           expressive, and comfortable in social environments. Your profile suggests strong communication capabilities
           and emotional balance, while greater structure and planning may further enhance performance.
         </p>
-        <p className="mt-2 text-xs italic text-[#3B82F6]">
+        <p className="mt-2 text-xs italic text-[#10B981]">
           * Archetype description is a placeholder and will be populated via API.
         </p>
       </div>

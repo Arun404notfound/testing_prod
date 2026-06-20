@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+﻿import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
@@ -213,9 +213,9 @@ async function updateFactorFormula(formData: FormData) {
 
 // ─── Shared styles ───────────────────────────────────────────────────────────
 
-const inputCls = "w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#1D4ED8] focus:outline-none";
+const inputCls = "w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#0F766E] focus:outline-none";
 const labelCls = "block text-xs font-medium text-[#475569] mb-1";
-const btnPrimary = "rounded-lg bg-[#1D4ED8] px-4 py-2 text-sm font-medium text-white hover:bg-[#1e40af] disabled:opacity-50";
+const btnPrimary = "rounded-lg bg-[#0F766E] px-4 py-2 text-sm font-medium text-white hover:bg-[#0d9488] disabled:opacity-50";
 const btnDanger = "text-xs text-red-500 hover:underline";
 const card = "rounded-xl border border-[#E2E8F0] bg-white";
 const cardHeader = "border-b border-[#E2E8F0] px-5 py-4";
@@ -292,7 +292,7 @@ export default async function CompetenciesPage({
               href={`/admin/competencies?tab=${t.id}`}
               className={`border-b-2 pb-2 text-sm font-medium transition-colors ${
                 tab === t.id
-                  ? "border-[#1D4ED8] text-[#1D4ED8]"
+                  ? "border-[#0F766E] text-[#0F766E]"
                   : "border-transparent text-[#64748B] hover:text-[#334155]"
               }`}
             >
@@ -359,12 +359,12 @@ export default async function CompetenciesPage({
                 </thead>
                 <tbody className="divide-y divide-[#F8FAFC]">
                   {attributes.map((a) => (
-                    <tr key={a.id} className={editAttrId === a.id ? "bg-[#EFF6FF]" : ""}>
-                      <td className="px-5 py-3 font-mono text-xs font-bold text-[#1D4ED8]">{a.code}</td>
+                    <tr key={a.id} className={editAttrId === a.id ? "bg-[#E6F7F1]" : ""}>
+                      <td className="px-5 py-3 font-mono text-xs font-bold text-[#0F766E]">{a.code}</td>
                       <td className="px-5 py-3 font-medium text-[#0F172A]">{a.name}</td>
                       <td className="px-5 py-3 text-xs text-[#64748B]">{a.category ?? "—"}</td>
                       <td className="px-5 py-3 flex items-center gap-3">
-                        <a href={`/admin/competencies?tab=attributes&editAttrId=${a.id}`} className="text-xs text-[#1D4ED8] hover:underline">Edit</a>
+                        <a href={`/admin/competencies?tab=attributes&editAttrId=${a.id}`} className="text-xs text-[#0F766E] hover:underline">Edit</a>
                         <form action={deleteAttribute}>
                           <input type="hidden" name="id" value={a.id} />
                           <button type="submit" className={btnDanger}>Delete</button>
@@ -431,7 +431,7 @@ export default async function CompetenciesPage({
                   const mappedCount = mappings.filter((m) => m.competencyId === c.id).length;
                   const isEditing = editCompId === c.id;
                   return (
-                    <div key={c.id} className={`px-5 py-4 space-y-3 ${isEditing ? "bg-[#EFF6FF]" : ""}`}>
+                    <div key={c.id} className={`px-5 py-4 space-y-3 ${isEditing ? "bg-[#E6F7F1]" : ""}`}>
                       {isEditing ? (
                         /* Inline edit form */
                         <form action={updateCompetency} className="space-y-3">
@@ -449,7 +449,7 @@ export default async function CompetenciesPage({
                             <textarea name="reportDescription" rows={2} defaultValue={c.reportDescription ?? ""} className={inputCls} />
                           </div>
                           <div className="flex items-center gap-2">
-                            <button type="submit" className="rounded bg-[#1D4ED8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1e40af]">Save</button>
+                            <button type="submit" className="rounded bg-[#0F766E] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#0d9488]">Save</button>
                             <a href="/admin/competencies?tab=competencies" className="text-xs text-[#94A3B8] hover:text-[#334155]">Cancel</a>
                           </div>
                         </form>
@@ -460,12 +460,12 @@ export default async function CompetenciesPage({
                               <p className="text-sm font-semibold text-[#0F172A]">{c.name}</p>
                               {c.description && <p className="mt-0.5 text-xs text-[#64748B]">{c.description}</p>}
                               <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                                <span className="rounded-full bg-[#EFF6FF] px-2 py-0.5 text-xs font-medium text-[#1D4ED8]">{mappedCount} attribute{mappedCount !== 1 ? "s" : ""} mapped</span>
+                                <span className="rounded-full bg-[#E6F7F1] px-2 py-0.5 text-xs font-medium text-[#0F766E]">{mappedCount} attribute{mappedCount !== 1 ? "s" : ""} mapped</span>
                                 <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs text-[#475569]">{SCORING_FORMULA_LABELS[c.scoringFormula] ?? c.scoringFormula}</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-3 shrink-0">
-                              <a href={`/admin/competencies?tab=competencies&editCompId=${c.id}`} className="text-xs text-[#1D4ED8] hover:underline">Edit</a>
+                              <a href={`/admin/competencies?tab=competencies&editCompId=${c.id}`} className="text-xs text-[#0F766E] hover:underline">Edit</a>
                               <form action={deleteCompetency}>
                                 <input type="hidden" name="id" value={c.id} />
                                 <button type="submit" className={btnDanger}>Delete</button>
@@ -481,7 +481,7 @@ export default async function CompetenciesPage({
                                 <option key={value} value={value}>{label}</option>
                               ))}
                             </select>
-                            <button type="submit" className="rounded bg-[#1D4ED8] px-3 py-1 text-xs font-medium text-white hover:bg-[#1e40af]">Save</button>
+                            <button type="submit" className="rounded bg-[#0F766E] px-3 py-1 text-xs font-medium text-white hover:bg-[#0d9488]">Save</button>
                           </form>
                         </>
                       )}
@@ -508,7 +508,7 @@ export default async function CompetenciesPage({
               <div key={key} className={`${card} flex flex-col`}>
                 <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-3.5">
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-[#1D4ED8] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    <span className="rounded-full bg-[#0F766E] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                       {key.replace(/_/g, " ")}
                     </span>
                   </div>
@@ -606,7 +606,7 @@ export default async function CompetenciesPage({
                   {mappings.map((m) => (
                     <div key={m.id} className="flex items-center justify-between px-5 py-3">
                       <div className="flex flex-wrap items-center gap-2 text-sm">
-                        <span className="rounded bg-[#EFF6FF] px-2 py-0.5 font-mono text-xs font-bold text-[#1D4ED8]">
+                        <span className="rounded bg-[#E6F7F1] px-2 py-0.5 font-mono text-xs font-bold text-[#0F766E]">
                           {m.attribute.code}
                         </span>
                         <span className="text-[#334155]">{m.attribute.name}</span>
@@ -644,7 +644,7 @@ export default async function CompetenciesPage({
                         ) : (
                           <div className="flex flex-wrap gap-1.5">
                             {cMaps.map((m) => (
-                              <span key={m.id} className="rounded-full border border-[#DBEAFE] bg-[#EFF6FF] px-2 py-0.5 text-xs text-[#1D4ED8]">
+                              <span key={m.id} className="rounded-full border border-[#D1FAE5] bg-[#E6F7F1] px-2 py-0.5 text-xs text-[#0F766E]">
                                 {m.attribute.code}: {m.attribute.name}
                               </span>
                             ))}
@@ -770,7 +770,7 @@ export default async function CompetenciesPage({
                             <option key={v} value={v}>{l}</option>
                           ))}
                         </select>
-                        <button type="submit" className="rounded bg-[#1D4ED8] px-2 py-1 text-[11px] font-medium text-white hover:bg-[#1e40af]">
+                        <button type="submit" className="rounded bg-[#0F766E] px-2 py-1 text-[11px] font-medium text-white hover:bg-[#0d9488]">
                           Apply
                         </button>
                       </form>
@@ -791,7 +791,7 @@ export default async function CompetenciesPage({
                       fc.attributeMaps.map((m) => (
                         <div key={m.id} className="flex items-center justify-between px-5 py-2.5">
                           <div className="flex items-center gap-2 text-sm">
-                            <span className="rounded bg-[#EFF6FF] px-2 py-0.5 font-mono text-xs font-bold text-[#1D4ED8]">
+                            <span className="rounded bg-[#E6F7F1] px-2 py-0.5 font-mono text-xs font-bold text-[#0F766E]">
                               {m.attribute.code}
                             </span>
                             <span className="text-[#334155]">{m.attribute.name}</span>

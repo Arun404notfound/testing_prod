@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ReportPayload, ReportTraitScoreRow } from "@/lib/report-data";
 import { useReportTheme } from "./report-theme-context";
@@ -152,7 +152,7 @@ export function PsychometricStrengthsScorecard({ report }: { report: ReportPaylo
               <ul className="space-y-0.5">
                 {p.bullets.map((b, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-sm text-[#475569]">
-                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#60A5FA]" />
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#34D399]" />
                     {b}
                   </li>
                 ))}

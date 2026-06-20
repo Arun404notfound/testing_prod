@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -58,7 +58,7 @@ export function CandidateAppShell({
             You are currently in the middle of an assessment. Your answers are being auto-saved, but signing out will leave the test incomplete.
           </p>
           <p className="mt-2 text-center text-sm text-[#64748B]">
-            Your answered questions will be <span className="font-semibold text-[#1D4ED8]">auto-submitted</span> if you sign out now.
+            Your answered questions will be <span className="font-semibold text-[#0F766E]">auto-submitted</span> if you sign out now.
           </p>
         </div>
         <div className="flex border-t border-[#F1F5F9]">
@@ -66,7 +66,7 @@ export function CandidateAppShell({
             type="button"
             disabled={submittingAndOut}
             onClick={() => setShowSignOutWarning(false)}
-            className="flex-1 py-4 text-sm font-semibold text-[#1D4ED8] hover:bg-[#F8FAFC] transition disabled:opacity-50"
+            className="flex-1 py-4 text-sm font-semibold text-[#0F766E] hover:bg-[#F8FAFC] transition disabled:opacity-50"
           >
             Stay &amp; Continue
           </button>
@@ -97,7 +97,7 @@ export function CandidateAppShell({
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-white px-4 sm:px-6">
           <div className="relative h-10 w-36">
             <Image
-              src="/TG Logo.png"
+              src="/Logo 1.webp"
               alt="TechGrah"
               fill
               className="object-contain object-left"
@@ -109,7 +109,7 @@ export function CandidateAppShell({
             <span className="hidden max-w-[220px] truncate text-xs text-[#64748B] sm:inline">
               {email}
             </span>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-xs font-bold text-white">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-xs font-bold text-white">
               {initials || email.slice(0, 2).toUpperCase()}
             </div>
             <button
@@ -143,15 +143,15 @@ export function CandidateAppShell({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-60 border-r border-[#E2E8F0] bg-white transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 w-60 border-r border-[#1E3A5F] bg-[#0B1D3A] transition-transform duration-300 lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } lg:block`}
       >
         <div className="flex h-full flex-col">
-          <div className="border-b border-[#F1F5F9] px-5 py-4">
+          <div className="border-b border-[#1E3A5F] px-5 py-4">
             <div className="relative h-10 w-36">
               <Image
-                src="/TG Logo.png"
+                src="/Logo 1.webp"
                 alt="TechGrah Innovations"
                 fill
                 className="object-contain object-left"
@@ -159,7 +159,7 @@ export function CandidateAppShell({
                 priority
               />
             </div>
-            <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#94A3B8]">
+            <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#64748B]">
               Assessment Portal
             </p>
           </div>
@@ -170,8 +170,8 @@ export function CandidateAppShell({
               onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                 pathname === "/candidate"
-                  ? "bg-[#EFF6FF] text-[#1D4ED8]"
-                  : "text-[#475569] hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+                  ? "bg-[#1E3A5F] text-[#10B981]"
+                  : "text-[#94A3B8] hover:bg-[#1E3A5F] hover:text-white"
               }`}
             >
               <LayoutDashboard size={16} />
@@ -179,20 +179,20 @@ export function CandidateAppShell({
             </Link>
           </nav>
 
-          <div className="border-t border-[#F1F5F9] p-4">
-            <div className="flex items-center gap-3 rounded-xl bg-[#F8FAFC] px-3 py-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-xs font-bold text-white">
+          <div className="border-t border-[#1E3A5F] p-4">
+            <div className="flex items-center gap-3 rounded-xl bg-[#1E3A5F] px-3 py-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-xs font-bold text-white">
                 {initials || email.slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-[#0F172A]">{email}</p>
-                <p className="text-[10px] text-[#94A3B8]">Candidate</p>
+                <p className="truncate text-xs font-semibold text-white">{email}</p>
+                <p className="text-[10px] text-[#64748B]">Candidate</p>
               </div>
             </div>
             <form action={logoutAction} className="mt-2">
               <button
                 type="submit"
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#475569] transition hover:bg-rose-50 hover:text-rose-600"
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-[#94A3B8] transition hover:bg-rose-900/30 hover:text-rose-400"
               >
                 <LogOut size={14} />
                 Sign out
@@ -223,7 +223,7 @@ export function CandidateAppShell({
               <span className="hidden max-w-[220px] truncate text-xs text-[#64748B] sm:inline">
                 {email}
               </span>
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] text-xs font-bold text-white">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-xs font-bold text-white">
                 {initials || email.slice(0, 2).toUpperCase()}
               </div>
             </div>

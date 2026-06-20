@@ -1,4 +1,4 @@
-import { LucideIcon } from "lucide-react";
+﻿import { LucideIcon } from "lucide-react";
 
 export function StatCard({
   title,
@@ -12,7 +12,7 @@ export function StatCard({
   icon: LucideIcon;
 }) {
   const iconThemeMap: Record<string, { bg: string; fg: string }> = {
-    "Total Candidates": { bg: "#DBEAFE", fg: "#1D4ED8" },
+    "Total Candidates": { bg: "#D1FAE5", fg: "#0F766E" },
     "Active Assessments": { bg: "#E0E7FF", fg: "#4338CA" },
     "Completed Tests": { bg: "#DCFCE7", fg: "#15803D" },
     "Average Score": { bg: "#FCE7F3", fg: "#BE185D" },
@@ -20,7 +20,7 @@ export function StatCard({
     "Recent Attempts": { bg: "#E0F2FE", fg: "#0369A1" },
     "Low Trust Attempts": { bg: "#FEE2E2", fg: "#B91C1C" },
   };
-  const iconTheme = iconThemeMap[title] ?? { bg: "#DBEAFE", fg: "#1D4ED8" };
+  const iconTheme = iconThemeMap[title] ?? { bg: "#D1FAE5", fg: "#0F766E" };
 
   return (
     <div className="tg-card flex min-h-[132px] flex-col justify-between p-6">

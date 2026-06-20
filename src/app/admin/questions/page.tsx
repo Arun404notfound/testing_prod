@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronDown, Layers, Plus, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -163,9 +163,9 @@ async function updateStatementAttribute(formData: FormData) {
 
 const card = "rounded-xl border border-[#E2E8F0] bg-white overflow-hidden";
 const cardHeader = "border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-3";
-const inputCls = "w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#1D4ED8] focus:outline-none";
-const selectCls = "w-full rounded-lg border border-[#E2E8F0] px-2.5 py-1.5 text-xs text-[#334155] focus:border-[#1D4ED8] focus:outline-none";
-const saveBtnCls = "rounded-lg bg-[#1D4ED8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1e40af] transition shrink-0";
+const inputCls = "w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#0F766E] focus:outline-none";
+const selectCls = "w-full rounded-lg border border-[#E2E8F0] px-2.5 py-1.5 text-xs text-[#334155] focus:border-[#0F766E] focus:outline-none";
+const saveBtnCls = "rounded-lg bg-[#0F766E] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#0d9488] transition shrink-0";
 const POLARITY_COLORS: Record<string, string> = {
   POSITIVE: "bg-emerald-50 text-emerald-700 border-emerald-200",
   NEGATIVE: "bg-rose-50 text-rose-600 border-rose-200",
@@ -252,7 +252,7 @@ export default async function QuestionsPage({
       {/* Stats row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: "Likert Questions", value: likertItems.length, icon: BookOpen, color: "text-[#1D4ED8]", bg: "bg-[#EFF6FF]" },
+          { label: "Likert Questions", value: likertItems.length, icon: BookOpen, color: "text-[#0F766E]", bg: "bg-[#E6F7F1]" },
           { label: "Triad Groups", value: triadGroups.length, sub: `${allStatements.length} statements`, icon: Layers, color: "text-purple-600", bg: "bg-purple-50" },
           { label: "Attributes", value: attributes.length, icon: Brain, color: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "Competencies", value: competencies.length, sub: `${mappings.length} mappings`, icon: CheckCircle2, color: "text-amber-600", bg: "bg-amber-50" },
@@ -275,7 +275,7 @@ export default async function QuestionsPage({
       <div className="flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-5 py-3 text-xs">
         {["Question", "Attribute", "Competency", "Score (via Formula)"].map((label, i, arr) => (
           <span key={label} className="flex items-center gap-2">
-            <span className={`rounded-full px-3 py-1 font-semibold ${i === 0 ? "bg-[#EFF6FF] text-[#1D4ED8]" : i === 1 ? "bg-purple-50 text-purple-600" : i === 2 ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+            <span className={`rounded-full px-3 py-1 font-semibold ${i === 0 ? "bg-[#E6F7F1] text-[#0F766E]" : i === 1 ? "bg-purple-50 text-purple-600" : i === 2 ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
               {label}
             </span>
             {i < arr.length - 1 && <ArrowRight size={14} className="text-[#94A3B8]" />}
@@ -283,7 +283,7 @@ export default async function QuestionsPage({
         ))}
         <span className="ml-auto text-[#94A3B8]">
           Change formula at{" "}
-          <Link href="/admin/competencies?tab=competencies" className="text-[#1D4ED8] hover:underline">Competencies</Link>
+          <Link href="/admin/competencies?tab=competencies" className="text-[#0F766E] hover:underline">Competencies</Link>
         </span>
       </div>
 
@@ -292,7 +292,7 @@ export default async function QuestionsPage({
         <nav className="-mb-px flex gap-6">
           {tabs.map((t) => (
             <Link key={t.id} href={`/admin/questions?tab=${t.id}`}
-              className={`border-b-2 pb-2.5 text-sm font-medium transition-colors ${tab === t.id ? "border-[#1D4ED8] text-[#1D4ED8]" : "border-transparent text-[#64748B] hover:text-[#334155]"}`}>
+              className={`border-b-2 pb-2.5 text-sm font-medium transition-colors ${tab === t.id ? "border-[#0F766E] text-[#0F766E]" : "border-transparent text-[#64748B] hover:text-[#334155]"}`}>
               {t.label}
             </Link>
           ))}
@@ -305,7 +305,7 @@ export default async function QuestionsPage({
           {/* Add form toggle */}
           {!addLikertOpen ? (
             <Link href="/admin/questions?tab=likert&addLikert=1"
-              className="flex items-center gap-2 rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white px-5 py-3.5 text-sm font-medium text-[#475569] transition hover:border-[#1D4ED8] hover:text-[#1D4ED8]">
+              className="flex items-center gap-2 rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white px-5 py-3.5 text-sm font-medium text-[#475569] transition hover:border-[#0F766E] hover:text-[#0F766E]">
               <Plus size={16} /> Add New Likert Question
             </Link>
           ) : (
@@ -345,7 +345,7 @@ export default async function QuestionsPage({
                 </div>
                 <div className="sm:col-span-2 flex justify-end gap-3 border-t border-[#F1F5F9] pt-4">
                   <Link href="/admin/questions?tab=likert" className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">Cancel</Link>
-                  <button type="submit" className="rounded-lg bg-[#1D4ED8] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1e40af]">
+                  <button type="submit" className="rounded-lg bg-[#0F766E] px-5 py-2 text-sm font-semibold text-white hover:bg-[#0d9488]">
                     Add Question
                   </button>
                 </div>
@@ -544,16 +544,16 @@ export default async function QuestionsPage({
             const stmtsForComp = allStatements.filter((s) => s.attributeId && compAttrIds.has(s.attributeId));
             return (
               <div key={comp.id} className={card}>
-                <div className="border-b border-[#E2E8F0] bg-gradient-to-r from-[#EFF6FF] to-white px-5 py-4">
+                <div className="border-b border-[#E2E8F0] bg-gradient-to-r from-[#E6F7F1] to-white px-5 py-4">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-base font-bold text-[#0F172A]">{comp.name}</p>
                       {comp.description && <p className="mt-0.5 text-xs text-[#64748B]">{comp.description}</p>}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
-                      <span className="rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-xs font-semibold text-[#1D4ED8]">{compMaps.length} attributes</span>
+                      <span className="rounded-full bg-[#E6F7F1] px-2.5 py-0.5 text-xs font-semibold text-[#0F766E]">{compMaps.length} attributes</span>
                       <span className="rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[11px] text-[#475569]">Formula: {comp.scoringFormula.replace("_", " ")}</span>
-                      <Link href="/admin/competencies?tab=competencies" className="text-[11px] text-[#1D4ED8] hover:underline">Edit formula →</Link>
+                      <Link href="/admin/competencies?tab=competencies" className="text-[11px] text-[#0F766E] hover:underline">Edit formula →</Link>
                     </div>
                   </div>
                 </div>
@@ -570,13 +570,13 @@ export default async function QuestionsPage({
                           <span className="text-sm font-semibold text-[#0F172A]">{attr.name}</span>
                           {attr.category && <span className="text-xs text-[#94A3B8]">· {attr.category}</span>}
                           <span className="ml-auto rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[11px] text-[#475569]">w:{map.weight}</span>
-                          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-[#1D4ED8]">{total} questions</span>
+                          <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] text-[#0F766E]">{total} questions</span>
                         </div>
                         {total > 0 && (
                           <div className="mt-2 ml-8 space-y-1">
                             {[...attrLikert.slice(0, 2).map((i) => ({ text: i.prompt, type: "L" })), ...attrStmts.slice(0, 2).map((s) => ({ text: s.statementText, type: "T" }))].map((item, ii) => (
                               <p key={ii} className="flex items-start gap-1.5 text-xs text-[#64748B]">
-                                <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${item.type === "L" ? "bg-[#EFF6FF] text-[#1D4ED8]" : "bg-purple-50 text-purple-600"}`}>{item.type}</span>
+                                <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${item.type === "L" ? "bg-[#E6F7F1] text-[#0F766E]" : "bg-purple-50 text-purple-600"}`}>{item.type}</span>
                                 {item.text.slice(0, 80)}{item.text.length > 80 ? "…" : ""}
                               </p>
                             ))}
@@ -602,7 +602,7 @@ export default async function QuestionsPage({
           {competencies.length === 0 && (
             <div className={`${card} px-5 py-10 text-center`}>
               <p className="text-sm text-[#64748B]">No competencies yet.</p>
-              <Link href="/admin/competencies" className="mt-3 inline-block text-sm font-medium text-[#1D4ED8] hover:underline">Set up competencies →</Link>
+              <Link href="/admin/competencies" className="mt-3 inline-block text-sm font-medium text-[#0F766E] hover:underline">Set up competencies →</Link>
             </div>
           )}
         </div>

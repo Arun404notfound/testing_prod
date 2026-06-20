@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { addMcqQuestionsBulk } from "./actions";
@@ -53,14 +53,14 @@ export function BulkMcqPool({
             type="checkbox"
             checked={allChecked}
             onChange={toggleAll}
-            className="h-4 w-4 rounded border-slate-300 accent-[#1D4ED8]"
+            className="h-4 w-4 rounded border-slate-300 accent-[#0F766E]"
           />
           Select all ({items.length - selectedIds.size} not added)
         </label>
         {newlyChecked.length > 0 && (
           <form action={handleBulkAdd}>
             {newlyChecked.map((id) => <input key={id} type="hidden" name="ids" value={id} />)}
-            <button type="submit" className="rounded-md bg-[#1D4ED8] px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+            <button type="submit" className="rounded-md bg-[#0F766E] px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700">
               Add {newlyChecked.length} selected
             </button>
           </form>
@@ -72,12 +72,12 @@ export function BulkMcqPool({
           const isAdded = selectedIds.has(q.id);
           const isChecked = checked.has(q.id);
           return (
-            <li key={q.id} className={`flex items-center gap-3 p-3 ${isChecked ? "bg-blue-50" : ""}`}>
+            <li key={q.id} className={`flex items-center gap-3 p-3 ${isChecked ? "bg-teal-50" : ""}`}>
               <input
                 type="checkbox"
                 checked={isChecked}
                 onChange={() => toggleOne(q.id)}
-                className="h-4 w-4 shrink-0 rounded border-slate-300 accent-[#1D4ED8]"
+                className="h-4 w-4 shrink-0 rounded border-slate-300 accent-[#0F766E]"
               />
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-slate-500">{q.section} · {q.category}</p>
