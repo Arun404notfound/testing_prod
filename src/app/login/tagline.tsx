@@ -4,7 +4,7 @@ import RotatingText from "@/components/ui/RotatingText";
 
 export function AnimatedTagline() {
   return (
-    <div className="flex items-center gap-2 text-[2rem] font-extrabold tracking-tight">
+    <div className="flex items-center gap-2 text-[2.75rem] font-extrabold tracking-tight">
       <RotatingText
         texts={["Assess", "Analyze", "Advance"]}
         mainClassName="overflow-hidden text-white"
