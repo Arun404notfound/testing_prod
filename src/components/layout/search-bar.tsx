@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useLayoutEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ClipboardList, Users, ArrowRight, Loader2 } from "lucide-react";
 
@@ -25,6 +25,15 @@ export function SearchBar() {
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 288 });
+
+  // Recalculate fixed position whenever dropdown opens
+  useLayoutEffect(() => {
+    if (open && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownStyle({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+    }
+  }, [open]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -94,9 +103,12 @@ export function SearchBar() {
         />
       </div>
 
-      {/* Dropdown */}
+      {/* Dropdown — rendered fixed to escape sticky header stacking context */}
       {open && (
-        <div className="absolute left-0 top-full mt-1.5 w-full rounded-xl border border-[#EAECF0] bg-white shadow-lg z-50 overflow-hidden">
+        <div
+          className="fixed rounded-xl border border-[#EAECF0] bg-white shadow-lg z-[9999] overflow-hidden"
+          style={{ top: dropdownStyle.top, left: dropdownStyle.left, width: dropdownStyle.width }}
+        >
 
           {/* Loading skeleton */}
           {loading && (
