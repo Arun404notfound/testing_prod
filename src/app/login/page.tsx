@@ -2,6 +2,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getOptionalSession } from "@/lib/auth/require-user";
 import { LoginForm } from "./login-form";
+import { AnimatedTagline } from "./tagline";
 
 export default async function LoginPage({
   searchParams,
@@ -45,16 +46,9 @@ export default async function LoginPage({
             Evidence-based Big Five personality profiling. Competency mapping. Detailed candidate reports — all in one platform.
           </p>
 
-          {/* Assess. Analyze. Advance. tagline */}
+          {/* Assess. Analyze. Advance. tagline — decrypted on view */}
           <div className="pt-6">
-            <p className="text-[2rem] font-extrabold tracking-tight">
-              <span className="text-white">Assess</span>
-              <span className="text-emerald-400">.</span>
-              <span className="text-white"> Analyze</span>
-              <span className="text-emerald-400">.</span>
-              <span className="text-white"> Advance</span>
-              <span className="text-white/40">.</span>
-            </p>
+            <AnimatedTagline />
           </div>
         </div>
 
