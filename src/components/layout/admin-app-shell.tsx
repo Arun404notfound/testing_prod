@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BarChart3,
-  Bell,
   Brain,
   Building2,
   ChevronDown,
@@ -20,9 +19,11 @@ import {
   X,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { logoutAction } from "@/app/actions/auth";
 import type { UserRole } from "@/generated/prisma/enums";
+import { CommandPalette } from "./command-palette";
+import { UserMenu } from "./user-menu";
 
 const navGroups = [
   {
@@ -66,6 +67,19 @@ export function AdminAppShell({
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // ⌘K / Ctrl+K opens command palette
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
   const initials = user.email
     .split("@")[0]
     .split(/[._-]/)
@@ -222,42 +236,29 @@ export function AdminAppShell({
               {mobileOpen ? <X size={15} /> : <Menu size={15} />}
             </button>
 
-            {/* Search — fixed width, left-aligned */}
-            <div className="w-72 shrink-0">
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-                <input
-                  type="search"
-                  placeholder="Search assessments, tags, or competencies..."
-                  className="w-full rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] py-2 pl-8 pr-14 text-[13px] text-[#374151] placeholder:text-[#9CA3AF] focus:border-[#0F766E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0F766E]/10 transition"
-                />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-0.5 text-[10px] text-[#9CA3AF] font-mono border border-[#E5E7EB] rounded px-1 py-0.5">
-                  ⌘K
-                </span>
-              </div>
-            </div>
+            {/* Search trigger — opens command palette */}
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="flex w-72 shrink-0 items-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-left text-[13px] text-[#9CA3AF] hover:border-[#0F766E]/40 hover:bg-white transition"
+            >
+              <Search size={14} className="shrink-0" />
+              <span className="flex-1">Search assessments, candidates…</span>
+              <span className="hidden sm:flex items-center gap-0.5 text-[10px] font-mono border border-[#E5E7EB] rounded bg-white px-1 py-0.5">⌘K</span>
+            </button>
 
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* Right corner: bell + user */}
-            <div className="flex items-center gap-2 shrink-0">
-              <button className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white text-[#6B7280] hover:bg-[#F4F6F9] transition">
-                <Bell size={15} />
-                <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-[#10B981]" />
-              </button>
-              <div className="hidden sm:flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1.5">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#0F766E] to-[#10B981] text-[9px] font-bold text-white">
-                  {initials}
-                </div>
-                <span className="text-[12px] font-medium text-[#374151] max-w-[140px] truncate">{user.email}</span>
-              </div>
-            </div>
+            {/* Right corner: user menu */}
+            <UserMenu email={user.email} role={user.role} initials={initials} />
           </div>
         </header>
 
         <div className="mx-auto max-w-7xl p-4 sm:p-6">{children}</div>
       </div>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }
