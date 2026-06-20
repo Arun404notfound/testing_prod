@@ -9,22 +9,22 @@ export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
   if (q.length < 1) return NextResponse.json({ assessments: [], candidates: [] });
 
+  const pattern = `%${q.toLowerCase()}%`;
+
   const [assessments, candidates] = await Promise.all([
-    prisma.assessment.findMany({
-      where: { title: { contains: q } },
-      select: { id: true, title: true, status: true },
-      take: 5,
-    }),
-    prisma.candidate.findMany({
-      where: {
-        OR: [
-          { fullName: { contains: q } },
-          { email: { contains: q } },
-        ],
-      },
-      select: { id: true, fullName: true, email: true },
-      take: 5,
-    }),
+    prisma.$queryRaw<{ id: string; title: string; status: string }[]>`
+      SELECT id, title, status
+      FROM "Assessment"
+      WHERE lower(title) LIKE ${pattern}
+      LIMIT 5
+    `,
+    prisma.$queryRaw<{ id: string; fullName: string; email: string }[]>`
+      SELECT id, "fullName", email
+      FROM "Candidate"
+      WHERE lower("fullName") LIKE ${pattern}
+         OR lower(email) LIKE ${pattern}
+      LIMIT 5
+    `,
   ]);
 
   return NextResponse.json({ assessments, candidates });
