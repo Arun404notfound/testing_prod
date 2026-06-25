@@ -7,7 +7,7 @@ const cookieBase = {
   path: "/" as const,
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  secure: process.env.HTTPS === "true",
 };
 
 export type { SessionPayload };
