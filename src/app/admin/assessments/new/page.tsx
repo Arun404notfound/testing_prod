@@ -51,6 +51,9 @@ async function createAssessment(formData: FormData) {
     redirect("/admin/assessments/new?status=error");
   }
 
+  const rawDuration = parseInt(String(formData.get("durationMinutes") ?? ""), 10);
+  const durationMinutes = Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 0;
+
   const randomizeQuestions = formData.get("randomizeQuestions") === "on";
   const randomizeOptions = formData.get("randomizeOptions") === "on";
 
@@ -76,7 +79,7 @@ async function createAssessment(formData: FormData) {
         title,
         description,
         assessmentType,
-        durationMinutes: 0,
+        durationMinutes,
         maxAttempts: 1,
         randomizeQuestions,
         randomizeOptions,
@@ -139,7 +142,28 @@ export default async function NewAssessmentPage({
             <textarea name="description" required rows={3} className="tg-input w-full" />
           </label>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="text-sm text-[#334155]">
+              <span className="mb-1 block font-medium">Duration (minutes) <span className="font-normal text-[#94A3B8]">(optional)</span></span>
+              <input
+                type="number"
+                name="durationMinutes"
+                min={1}
+                max={480}
+                placeholder="e.g. 45"
+                className="tg-input w-full"
+              />
+            </label>
+            <label className="text-sm text-[#334155]">
+              <span className="mb-1 block font-medium">Status</span>
+              <select name="lifecycleStatus" required className="tg-input w-full">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[#334155]">
               <span className="mb-1 block font-medium">Assessment type</span>
               <select name="assessmentType" required className="tg-input w-full">
@@ -158,13 +182,6 @@ export default async function NewAssessmentPage({
                     {REPORT_TEMPLATE_LABELS[t]}
                   </option>
                 ))}
-              </select>
-            </label>
-            <label className="text-sm text-[#334155]">
-              <span className="mb-1 block font-medium">Status</span>
-              <select name="lifecycleStatus" required className="tg-input w-full">
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
               </select>
             </label>
           </div>
