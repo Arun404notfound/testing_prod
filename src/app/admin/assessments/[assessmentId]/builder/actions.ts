@@ -110,6 +110,7 @@ export async function saveAssessmentDetails(assessmentId: string, formData: Form
   });
   revalidatePath(`/admin/assessments/${assessmentId}/builder`);
   revalidatePath("/admin/assessments");
+  redirect(`/admin/assessments/${assessmentId}/builder?saved=details`);
 }
 
 export async function deleteAssessmentById(assessmentId: string) {

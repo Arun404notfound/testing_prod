@@ -25,6 +25,7 @@ import { BulkMcqPool } from "./bulk-mcq-pool";
 import { BulkLikertPool } from "./bulk-likert-pool";
 import { BulkTriadPool } from "./bulk-triad-pool";
 import { BuilderHeaderActions } from "./builder-header-actions";
+import { AutoDismissToast } from "@/components/ui/auto-dismiss-toast";
 
 type Search = {
   tab?: string;
@@ -33,6 +34,7 @@ type Search = {
   factor?: string;
   attribute?: string;
   groupCode?: string;
+  saved?: string;
 };
 
 type PoolTab = "mcq" | "likert" | "triad";
@@ -291,6 +293,9 @@ export default async function AssessmentBuilderPage({
 
   return (
     <main className="tg-page space-y-6">
+      {sp.saved === "details" && (
+        <AutoDismissToast message="Assessment details saved successfully." durationMs={3000} />
+      )}
       <div>
         <Link href="/admin/assessments" className="inline-flex items-center gap-1 text-xs font-medium text-[#64748B] hover:text-[#334155] transition mb-3">
           ← Back to assessments
