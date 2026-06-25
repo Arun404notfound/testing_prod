@@ -508,12 +508,6 @@ export default async function AssessmentBuilderPage({
         )}
       </FormCard>
 
-      {tab === "mcq" && allowsMcqPool(assessmentType) ? (
-        <FormCard title="MCQ question pool">
-          <p className="mb-3 text-sm text-[#64748B]">Tenant question bank. MCQ demo flow uses linked questions only.</p>
-          <BulkMcqPool assessmentId={assessment.id} items={mcqPool} selectedIdList={[...selectedMcqIds]} />
-        </FormCard>
-      ) : null}
 
       {tab === "likert" && allowsLikertPool(assessmentType) ? (
         <FormCard title={`Likert question pool (${likertItems.length})`}>
@@ -541,10 +535,6 @@ export default async function AssessmentBuilderPage({
 
       {assessmentType === "HYBRID" ? (
         <div className="flex flex-wrap gap-2 text-sm">
-          <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("mcq")}>
-            MCQ tab
-          </Link>
-          <span className="text-slate-300">|</span>
           <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("likert")}>
             Likert tab
           </Link>

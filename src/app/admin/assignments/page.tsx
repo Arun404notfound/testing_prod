@@ -188,6 +188,7 @@ export default async function AssignmentsPage({
     prisma.assessment.findMany({
       where: {
         lifecycleStatus: "published",
+        assessmentType: { not: "KNOWLEDGE_MCQ" },
         OR: [
           { questions: { some: {} } },
           { items: { some: {} } },

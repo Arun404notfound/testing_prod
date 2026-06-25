@@ -12,178 +12,6 @@ const prisma = new PrismaClient({
   adapter: new PrismaBetterSqlite3({ url: sqliteUrl }),
 });
 
-const mcqSeed = [
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "What are the key technologies that differentiate Century Ply Club Prime from competitors?",
-    "Only BWP grade quality",
-    "ViroKill + Firewall Technology + Marine Grade BWP",
-    "Lower pricing strategy",
-    "Better distribution network",
-    2,
-  ],
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "Which Century Ply product would you recommend for kitchen cabinets in humid climate?",
-    "Sainik 710",
-    "Club Prime with ViroKill & Firewall",
-    "Regular commercial grade",
-    "Particle board alternative",
-    2,
-  ],
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "How would you explain ViroKill technology to a health-conscious family?",
-    "It is an antibacterial coating",
-    "It kills 99.9% viruses on contact, thermostable, safe for humans",
-    "It is similar to sanitizer coating",
-    "It prevents wood damage",
-    2,
-  ],
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "What warranty does Club Prime offer against borer/termite attacks?",
-    "15 years",
-    "20 years",
-    "25 years",
-    "30 years",
-    4,
-  ],
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "For a budget-conscious retail customer, how would you position Sainik 710?",
-    "It is the cheapest option",
-    "BWP grade quality at economy price with national uniform pricing",
-    "It is popular in the market",
-    "Better than unorganized brands",
-    2,
-  ],
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "In which application would you NOT recommend plywood?",
-    "Kitchen cabinets",
-    "Decorative wall panels (recommend laminates instead)",
-    "Wardrobe shutters",
-    "False ceiling",
-    2,
-  ],
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "What makes Century Ply BWP grade superior to MR grade?",
-    "Only price difference",
-    "Marine grade boiling waterproof quality vs moisture resistant",
-    "Different color options",
-    "Brand positioning only",
-    2,
-  ],
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "Customer asks about fire safety for a commercial project. What do you highlight?",
-    "General wood treatment",
-    "Firewall technology slows fire spread, buying evacuation time",
-    "All plywood is fire resistant",
-    "Focus on other benefits",
-    2,
-  ],
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "How do you differentiate Club Prime from local unorganized players?",
-    "Brand name recognition",
-    "30-year warranty + ViroKill + Firewall + Consistent quality",
-    "More outlets",
-    "Celebrity endorsements",
-    2,
-  ],
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "What is the key selling point of uniform national pricing for Sainik 710?",
-    "Easy to remember prices",
-    "Eliminates price arbitrage, ensures fair dealer margins",
-    "Competitive advantage",
-    "Marketing strategy",
-    2,
-  ],
-  [
-    "CenturyPly Product Knowledge",
-    "Product Knowledge",
-    "Customer says all plywood looks the same, why Century Ply? Your response:",
-    "We are a famous brand",
-    "Let me show you the quality difference - core density, glue line, finish",
-    "Price is competitive",
-    "Everyone uses Century Ply",
-    2,
-  ],
-  [
-    "SE Selling Skills",
-    "Selling Skills",
-    "Best approach for needs assessment with a new customer:",
-    "Immediately show product catalog",
-    "Ask about application, budget, timeline, performance requirements",
-    "Focus on best-selling products",
-    "Compare with competitors",
-    2,
-  ],
-  [
-    "SE Selling Skills",
-    "Selling Skills",
-    "Customer objects: Club Prime is 30% more expensive than local brands.",
-    "Quality costs money",
-    "Calculate cost per year for 30 years vs replacement costs",
-    "I can give you a discount",
-    "Local brands are inferior",
-    2,
-  ],
-  [
-    "SE Selling Skills",
-    "Selling Skills",
-    "How do you handle: I need to think about it?",
-    "Apply pressure to decide immediately",
-    "What specific concerns can I address? When shall I follow up?",
-    "Offer maximum discount",
-    "Walk away",
-    2,
-  ],
-  [
-    "SE Selling Skills",
-    "Selling Skills",
-    "Best way to generate new leads:",
-    "Cold calling only",
-    "Referrals + architect meetings + contractor visits + dealer partnerships",
-    "Online advertising only",
-    "Wait for inbound inquiries",
-    2,
-  ],
-  [
-    "Market Knowledge",
-    "Market Knowledge",
-    "What percentage of Indian plywood market is unorganized?",
-    "50%",
-    "60%",
-    "70%",
-    "80%",
-    4,
-  ],
-  [
-    "Market Knowledge",
-    "Market Knowledge",
-    "Primary buying criteria for architects/contractors:",
-    "Price only",
-    "Quality certifications + warranty + technical support + reliable supply",
-    "Brand recognition",
-    "Credit terms",
-    2,
-  ],
-] as const;
 
 const likertItems = [
   {
@@ -271,9 +99,6 @@ const triadGroups = [
   },
 ];
 
-function incorrectOptionFor(correctOption: number) {
-  return correctOption === 1 ? 2 : 1;
-}
 
 async function resetData() {
   await prisma.importRowError.deleteMany();
@@ -322,16 +147,6 @@ async function main() {
     prisma.reportTemplate.create({
       data: {
         tenantId: tenant.id,
-        name: "MCQ Report",
-        assessmentType: "KNOWLEDGE_MCQ",
-        headerTitle: "Knowledge Assessment Report",
-        introduction: "Summarizes section-wise knowledge performance.",
-        footerText: "Generated by TechGrah Assessment Portal.",
-      },
-    }),
-    prisma.reportTemplate.create({
-      data: {
-        tenantId: tenant.id,
         name: "Psychometric Report",
         assessmentType: "LIKERT_PSYCHOMETRIC",
         headerTitle: "Psychometric Assessment Report",
@@ -360,9 +175,8 @@ async function main() {
       },
     }),
   ]);
-  const mcqTemplate = reportTemplates[0]!;
-  const likertTemplate = reportTemplates[1]!;
-  const triadTemplate = reportTemplates[2]!;
+  const likertTemplate = reportTemplates[0]!;
+  const triadTemplate = reportTemplates[1]!;
 
   const [candidate1, candidate2, candidate3] = await prisma.$transaction([
     prisma.candidate.create({
@@ -402,211 +216,6 @@ async function main() {
       },
     }),
   ]);
-
-  const legacyQuestions = await Promise.all(
-    mcqSeed.map((q) =>
-      prisma.question.create({
-        data: {
-          tenantId: tenant.id,
-          section: q[0],
-          category: q[1],
-          questionText: q[2],
-          option1: q[3],
-          option2: q[4],
-          option3: q[5],
-          option4: q[6],
-          correctOption: q[7],
-          explanation: "Sample explanation based on sales assessment reference report.",
-        },
-      }),
-    ),
-  );
-
-  const mcqAssessment = await prisma.assessment.create({
-    data: {
-      tenantId: tenant.id,
-      reportTemplateId: mcqTemplate.id,
-      reportTemplateType: "TECHNICAL_SKILLS_REPORT",
-      title: "CenturyPly Sales Executive Assessment",
-      description: "Demo technical + selling + market knowledge assessment based on sample report.",
-      assessmentType: "KNOWLEDGE_MCQ",
-      durationMinutes: 45,
-      maxAttempts: 1,
-      lifecycleStatus: "published",
-      questions: {
-        create: legacyQuestions.map((question) => ({ questionId: question.id })),
-      },
-    },
-  });
-
-  const sectionNames = Array.from(new Set(mcqSeed.map((q) => q[0])));
-  const mcqSections = await Promise.all(
-    sectionNames.map((sectionName, index) =>
-      prisma.assessmentSection.create({
-        data: {
-          assessmentId: mcqAssessment.id,
-          title: sectionName,
-          description: `Questions for ${sectionName}.`,
-          displayOrder: index + 1,
-        },
-      }),
-    ),
-  );
-  const mcqSectionByTitle = new Map(mcqSections.map((section) => [section.title, section]));
-  const getMcqSection = (title: string) => {
-    const section = mcqSectionByTitle.get(title);
-    if (!section) throw new Error(`Missing MCQ section ${title}`);
-    return section;
-  };
-
-  const mcqItems = [];
-  for (const [index, q] of mcqSeed.entries()) {
-    const section = getMcqSection(q[0]);
-
-    const item = await prisma.assessmentItem.create({
-      data: {
-        assessmentId: mcqAssessment.id,
-        sectionId: section.id,
-        itemType: "MCQ_SINGLE",
-        prompt: q[2],
-        helpText: "Select one correct answer.",
-        displayOrder: index + 1,
-        options: {
-          create: [q[3], q[4], q[5], q[6]].map((option, optionIndex) => ({
-            label: `Option ${optionIndex + 1}`,
-            value: option,
-            displayOrder: optionIndex + 1,
-            isCorrect: optionIndex + 1 === q[7],
-            scoreValue: optionIndex + 1 === q[7] ? 1 : 0,
-          })),
-        },
-      },
-      include: { options: true },
-    });
-    mcqItems.push(item);
-  }
-
-  const assignedForCandidate1 = await prisma.assessmentAssignment.create({
-    data: {
-      candidateId: candidate1.id,
-      assessmentId: mcqAssessment.id,
-      status: "assigned",
-    },
-  });
-
-  const assignedMcqForNeha = await prisma.assessmentAssignment.create({
-    data: {
-      candidateId: candidate3.id,
-      assessmentId: mcqAssessment.id,
-      status: "assigned",
-    },
-  });
-
-  const completedAssignment = await prisma.assessmentAssignment.create({
-    data: {
-      candidateId: candidate2.id,
-      assessmentId: mcqAssessment.id,
-      status: "completed",
-      completedAt: new Date("2026-04-20T14:30:00.000Z"),
-    },
-  });
-
-  const mcqAttempt = await prisma.assessmentAttempt.create({
-    data: {
-      assignmentId: completedAssignment.id,
-      candidateId: candidate2.id,
-      assessmentId: mcqAssessment.id,
-      status: "SCORED",
-      startedAt: new Date("2026-04-20T14:00:00.000Z"),
-      submittedAt: new Date("2026-04-20T14:30:00.000Z"),
-      scoredAt: new Date("2026-04-20T14:30:00.000Z"),
-    },
-  });
-
-  for (const [index, item] of mcqItems.entries()) {
-    const correctOption = item.options.find((option) => option.isCorrect);
-    const selectedOption =
-      index === 5 || index % 7 === 0
-        ? item.options.find((option) => !option.isCorrect)
-        : correctOption;
-
-    await prisma.attemptResponse.create({
-      data: {
-        attemptId: mcqAttempt.id,
-        itemId: item.id,
-        itemOptionId: selectedOption?.id,
-        status: "ANSWERED",
-        isCorrect: selectedOption?.isCorrect ?? false,
-        rawScore: selectedOption?.isCorrect ? 1 : 0,
-        scoredValue: selectedOption?.isCorrect ? 1 : 0,
-      },
-    });
-  }
-
-  await prisma.attemptScore.create({
-    data: {
-      attemptId: mcqAttempt.id,
-      scoreName: "Overall",
-      score: 80,
-      maxScore: 100,
-      percent: 80,
-    },
-  });
-
-  const result = await prisma.assessmentResult.create({
-    data: {
-      candidateId: candidate2.id,
-      assessmentId: mcqAssessment.id,
-      assignmentId: completedAssignment.id,
-      assessmentName: mcqAssessment.title,
-      completedAt: new Date("2026-04-20T14:30:00.000Z"),
-      overallScore: 80,
-      strengths: [
-        "Strong value-selling narrative for Club Prime and Sainik 710",
-        "Good objection handling and consultative probing",
-      ],
-      areasOfConcern: ["Needs stronger market conversion strategy against local competitors"],
-      sectionScores: {
-        create: [
-          {
-            sectionId: getMcqSection("CenturyPly Product Knowledge").id,
-            sectionName: "CenturyPly Product Knowledge",
-            score: 9,
-            maxScore: 11,
-            summary: "Strong command over product differentiators and use-case mapping.",
-          },
-          {
-            sectionId: getMcqSection("SE Selling Skills").id,
-            sectionName: "SE Selling Skills",
-            score: 3,
-            maxScore: 4,
-            summary: "Good consultative selling approach with effective follow-up intent.",
-          },
-          {
-            sectionId: getMcqSection("Market Knowledge").id,
-            sectionName: "Market Knowledge",
-            score: 2,
-            maxScore: 2,
-            summary: "Understands organized vs unorganized market dynamics well.",
-          },
-        ],
-      },
-      questionResponses: {
-        create: legacyQuestions.map((question, index) => {
-          const selectedOption =
-            index === 5 || index % 7 === 0
-              ? incorrectOptionFor(question.correctOption)
-              : question.correctOption;
-
-          return {
-            questionId: question.id,
-            selectedOption,
-            isCorrect: selectedOption === question.correctOption,
-          };
-        }),
-      },
-    },
-  });
 
   const likertScale = await prisma.likertScale.create({
     data: {
@@ -838,7 +447,7 @@ async function main() {
       actorType: "system",
       action: "seed",
       entityType: "database",
-      message: "Seeded MCQ, Likert, and triad assessment samples.",
+      message: "Seeded Likert and triad assessment samples.",
     },
   });
 
@@ -846,12 +455,9 @@ async function main() {
     tenantId: tenant.id,
     candidates: [candidate1.id, candidate2.id, candidate3.id],
     assessments: {
-      mcq: mcqAssessment.id,
       likert: likertAssessment.id,
       triad: triadAssessment.id,
     },
-    assignments: [assignedForCandidate1.id, assignedMcqForNeha.id, completedAssignment.id],
-    sampleResultId: result.id,
     authUsers: {
       super: "super@demo.local / demo1234",
       admin: "admin@demo.local / demo1234",
