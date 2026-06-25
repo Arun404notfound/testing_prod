@@ -145,7 +145,6 @@ export default async function ImportsPage({
               <span className="mb-1 block font-medium">Upload Type</span>
               <select name="importType" className="tg-input" defaultValue="CANDIDATES" required>
                 <option value="CANDIDATES">Candidates</option>
-                <option value="MCQ_QUESTIONS">MCQ Questions</option>
                 <option value="LIKERT_ITEMS">Likert Items</option>
                 <option value="TRIAD_ITEMS">Triad Items</option>
               </select>
@@ -195,12 +194,6 @@ export default async function ImportsPage({
               Download Candidates Template
             </a>
             <a
-              href="/api/imports/templates?type=MCQ_QUESTIONS"
-              className="tg-button-primary inline-flex items-center justify-center"
-            >
-              Download MCQ Template
-            </a>
-            <a
               href="/api/imports/templates?type=LIKERT_ITEMS"
               className="tg-button-primary inline-flex items-center justify-center"
             >
@@ -223,10 +216,6 @@ export default async function ImportsPage({
             <div>
               <p className="font-semibold text-[#0F172A]">Candidates</p>
               <p>{templateColumns.candidates.join(", ")}</p>
-            </div>
-            <div>
-              <p className="font-semibold text-[#0F172A]">MCQ Questions</p>
-              <p>{templateColumns.mcq.join(", ")}</p>
             </div>
             <div>
               <p className="font-semibold text-[#0F172A]">Likert Items</p>

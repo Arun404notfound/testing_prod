@@ -21,10 +21,11 @@ async function addCandidate(formData: FormData) {
     department: String(formData.get("department") ?? "").trim(),
     location: String(formData.get("location") ?? "").trim(),
   };
+  const batchName = String(formData.get("batchName") ?? "").trim() || null;
   if (Object.values(payload).some((v) => !v)) redirect("/admin/candidates?status=error&reason=missing");
 
   const tenantId = await getDefaultTenantId();
-  const result = await createCandidateWithLoginUser({ ...payload, tenantId });
+  const result = await createCandidateWithLoginUser({ ...payload, tenantId, batchName });
   if (!result.ok) {
     const reason = result.error === "email_in_use_non_candidate" ? "email_admin" : result.error === "email_linked_other_candidate" ? "email_candidate" : "unknown";
     redirect(`/admin/candidates?status=error&reason=${reason}`);
@@ -198,6 +199,28 @@ export default async function CandidatesPage({
               <Field label="Designation *" name="designation" value={editingCandidate?.designation} placeholder="Senior Manager" />
               <Field label="Department *" name="department" value={editingCandidate?.department} placeholder="Sales" />
               <Field label="Location *" name="location" value={editingCandidate?.location} placeholder="Mumbai" />
+              {!editingCandidate && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">
+                    Batch <span className="font-normal text-[#94A3B8]">(optional)</span>
+                  </label>
+                  <input
+                    name="batchName"
+                    list="candidate-form-batches"
+                    className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#2563EB] focus:outline-none"
+                    placeholder="e.g. June Sales Cohort"
+                    autoComplete="off"
+                  />
+                  {(() => {
+                    const batches = [...new Set(allCandidates.map((c) => c.batchName).filter((b): b is string => Boolean(b)))];
+                    return batches.length > 0 ? (
+                      <datalist id="candidate-form-batches">
+                        {batches.map((b) => <option key={b} value={b} />)}
+                      </datalist>
+                    ) : null;
+                  })()}
+                </div>
+              )}
             </div>
             {!editingCandidate && (
               <p className="mt-3 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2 text-[11px] text-[#92400E]">
