@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { createCandidateWithLoginUser, DEFAULT_CANDIDATE_LOGIN_PASSWORD } from "@/lib/candidate-user";
 import { CandidatesTable } from "./candidates-table";
+import { BatchSelect } from "@/components/ui/batch-select";
 
 // ─── Server Actions ───────────────────────────────────────────────────────────
 
@@ -200,26 +201,9 @@ export default async function CandidatesPage({
               <Field label="Department *" name="department" value={editingCandidate?.department} placeholder="Sales" />
               <Field label="Location *" name="location" value={editingCandidate?.location} placeholder="Mumbai" />
               {!editingCandidate && (
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[#475569]">
-                    Batch <span className="font-normal text-[#94A3B8]">(optional)</span>
-                  </label>
-                  <input
-                    name="batchName"
-                    list="candidate-form-batches"
-                    className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#2563EB] focus:outline-none"
-                    placeholder="e.g. June Sales Cohort"
-                    autoComplete="off"
-                  />
-                  {(() => {
-                    const batches = [...new Set(allCandidates.map((c) => c.batchName).filter((b): b is string => Boolean(b)))];
-                    return batches.length > 0 ? (
-                      <datalist id="candidate-form-batches">
-                        {batches.map((b) => <option key={b} value={b} />)}
-                      </datalist>
-                    ) : null;
-                  })()}
-                </div>
+                <BatchSelect
+                  existingBatches={[...new Set(allCandidates.map((c) => c.batchName).filter((b): b is string => Boolean(b)))]}
+                />
               )}
             </div>
             {!editingCandidate && (
