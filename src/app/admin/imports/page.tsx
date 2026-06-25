@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackToDashboard } from "@/components/ui/back-to-dashboard";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -128,9 +129,7 @@ export default async function ImportsPage({
           title="Imports"
           subtitle="Upload CSV/XLSX files for candidates and items."
           right={
-            <Link href="/admin/dashboard" className="text-sm font-medium text-[#0F766E] hover:underline">
-              Back to dashboard
-            </Link>
+            <BackToDashboard />
           }
         />
 

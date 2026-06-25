@@ -92,8 +92,8 @@ export default async function CandidateTestPage({
             This assignment expired on{" "}
             {assignment.expiresAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}.
           </p>
-          <a href="/candidate" className="mt-4 inline-block rounded-xl bg-red-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-800 transition">
-            Back to Dashboard
+          <a href="/candidate" className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-red-300 hover:shadow-md">
+            ← Back to Dashboard
           </a>
         </div>
       </div>

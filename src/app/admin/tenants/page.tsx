@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackToDashboard } from "@/components/ui/back-to-dashboard";
 import { TenantBrandingFields } from "@/components/admin/tenant-branding-fields";
 import { prisma } from "@/lib/prisma";
 import { createTenant } from "./actions";
@@ -20,9 +21,7 @@ export default async function AdminTenantsPage({
             Client logos and colors apply to assessment experience and generated reports. The admin portal keeps TechGrah styling.
           </p>
         </div>
-        <Link href="/admin/dashboard" className="text-sm font-medium text-[#0F766E] hover:underline">
-          Back to dashboard
-        </Link>
+        <BackToDashboard />
       </div>
 
       {error === "slug" ? (

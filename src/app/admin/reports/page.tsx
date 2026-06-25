@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackToDashboard } from "@/components/ui/back-to-dashboard";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { Search, X } from "lucide-react";
@@ -110,13 +111,16 @@ export default async function ReportsIndexPage({
               : `${results.length} total result${results.length === 1 ? "" : "s"}`}
           </p>
         </div>
-        <Link href="/admin/dashboard" className="text-sm font-medium text-[#0F766E] hover:underline">
-          Back to dashboard
-        </Link>
+        <BackToDashboard />
       </div>
 
       {/* Filter bar */}
-      <section className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+      <section className="overflow-hidden rounded-2xl border border-[#D1D9E6] bg-white shadow-sm">
+        <div className="flex items-center gap-3 border-b border-[#E2E8F0] bg-gradient-to-r from-[#F0FDF4] to-[#F8FAFC] px-5 py-3.5">
+          <div className="h-4 w-1 rounded-full bg-[#0F766E]" />
+          <p className="text-sm font-bold text-[#0F172A]">Filter Results</p>
+        </div>
+        <div className="p-4">
         <form method="GET" action="/admin/reports" className="flex flex-wrap items-end gap-3">
 
           {/* Assessment name */}
@@ -231,37 +235,39 @@ export default async function ReportsIndexPage({
             )}
           </div>
         )}
+        </div>
       </section>
 
       {/* Results table */}
-      <section className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden">
-        <div className="border-b border-[#F1F5F9] bg-[#F8FAFC] px-5 py-3">
-          <p className="text-sm font-semibold text-[#0F172A]">
+      <section className="overflow-hidden rounded-2xl border border-[#D1D9E6] bg-white shadow-sm">
+        <div className="flex items-center gap-3 border-b border-[#E2E8F0] bg-gradient-to-r from-[#EFF6FF] to-[#F8FAFC] px-5 py-4">
+          <div className="h-4 w-1 rounded-full bg-[#2563EB]" />
+          <p className="text-base font-bold text-[#0F172A]">
             Completed Results
-            {hasFilter && (
-              <span className="ml-2 rounded-full bg-[#2563EB] px-2 py-0.5 text-[10px] font-bold text-white">
-                {results.length} filtered
-              </span>
-            )}
           </p>
+          {hasFilter && (
+            <span className="ml-1 rounded-full bg-[#2563EB] px-2.5 py-0.5 text-[10px] font-bold text-white">
+              {results.length} filtered
+            </span>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-[#F1F5F9] text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                <th className="px-5 py-3">Candidate</th>
-                <th className="px-5 py-3">Employee ID</th>
-                <th className="px-5 py-3">Assessment</th>
-                <th className="px-5 py-3">Score</th>
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3">Report</th>
-                <th className="px-5 py-3">Submissions</th>
+              <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-xs font-bold uppercase tracking-wider text-[#475569]">
+                <th className="px-5 py-3.5">Candidate</th>
+                <th className="px-5 py-3.5">Employee ID</th>
+                <th className="px-5 py-3.5">Assessment</th>
+                <th className="px-5 py-3.5">Score</th>
+                <th className="px-5 py-3.5">Date</th>
+                <th className="px-5 py-3.5">Report</th>
+                <th className="px-5 py-3.5">Submissions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F8FAFC]">
+            <tbody className="divide-y divide-[#F1F5F9]">
               {results.map((result) => (
-                <tr key={result.id} className="hover:bg-[#FAFBFE] transition-colors">
+                <tr key={result.id} className="transition-colors hover:bg-[#F8FAFC]">
                   <td className="px-5 py-3">
                     <p className="font-medium text-[#0F172A]">{result.candidate.fullName}</p>
                     <p className="text-xs text-[#94A3B8]">{result.candidate.email}</p>
@@ -304,15 +310,15 @@ export default async function ReportsIndexPage({
                   <td className="px-5 py-3">
                     <Link
                       href={`/admin/reports/${result.id}`}
-                      className="font-medium text-[#0F766E] hover:underline"
+                      className="inline-flex items-center gap-1 rounded-full border border-[#99F6E4] bg-[#F0FDFA] px-3 py-1 text-xs font-semibold text-[#0F766E] transition-colors hover:bg-[#CCFBF1]"
                     >
-                      Open Report
+                      Open Report →
                     </Link>
                   </td>
                   <td className="px-5 py-3">
                     <Link
                       href={`/admin/reports/${result.id}/submissions`}
-                      className="font-medium text-violet-600 hover:underline"
+                      className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100"
                     >
                       View Submissions
                     </Link>

@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 :root {
   --background: #f8fafc;
@@ -36,39 +36,41 @@ body {
 
 /* ── Card ─────────────────────────────────────────────────────────────────── */
 .tg-card {
-  border: 1px solid var(--border);
+  border: 1px solid #D1D9E6;
   background: #ffffff;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: box-shadow 220ms ease, border-color 220ms ease;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.07), 0 2px 6px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 220ms ease, border-color 220ms ease, transform 220ms ease;
 }
 
 .tg-card:hover {
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.10);
+  border-color: #BFCBDC;
 }
 
 /* ── Input ────────────────────────────────────────────────────────────────── */
 .tg-input {
   width: 100%;
-  border: 1.5px solid #cbd5e1;
+  border: 1.5px solid #C4CFDD;
   border-radius: 10px;
   padding: 10px 14px;
   font-size: 14px;
   line-height: 20px;
   color: #0f172a;
-  background: #ffffff;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  background: #FAFBFD;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
   appearance: auto;
 }
 
 .tg-input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  background: #ffffff;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .tg-input::placeholder {
-  color: #94a3b8;
+  color: #A0ADBF;
 }
 
 /* ── Primary button ───────────────────────────────────────────────────────── */
@@ -77,26 +79,27 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: var(--primary);
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
   color: #ffffff;
   padding: 10px 20px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+  transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
   border: none;
   white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
 .tg-button-primary:hover {
-  background: var(--primary-hover);
+  background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(15, 118, 110, 0.22);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
 }
 
 .tg-button-primary:active {
   transform: translateY(0);
-  box-shadow: none;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
 }
 
 .tg-button-primary:disabled {
@@ -131,7 +134,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #C4CFDD;
   border-radius: 100px;
 }
 

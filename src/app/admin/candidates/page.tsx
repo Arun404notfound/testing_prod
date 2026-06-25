@@ -155,33 +155,38 @@ export default async function CandidatesPage({
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {[
-          { label: "Total Candidates", value: allCandidates.length, icon: Users, cls: "text-[#2563EB]", bg: "bg-[#EFF6FF]" },
-          { label: "Login Linked", value: linked, icon: UserCheck, cls: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "Default Password", value: DEFAULT_CANDIDATE_LOGIN_PASSWORD, icon: null, cls: "", bg: "" },
-        ].map((s, i) => (
-          <div key={i} className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-            {s.icon ? (
-              <>
-                <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-xl ${s.bg}`}>
-                  <s.icon size={16} className={s.cls} />
-                </div>
-                <p className="text-xl font-bold text-[#0F172A]">{s.value}</p>
-              </>
-            ) : (
-              <p className="text-lg font-mono font-bold text-[#0F172A]">{s.value}</p>
-            )}
-            <p className="text-xs font-medium text-[#64748B]">{s.label}</p>
+        <div className="relative flex min-h-[130px] flex-col justify-between overflow-hidden rounded-2xl border border-[#BFDBFE] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md" style={{ background: "linear-gradient(145deg,#EFF6FF 0%,#ffffff 100%)" }}>
+          <div className="absolute left-0 top-0 h-[3px] w-full rounded-t-2xl bg-[#2563EB]" />
+          <div className="rounded-xl bg-[#DBEAFE] p-2.5 w-fit shadow-sm"><Users size={18} className="text-[#2563EB]" strokeWidth={2.2} /></div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#2563EB]/80">Total Candidates</p>
+            <p className="mt-1 text-[32px] font-bold leading-none tracking-tight text-[#0F172A]">{allCandidates.length}</p>
           </div>
-        ))}
+        </div>
+        <div className="relative flex min-h-[130px] flex-col justify-between overflow-hidden rounded-2xl border border-[#99F6E4] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md" style={{ background: "linear-gradient(145deg,#F0FDFA 0%,#ffffff 100%)" }}>
+          <div className="absolute left-0 top-0 h-[3px] w-full rounded-t-2xl bg-[#0F766E]" />
+          <div className="rounded-xl bg-[#CCFBF1] p-2.5 w-fit shadow-sm"><UserCheck size={18} className="text-[#0F766E]" strokeWidth={2.2} /></div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#0F766E]/80">Login Linked</p>
+            <p className="mt-1 text-[32px] font-bold leading-none tracking-tight text-[#0F172A]">{linked}</p>
+          </div>
+        </div>
+        <div className="relative flex min-h-[130px] flex-col justify-between overflow-hidden rounded-2xl border border-[#FDE68A] p-5 shadow-sm" style={{ background: "linear-gradient(145deg,#FFFBEB 0%,#ffffff 100%)" }}>
+          <div className="absolute left-0 top-0 h-[3px] w-full rounded-t-2xl bg-[#D97706]" />
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#D97706]/80">Default Password</p>
+          <p className="mt-2 rounded-lg border border-[#FDE68A] bg-white px-3 py-2 font-mono text-base font-bold text-[#0F172A] shadow-sm">{DEFAULT_CANDIDATE_LOGIN_PASSWORD}</p>
+        </div>
       </div>
 
       {/* Add / Edit form */}
       {(addNewOpen || editingCandidate) && (
-        <div className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden">
-          <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 flex items-center justify-between">
-            <p className="text-sm font-semibold text-[#0F172A]">{editingCandidate ? `Edit: ${editingCandidate.fullName}` : "Add New Candidate"}</p>
-            <Link href="/admin/candidates" className="text-xs text-[#94A3B8] hover:text-[#334155]">Cancel</Link>
+        <div className="overflow-hidden rounded-2xl border border-[#D1D9E6] bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-3 border-b border-[#E2E8F0] bg-gradient-to-r from-[#F0FDF4] to-[#F8FAFC] px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-4 w-1 rounded-full bg-[#0F766E]" />
+              <p className="text-base font-bold text-[#0F172A]">{editingCandidate ? `Edit: ${editingCandidate.fullName}` : "Add New Candidate"}</p>
+            </div>
+            <Link href="/admin/candidates" className="rounded-lg border border-[#E2E8F0] px-3 py-1.5 text-xs font-medium text-[#64748B] hover:bg-[#F1F5F9] transition-colors">Cancel</Link>
           </div>
           <form action={editingCandidate ? updateCandidate : addCandidate} className="p-5">
             {editingCandidate && <input type="hidden" name="id" value={editingCandidate.id} />}
@@ -195,14 +200,13 @@ export default async function CandidatesPage({
               <Field label="Location *" name="location" value={editingCandidate?.location} placeholder="Mumbai" />
             </div>
             {!editingCandidate && (
-              <p className="mt-3 text-[11px] text-[#94A3B8]">
-                A login account will be created automatically with password <code className="rounded bg-[#F1F5F9] px-1 font-mono">{DEFAULT_CANDIDATE_LOGIN_PASSWORD}</code>.
-                Email cannot be changed after creation.
+              <p className="mt-3 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2 text-[11px] text-[#92400E]">
+                A login account will be created automatically with password <code className="rounded bg-white px-1 font-mono font-bold">{DEFAULT_CANDIDATE_LOGIN_PASSWORD}</code>. Email cannot be changed after creation.
               </p>
             )}
             <div className="mt-5 flex justify-end gap-3 border-t border-[#F1F5F9] pt-5">
-              <Link href="/admin/candidates" className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">Cancel</Link>
-              <button type="submit" className="rounded-lg bg-[#2563EB] px-5 py-2 text-sm font-semibold text-white hover:bg-[#1d4edb]">
+              <Link href="/admin/candidates" className="rounded-xl border border-[#E2E8F0] px-4 py-2 text-sm font-semibold text-[#475569] transition-colors hover:bg-[#F8FAFC]">Cancel</Link>
+              <button type="submit" className="tg-button-primary text-sm">
                 {editingCandidate ? "Save Changes" : "Add Candidate"}
               </button>
             </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackToDashboard } from "@/components/ui/back-to-dashboard";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -84,9 +85,7 @@ export default async function AssessmentsPage() {
         subtitle="Create assessments, add items in the builder, then publish before assigning."
         right={
           <div className="flex items-center gap-3">
-            <Link href="/admin/dashboard" className="text-sm font-medium text-[#0F766E] hover:underline">
-              Back to dashboard
-            </Link>
+            <BackToDashboard />
             <Link href="/admin/assessments/new" className="tg-button-primary text-sm">
               New assessment
             </Link>

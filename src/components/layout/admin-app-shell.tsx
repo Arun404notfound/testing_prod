@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   BarChart3,
   Brain,
-  Building2,
   ChevronDown,
   ClipboardList,
   FileUp,
@@ -51,7 +50,6 @@ const navGroups = [
     label: "Reports & Settings",
     items: [
       { href: "/admin/reports", label: "Reports", icon: BarChart3 },
-      { href: "/admin/tenants", label: "Tenants", icon: Building2 },
     ],
   },
 ];
