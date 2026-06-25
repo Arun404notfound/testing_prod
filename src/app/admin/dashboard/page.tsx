@@ -139,41 +139,6 @@ export default async function AdminDashboardPage() {
     <main className="tg-page space-y-8">
       <PageHeader title="Dashboard" subtitle="Live metrics from your assessment workspace." />
 
-      <section className="relative overflow-hidden rounded-2xl border border-[#E2E8F0] bg-gradient-to-r from-[#2563EB] via-[#1D4EDB] to-[#10B981] p-6 text-white shadow-sm md:p-10">
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(circle at 16% 20%, rgba(255,255,255,0.18), transparent 44%), radial-gradient(circle at 84% 74%, rgba(255,255,255,0.10), transparent 40%), linear-gradient(125deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 40%, transparent 58%)",
-          }}
-        />
-        <div className="relative space-y-8">
-          <div className="max-w-2xl">
-            <h2 className="text-3xl font-bold leading-tight md:text-[40px]">Welcome back</h2>
-            <p className="mt-3 max-w-xl text-[15px] leading-7 text-blue-100">
-              Published assessments, pipeline health, and proctoring signals — refreshed from the database on each
-              visit.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { label: "Candidates", value: totalCandidates },
-              { label: "Active assessments", value: activeAssessments, sub: "Published" },
-              { label: "Completed tests", value: completedTests, sub: "Results" },
-              { label: "Avg score", value: `${avgScore}%`, sub: "All results" },
-            ].map((m) => (
-              <div
-                key={m.label}
-                className="rounded-xl border border-white/28 bg-white/16 px-4 py-4 backdrop-blur-[2px]"
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-blue-100">{m.label}</p>
-                <p className="mt-2 text-2xl font-semibold tabular-nums">{m.value}</p>
-                {"sub" in m && m.sub ? <p className="mt-1 text-[11px] text-blue-200/90">{m.sub}</p> : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section>
         <h2 className="mb-4 text-lg font-semibold text-[#0F172A]">Overview</h2>
