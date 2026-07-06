@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { loginAction } from "@/app/actions/auth";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 
 export function LoginForm({
   next,
@@ -79,6 +80,7 @@ export function LoginForm({
         </div>
       </div>
 
+      <div className="-mt-2 text-right"><Link href="/forgot-password" className="text-xs font-semibold text-[#0F766E] hover:underline">Forgot password?</Link></div>
       <button type="submit" className="w-full py-2.5 text-sm font-semibold mt-1 rounded-lg bg-[#0F766E] hover:bg-[#0D9488] text-white transition">
         Sign in
       </button>

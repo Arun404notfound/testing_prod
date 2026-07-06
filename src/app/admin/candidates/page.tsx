@@ -5,7 +5,9 @@ import { UserCheck, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { getDefaultTenantId } from "@/lib/tenant";
-import { createCandidateWithLoginUser, DEFAULT_CANDIDATE_LOGIN_PASSWORD } from "@/lib/candidate-user";
+import { createCandidateWithLoginUser } from "@/lib/candidate-user";
+import { appUrl, createPasswordToken } from "@/lib/auth/password-tokens";
+import { ShareLinkCard } from "@/components/auth/share-link-card";
 import { CandidatesTable } from "./candidates-table";
 import { BatchSelect } from "@/components/ui/batch-select";
 
@@ -32,7 +34,10 @@ async function addCandidate(formData: FormData) {
     redirect(`/admin/candidates?status=error&reason=${reason}`);
   }
   revalidatePath("/admin/candidates");
-  redirect("/admin/candidates?status=success");
+  const candidate = await prisma.candidate.findUnique({ where: { id: result.candidateId }, select: { userId: true } });
+  if (!candidate?.userId) redirect("/admin/candidates?status=error&reason=unknown");
+  const token = await createPasswordToken({ purpose: "INITIAL_SETUP", userId: candidate.userId, tenantId });
+  redirect(`/admin/candidates?status=success&invite=${encodeURIComponent(token)}&name=${encodeURIComponent(payload.fullName)}&email=${encodeURIComponent(payload.email)}`);
 }
 
 async function updateCandidate(formData: FormData) {
@@ -111,7 +116,7 @@ function Field({ label, name, value, type = "text", placeholder }: {
 export default async function CandidatesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; reason?: string; editId?: string; addNew?: string }>;
+  searchParams: Promise<{ status?: string; reason?: string; editId?: string; addNew?: string; invite?: string; name?: string; email?: string }>;
 }) {
   const sp = await searchParams;
   const tenantId = await getDefaultTenantId();
@@ -139,9 +144,7 @@ export default async function CandidatesPage({
 
       {/* Status banners */}
       {sp.status === "success" && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          ✓ Candidate added. Login email: candidate email, password: <code className="rounded bg-white px-1 font-mono">{DEFAULT_CANDIDATE_LOGIN_PASSWORD}</code>
-        </div>
+        sp.invite ? <ShareLinkCard message={`Hey, ${sp.name ?? "there"}, you can set your password now for the account linked to ${sp.email ?? "your email"} by clicking on the link below:`} link={appUrl(`/set-password/${sp.invite}`)} /> : null
       )}
       {sp.status === "edit_success" && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">✓ Candidate updated successfully.</div>
@@ -175,8 +178,8 @@ export default async function CandidatesPage({
         </div>
         <div className="relative flex min-h-[130px] flex-col justify-between overflow-hidden rounded-2xl border border-[#FDE68A] p-5 shadow-sm" style={{ background: "linear-gradient(145deg,#FFFBEB 0%,#ffffff 100%)" }}>
           <div className="absolute left-0 top-0 h-[3px] w-full rounded-t-2xl bg-[#D97706]" />
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#D97706]/80">Default Password</p>
-          <p className="mt-2 rounded-lg border border-[#FDE68A] bg-white px-3 py-2 font-mono text-base font-bold text-[#0F172A] shadow-sm">{DEFAULT_CANDIDATE_LOGIN_PASSWORD}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#D97706]/80">Secure onboarding</p>
+          <p className="mt-2 text-sm font-semibold text-[#92400E]">Candidates create their own password</p>
         </div>
       </div>
 
@@ -208,7 +211,7 @@ export default async function CandidatesPage({
             </div>
             {!editingCandidate && (
               <p className="mt-3 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2 text-[11px] text-[#92400E]">
-                A login account will be created automatically with password <code className="rounded bg-white px-1 font-mono font-bold">{DEFAULT_CANDIDATE_LOGIN_PASSWORD}</code>. Email cannot be changed after creation.
+                A secure password setup link will be generated after creation. Email cannot be changed later.
               </p>
             )}
             <div className="mt-5 flex justify-end gap-3 border-t border-[#F1F5F9] pt-5">

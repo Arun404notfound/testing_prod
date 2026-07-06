@@ -9,6 +9,7 @@ import {
   ClipboardList,
   FileUp,
   HelpCircle,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -50,6 +51,7 @@ const navGroups = [
     label: "Reports & Settings",
     items: [
       { href: "/admin/reports", label: "Reports", icon: BarChart3 },
+      { href: "/admin/authentication", label: "Authentication", icon: KeyRound },
     ],
   },
 ];

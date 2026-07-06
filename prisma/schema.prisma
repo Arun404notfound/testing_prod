@@ -120,11 +120,56 @@ model User {
   tenantId     String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
+  passwordSetAt DateTime?
   tenant           Tenant?    @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   candidateProfile Candidate? @relation("UserCandidateProfile")
+  passwordTokens PasswordToken[]
+  passwordResetRequests PasswordResetRequest[]
 
   @@index([tenantId])
   @@index([role])
+}
+
+enum PasswordTokenPurpose {
+  INITIAL_SETUP
+  RESET
+  BATCH_SETUP
+}
+
+enum PasswordResetStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model PasswordToken {
+  id        String               @id @default(cuid())
+  tokenHash String               @unique
+  purpose   PasswordTokenPurpose
+  userId    String?
+  tenantId  String?
+  batchName String?
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime             @default(now())
+  user      User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tenantId, batchName])
+}
+
+model PasswordResetRequest {
+  id          String              @id @default(cuid())
+  userId      String
+  tenantId    String?
+  status      PasswordResetStatus @default(PENDING)
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  createdAt   DateTime            @default(now())
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([userId, createdAt])
 }
 
 model Candidate {

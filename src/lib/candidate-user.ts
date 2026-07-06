@@ -1,9 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { UserRole } from "@/generated/prisma/enums";
-
-/** Default password for admin-created candidate logins until invite/reset exists. */
-export const DEFAULT_CANDIDATE_LOGIN_PASSWORD = "demo1234";
+import { randomBytes } from "node:crypto";
 
 export type CreateCandidateWithLoginInput = {
   tenantId: string | null;
@@ -33,7 +31,7 @@ export async function createCandidateWithLoginUser(
   input: CreateCandidateWithLoginInput,
 ): Promise<CreateCandidateWithLoginResult> {
   const email = normalizeEmail(input.email);
-  const passwordHash = await hashPassword(DEFAULT_CANDIDATE_LOGIN_PASSWORD);
+  const passwordHash = await hashPassword(randomBytes(32).toString("base64url"));
 
   try {
     const existingUser = await prisma.user.findUnique({

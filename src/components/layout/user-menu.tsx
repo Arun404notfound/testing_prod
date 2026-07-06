@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, LogOut, Shield } from "lucide-react";
+import { ChevronDown, KeyRound, LogOut, Shield } from "lucide-react";
+import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
 import type { UserRole } from "@/generated/prisma/enums";
 
@@ -55,6 +56,7 @@ export function UserMenu({ email, role, initials }: { email: string; role: UserR
           </div>
 
           <div className="py-1">
+            {(role === "ADMIN" || role === "SUPER_ADMIN") && <Link href="/admin/change-password" onClick={() => setOpen(false)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-[13px] font-medium text-[#475569] hover:bg-[#F8FAFC] transition"><KeyRound size={14}/> Change password</Link>}
             <form action={logoutAction}>
               <button
                 type="submit"
