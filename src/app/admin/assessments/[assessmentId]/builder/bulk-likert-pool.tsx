@@ -63,7 +63,7 @@ export function BulkLikertPool({
             onChange={toggleAll}
             className="h-4 w-4 rounded border-slate-300 accent-[#2563EB]"
           />
-          Select all ({items.length - selectedIds.size} not added)
+          Select all ({addableIds.length} not added)
         </label>
         {newlyChecked.length > 0 && (
           <form action={handleBulkAdd}>
@@ -81,12 +81,13 @@ export function BulkLikertPool({
           const isAdded = selectedIds.has(item.id);
           const isChecked = checked.has(item.id);
           return (
-            <li key={item.id} className={`flex items-start gap-3 p-3 ${isChecked ? "bg-teal-50" : ""}`}>
+            <li key={item.id} className={`flex items-start gap-3 p-3 ${isAdded ? "bg-slate-50 opacity-70" : isChecked ? "bg-teal-50" : ""}`}>
               <input
                 type="checkbox"
-                checked={isChecked}
+                checked={isAdded ? true : isChecked}
+                disabled={isAdded}
                 onChange={() => toggleOne(item.id)}
-                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-[#2563EB]"
+                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-[#2563EB] disabled:cursor-not-allowed disabled:opacity-60"
               />
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex items-center gap-2">
@@ -96,6 +97,9 @@ export function BulkLikertPool({
                   )}
                   {item.polarity === "NEGATIVE" && (
                     <span className="rounded border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600">NEGATIVE</span>
+                  )}
+                  {isAdded && (
+                    <span className="rounded border border-slate-300 bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">✓ Added</span>
                   )}
                 </div>
                 <p className="text-sm text-[#0F172A]">{item.prompt}</p>

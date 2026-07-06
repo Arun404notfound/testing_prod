@@ -25,6 +25,7 @@ import { BuilderHeaderActions } from "./builder-header-actions";
 import { AutoDismissToast } from "@/components/ui/auto-dismiss-toast";
 import { ScrollToId } from "@/components/ui/scroll-to-id";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { SelectedContentList, type SelectedRow } from "./selected-content-list";
 
 type Search = {
   tab?: string;
@@ -202,11 +203,6 @@ export default async function AssessmentBuilderPage({
       .filter((c) => c.sourceTriadGroupId)
       .map((c) => [c.sourceTriadGroupId!, c.id]),
   );
-
-  type SelectedRow =
-    | { kind: "mcq"; section: string; key: string; label: string }
-    | { kind: "likert"; section: string; key: string; label: string }
-    | { kind: "triad"; section: string; key: string; label: string };
 
   const selectedRows: SelectedRow[] = [];
   for (const aq of assessment.questions) {
@@ -423,64 +419,19 @@ export default async function AssessmentBuilderPage({
           <p className="text-sm text-slate-500">No items yet. Add from the pool below.</p>
         ) : (
           <div className="space-y-6">
-            {Array.from(bySection.entries()).map(([sectionName, rows]) => {
-              const visibleRows = rows.slice(0, 3);
-              const restRows = rows.slice(3);
-              const renderRow = (row: SelectedRow) => (
-                <li
-                  key={row.key}
-                  className="flex flex-col gap-2 rounded-md border border-slate-200 p-3 md:flex-row md:items-start md:justify-between"
-                >
-                  <div>
-                    <span className="mr-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase text-slate-600">
-                      {row.kind}
-                    </span>
-                    <span>{row.label}</span>
-                  </div>
-                  <div className="shrink-0">
-                    {row.kind === "mcq" ? (
-                      <form action={removeMcqQuestion.bind(null, assessment.id, row.key.replace("mcq-", ""))}>
-                        <button type="submit" className="text-sm font-medium text-rose-600 hover:underline">
-                          Remove
-                        </button>
-                      </form>
-                    ) : (
-                      <form
-                        action={removeCompositionItem.bind(
-                          null,
-                          assessment.id,
-                          row.key.replace("comp-", ""),
-                        )}
-                      >
-                        <button type="submit" className="text-sm font-medium text-rose-600 hover:underline">
-                          Remove
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </li>
-              );
-              return (
-                <div key={sectionName}>
-                  <h3 className="mb-2 text-sm font-semibold text-[#0F172A]">
-                    {sectionName} <span className="font-normal text-slate-400">({rows.length})</span>
-                  </h3>
-                  <ul className="space-y-2 text-sm text-[#334155]">
-                    {visibleRows.map((row) => renderRow(row))}
-                  </ul>
-                  {restRows.length > 0 && (
-                    <details className="group mt-2">
-                      <summary className="cursor-pointer list-none text-xs font-semibold text-[#2563EB] hover:underline">
-                        View all ({restRows.length} more) →
-                      </summary>
-                      <ul className="mt-2 space-y-2 text-sm text-[#334155]">
-                        {restRows.map((row) => renderRow(row))}
-                      </ul>
-                    </details>
-                  )}
-                </div>
-              );
-            })}
+            {Array.from(bySection.entries()).map(([sectionName, rows]) => (
+              <div key={sectionName}>
+                <h3 className="mb-2 text-sm font-semibold text-[#0F172A]">
+                  {sectionName} <span className="font-normal text-slate-400">({rows.length})</span>
+                </h3>
+                <SelectedContentList
+                  rows={rows}
+                  assessmentId={assessment.id}
+                  removeMcqQuestion={removeMcqQuestion}
+                  removeCompositionItem={removeCompositionItem}
+                />
+              </div>
+            ))}
           </div>
         )}
       </FormCard>

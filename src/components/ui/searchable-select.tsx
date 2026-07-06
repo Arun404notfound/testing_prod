@@ -30,6 +30,7 @@ export function SearchableSelect({
   const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   const filtered =
     query.trim() === ""
@@ -52,7 +53,9 @@ export function SearchableSelect({
   useEffect(() => {
     if (!open) return;
     function onDocMouseDown(e: MouseEvent) {
-      if (wrapRef.current?.contains(e.target as Node)) return;
+      const target = e.target as Node;
+      if (wrapRef.current?.contains(target)) return;
+      if (listRef.current?.contains(target)) return;
       setOpen(false);
     }
     function onScrollOrResize() {
@@ -119,6 +122,7 @@ export function SearchableSelect({
       {open && rect && typeof document !== "undefined"
         ? createPortal(
             <ul
+              ref={listRef}
               style={{ position: "fixed", top: rect.top, left: rect.left, width: rect.width }}
               className="z-50 max-h-56 overflow-auto rounded-md border border-slate-200 bg-white text-sm shadow-lg"
             >
