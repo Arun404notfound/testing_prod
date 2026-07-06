@@ -247,3 +247,14 @@
 .magic-bento-card.card-large .magic-bento-card__description {
   font-size: 0.8em;
 }
+
+/* Clickable cards */
+.magic-bento-card--link {
+  cursor: pointer;
+}
+
+.magic-bento-card__link-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+}

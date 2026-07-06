@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useCallback, useState, ReactNode } from 'react';
+import Link from 'next/link';
 import { gsap } from 'gsap';
 import './MagicBento.css';
 
@@ -359,6 +360,7 @@ export interface BentoCardData {
   icon?: ReactNode;
   glowColor: string;
   isLarge?: boolean;
+  href?: string;
 }
 
 interface MagicBentoProps {
@@ -448,11 +450,13 @@ const MagicBento = ({
             </>
           );
 
+          const linkedClassName = card.href ? `${baseClassName} magic-bento-card--link` : baseClassName;
+
           if (enableStars) {
             return (
               <ParticleCard
                 key={index}
-                className={baseClassName}
+                className={linkedClassName}
                 style={cardStyle}
                 disableAnimations={shouldDisableAnimations}
                 particleCount={particleCount}
@@ -462,13 +466,19 @@ const MagicBento = ({
                 enableMagnetism={enableMagnetism}
                 data-variant={card.variant}
               >
+                {card.href ? (
+                  <Link href={card.href} className="magic-bento-card__link-overlay" aria-label={card.title} />
+                ) : null}
                 {content}
               </ParticleCard>
             );
           }
 
           return (
-            <div key={index} className={baseClassName} style={cardStyle} data-variant={card.variant}>
+            <div key={index} className={linkedClassName} style={cardStyle} data-variant={card.variant}>
+              {card.href ? (
+                <Link href={card.href} className="magic-bento-card__link-overlay" aria-label={card.title} />
+              ) : null}
               {content}
             </div>
           );

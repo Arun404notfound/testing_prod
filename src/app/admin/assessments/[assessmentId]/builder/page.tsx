@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Prisma } from "@/generated/prisma/client";
 import { AssessmentTenantSelect } from "@/components/admin/assessment-tenant-select";
 import { prisma } from "@/lib/prisma";
 import { FormCard } from "@/components/ui/form-card";
@@ -9,7 +8,6 @@ import { getDefaultTenantId } from "@/lib/tenant";
 import type { AssessmentType } from "@/generated/prisma/enums";
 import {
   allowsLikertPool,
-  allowsMcqPool,
   allowsTriadPool,
 } from "@/lib/assessment-pools";
 import {
@@ -21,27 +19,25 @@ import {
   updateAssessmentReportTemplate,
 } from "./actions";
 import { REPORT_TEMPLATE_LABELS, REPORT_TEMPLATE_TYPES } from "@/lib/report-layout";
-import { BulkMcqPool } from "./bulk-mcq-pool";
 import { BulkLikertPool } from "./bulk-likert-pool";
 import { BulkTriadPool } from "./bulk-triad-pool";
 import { BuilderHeaderActions } from "./builder-header-actions";
 import { AutoDismissToast } from "@/components/ui/auto-dismiss-toast";
+import { ScrollToId } from "@/components/ui/scroll-to-id";
 
 type Search = {
   tab?: string;
   section?: string;
-  category?: string;
   factor?: string;
   attribute?: string;
   groupCode?: string;
   saved?: string;
 };
 
-type PoolTab = "mcq" | "likert" | "triad";
+type PoolTab = "likert" | "triad";
 
 function allowedTabsForType(assessmentType: AssessmentType): PoolTab[] {
   const tabs: PoolTab[] = [];
-  if (allowsMcqPool(assessmentType)) tabs.push("mcq");
   if (allowsLikertPool(assessmentType)) tabs.push("likert");
   if (allowsTriadPool(assessmentType)) tabs.push("triad");
   return tabs;
@@ -49,38 +45,10 @@ function allowedTabsForType(assessmentType: AssessmentType): PoolTab[] {
 
 function resolveTab(assessmentType: AssessmentType, tab: string | undefined): PoolTab {
   const allowed = allowedTabsForType(assessmentType);
-  if (tab === "mcq" || tab === "likert" || tab === "triad") {
+  if (tab === "likert" || tab === "triad") {
     if (allowed.includes(tab)) return tab;
   }
-  return allowed[0] ?? "mcq";
-}
-
-function buildMcqWhere(tenantId: string, sp: Search): Prisma.QuestionWhereInput {
-  const sectionQ = sp.section?.trim() || "";
-  const categoryQ = sp.category?.trim() || "";
-  const factorQ = sp.factor?.trim() || "";
-  const attributeQ = sp.attribute?.trim() || "";
-
-  const andParts: Prisma.QuestionWhereInput[] = [{ tenantId }];
-
-  if (sectionQ) {
-    andParts.push({ section: { contains: sectionQ } });
-  }
-  if (categoryQ) {
-    andParts.push({ category: { contains: categoryQ } });
-  }
-  if (factorQ) {
-    andParts.push({
-      OR: [{ category: { contains: factorQ } }, { questionText: { contains: factorQ } }],
-    });
-  }
-  if (attributeQ) {
-    andParts.push({
-      OR: [{ category: { contains: attributeQ } }, { questionText: { contains: attributeQ } }],
-    });
-  }
-
-  return andParts.length === 1 ? andParts[0]! : { AND: andParts };
+  return allowed[0] ?? "likert";
 }
 
 export default async function AssessmentBuilderPage({
@@ -123,7 +91,6 @@ export default async function AssessmentBuilderPage({
   const assessmentType = assessment.assessmentType;
   const tab = resolveTab(assessmentType, sp.tab);
   const sectionQ = sp.section?.trim() || "";
-  const categoryQ = sp.category?.trim() || "";
   const factorQ = sp.factor?.trim() || "";
   const attributeQ = sp.attribute?.trim() || "";
   const groupCodeQ = sp.groupCode?.trim() || "";
@@ -132,17 +99,12 @@ export default async function AssessmentBuilderPage({
     const params = new URLSearchParams();
     params.set("tab", nextTab);
     if (sectionQ) params.set("section", sectionQ);
-    if (categoryQ) params.set("category", categoryQ);
     if (factorQ) params.set("factor", factorQ);
     if (attributeQ) params.set("attribute", attributeQ);
     if (groupCodeQ) params.set("groupCode", groupCodeQ);
     const qs = params.toString();
     return `/admin/assessments/${assessmentId}/builder${qs ? `?${qs}` : ""}`;
   };
-
-  const selectedMcqIds = new Set(assessment.questions.map((q) => q.questionId));
-
-  const mcqWhere = buildMcqWhere(tenantId, sp);
 
   // Find all assessments that belong to this tenant (for pool browsing).
   // We query items directly — no special pool-assessment-name required.
@@ -153,14 +115,7 @@ export default async function AssessmentBuilderPage({
     })
   ).map((a) => a.id);
 
-  const [mcqPool, likertItems, triadGroups] = await Promise.all([
-    allowsMcqPool(assessmentType)
-      ? prisma.question.findMany({
-          where: mcqWhere,
-          orderBy: { createdAt: "desc" },
-          take: 100,
-        })
-      : Promise.resolve([]),
+  const [likertItems, triadGroups] = await Promise.all([
     allowsLikertPool(assessmentType)
       ? prisma.assessmentItem.findMany({
           where: {
@@ -296,6 +251,7 @@ export default async function AssessmentBuilderPage({
       {sp.saved === "details" && (
         <AutoDismissToast message="Assessment details saved successfully." durationMs={3000} />
       )}
+      <ScrollToId targetId={sp.tab ? "question-pool" : null} />
       <div>
         <Link href="/admin/assessments" className="inline-flex items-center gap-1 text-xs font-medium text-[#64748B] hover:text-[#334155] transition mb-3">
           ← Back to assessments
@@ -387,7 +343,7 @@ export default async function AssessmentBuilderPage({
 
       <FormCard title="Tenant & branding">
         <p className="mb-4 text-sm text-[#64748B]">
-          Sets which client logo and colors appear on reports and the candidate test screen. MCQ and pool browsers still
+          Sets which client logo and colors appear on reports and the candidate test screen. Pool browsers still
           use the demo workspace question bank.
         </p>
         <form action={boundUpdateBrandingTenant} className="space-y-4">
@@ -426,11 +382,10 @@ export default async function AssessmentBuilderPage({
       </FormCard>
 
       <FormCard title="Filters (pool browser)">
-        <form method="GET" className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <form method="GET" className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
           <label className="text-sm text-[#334155]">
             <span className="mb-1 block font-medium">Item type tab</span>
             <select name="tab" defaultValue={tab} className="tg-input w-full">
-              {allowsMcqPool(assessmentType) ? <option value="mcq">MCQ pool</option> : null}
               {allowsLikertPool(assessmentType) ? <option value="likert">Likert pool</option> : null}
               {allowsTriadPool(assessmentType) ? <option value="triad">Triad pool</option> : null}
             </select>
@@ -438,10 +393,6 @@ export default async function AssessmentBuilderPage({
           <label className="text-sm text-[#334155]">
             <span className="mb-1 block font-medium">Section</span>
             <input name="section" defaultValue={sectionQ} className="tg-input w-full" placeholder="Contains…" />
-          </label>
-          <label className="text-sm text-[#334155]">
-            <span className="mb-1 block font-medium">Category (MCQ)</span>
-            <input name="category" defaultValue={categoryQ} className="tg-input w-full" placeholder="Contains…" />
           </label>
           <label className="text-sm text-[#334155]">
             <span className="mb-1 block font-medium">Factor</span>
@@ -455,7 +406,7 @@ export default async function AssessmentBuilderPage({
             <span className="mb-1 block font-medium">Triad group code</span>
             <input name="groupCode" defaultValue={groupCodeQ} className="tg-input w-full" placeholder="Triad tab" />
           </label>
-          <div className="md:col-span-3 lg:col-span-6">
+          <div className="md:col-span-3 lg:col-span-5">
             <button type="submit" className="tg-button-primary text-sm">
               Apply filters
             </button>
@@ -468,54 +419,71 @@ export default async function AssessmentBuilderPage({
           <p className="text-sm text-slate-500">No items yet. Add from the pool below.</p>
         ) : (
           <div className="space-y-6">
-            {Array.from(bySection.entries()).map(([sectionName, rows]) => (
-              <div key={sectionName}>
-                <h3 className="mb-2 text-sm font-semibold text-[#0F172A]">{sectionName}</h3>
-                <ul className="space-y-2 text-sm text-[#334155]">
-                  {rows.map((row) => (
-                    <li
-                      key={row.key}
-                      className="flex flex-col gap-2 rounded-md border border-slate-200 p-3 md:flex-row md:items-start md:justify-between"
-                    >
-                      <div>
-                        <span className="mr-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase text-slate-600">
-                          {row.kind}
-                        </span>
-                        <span>{row.label}</span>
-                      </div>
-                      <div className="shrink-0">
-                        {row.kind === "mcq" ? (
-                          <form action={removeMcqQuestion.bind(null, assessment.id, row.key.replace("mcq-", ""))}>
-                            <button type="submit" className="text-sm font-medium text-rose-600 hover:underline">
-                              Remove
-                            </button>
-                          </form>
-                        ) : (
-                          <form
-                            action={removeCompositionItem.bind(
-                              null,
-                              assessment.id,
-                              row.key.replace("comp-", ""),
-                            )}
-                          >
-                            <button type="submit" className="text-sm font-medium text-rose-600 hover:underline">
-                              Remove
-                            </button>
-                          </form>
+            {Array.from(bySection.entries()).map(([sectionName, rows]) => {
+              const visibleRows = rows.slice(0, 3);
+              const restRows = rows.slice(3);
+              const renderRow = (row: SelectedRow) => (
+                <li
+                  key={row.key}
+                  className="flex flex-col gap-2 rounded-md border border-slate-200 p-3 md:flex-row md:items-start md:justify-between"
+                >
+                  <div>
+                    <span className="mr-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs uppercase text-slate-600">
+                      {row.kind}
+                    </span>
+                    <span>{row.label}</span>
+                  </div>
+                  <div className="shrink-0">
+                    {row.kind === "mcq" ? (
+                      <form action={removeMcqQuestion.bind(null, assessment.id, row.key.replace("mcq-", ""))}>
+                        <button type="submit" className="text-sm font-medium text-rose-600 hover:underline">
+                          Remove
+                        </button>
+                      </form>
+                    ) : (
+                      <form
+                        action={removeCompositionItem.bind(
+                          null,
+                          assessment.id,
+                          row.key.replace("comp-", ""),
                         )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+                      >
+                        <button type="submit" className="text-sm font-medium text-rose-600 hover:underline">
+                          Remove
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </li>
+              );
+              return (
+                <div key={sectionName}>
+                  <h3 className="mb-2 text-sm font-semibold text-[#0F172A]">
+                    {sectionName} <span className="font-normal text-slate-400">({rows.length})</span>
+                  </h3>
+                  <ul className="space-y-2 text-sm text-[#334155]">
+                    {visibleRows.map((row) => renderRow(row))}
+                  </ul>
+                  {restRows.length > 0 && (
+                    <details className="group mt-2">
+                      <summary className="cursor-pointer list-none text-xs font-semibold text-[#2563EB] hover:underline">
+                        View all ({restRows.length} more) →
+                      </summary>
+                      <ul className="mt-2 space-y-2 text-sm text-[#334155]">
+                        {restRows.map((row) => renderRow(row))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </FormCard>
 
 
       {tab === "likert" && allowsLikertPool(assessmentType) ? (
-        <FormCard title={`Likert question pool (${likertItems.length})`}>
+        <FormCard id="question-pool" title={`Likert question pool (${likertItems.length})`}>
           <BulkLikertPool
             assessmentId={assessment.id}
             items={likertItems}
@@ -527,7 +495,7 @@ export default async function AssessmentBuilderPage({
       ) : null}
 
       {tab === "triad" && allowsTriadPool(assessmentType) ? (
-        <FormCard title={`Triad question pool (${triadGroups.length})`}>
+        <FormCard id="question-pool" title={`Triad question pool (${triadGroups.length})`}>
           <BulkTriadPool
             assessmentId={assessment.id}
             groups={triadGroups}

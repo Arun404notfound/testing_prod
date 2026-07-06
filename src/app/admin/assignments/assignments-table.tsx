@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
 import { Trash2, Filter, X } from "lucide-react";
 
@@ -29,18 +29,28 @@ export function AssignmentsTable({
   batches,
   cancelAssignment,
   bulkDeleteAssignments,
+  initialStatus,
 }: {
   assignments: AssignmentRow[];
   batches: string[];
   cancelAssignment: (id: string) => Promise<void>;
   bulkDeleteAssignments: (ids: string[]) => Promise<void>;
+  initialStatus?: string;
 }) {
   const [filterBatch, setFilterBatch] = useState("");
   const [filterAssessment, setFilterAssessment] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterStatus, setFilterStatus] = useState(initialStatus ?? "");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (window.location.hash === "#all-assignments") {
+      rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount, hash is read from the URL at load time
+  }, []);
 
   const allAssessments = useMemo(() => {
     const map = new Map<string, string>();
@@ -105,7 +115,7 @@ export function AssignmentsTable({
   }
 
   return (
-    <div className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden">
+    <div ref={rootRef} id="all-assignments" className="scroll-mt-6 rounded-xl border border-[#E2E8F0] bg-white overflow-hidden">
       {/* Header + filters */}
       <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4 space-y-3">
         <div className="flex items-center justify-between gap-3">

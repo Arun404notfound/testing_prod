@@ -178,7 +178,7 @@ function fmtDate(d: Date) {
 export default async function AssignmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; reason?: string; assessmentId?: string; assessmentTitle?: string; count?: string; total?: string; batchName?: string; deletedCount?: string }>;
+  searchParams: Promise<{ status?: string; reason?: string; assessmentId?: string; assessmentTitle?: string; count?: string; total?: string; batchName?: string; deletedCount?: string; filterStatus?: string }>;
 }) {
   const sp = await searchParams;
   const tenantId = await getDefaultTenantId();
@@ -301,6 +301,7 @@ export default async function AssignmentsPage({
         batches={batches}
         cancelAssignment={cancelAssignmentById}
         bulkDeleteAssignments={bulkDeleteAssignments}
+        initialStatus={sp.filterStatus}
       />
     </main>
   );

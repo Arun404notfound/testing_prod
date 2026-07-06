@@ -27,6 +27,7 @@ export function DashboardOverview({
       value: totalCandidates,
       title: 'Total Candidates',
       glowColor: '37, 99, 235',
+      href: '/admin/candidates',
       icon: (
         <div style={{ background: '#EFF6FF', borderRadius: 10, padding: 8, display: 'flex' }}>
           <Users size={18} color="#2563EB" />
@@ -39,6 +40,7 @@ export function DashboardOverview({
       value: activeAssessments,
       title: 'Active Assessments',
       glowColor: '37, 99, 235',
+      href: '/admin/assessments',
       icon: (
         <div style={{ background: '#DBEAFE', borderRadius: 10, padding: 8, display: 'flex' }}>
           <ClipboardList size={18} color="#1D4ED8" />
@@ -53,6 +55,7 @@ export function DashboardOverview({
       description: 'All-time assessment completions stored in the system.',
       glowColor: '15, 118, 110',
       isLarge: true,
+      href: '/admin/reports',
       icon: (
         <div style={{ background: '#CCFBF1', borderRadius: 10, padding: 8, display: 'flex' }}>
           <BarChart3 size={20} color="#0F766E" />
@@ -79,6 +82,7 @@ export function DashboardOverview({
       value: pendingAssignments,
       title: 'Pending Assignments',
       glowColor: '100, 116, 139',
+      href: '/admin/assignments?filterStatus=assigned#all-assignments',
       icon: (
         <div style={{ background: '#F1F5F9', borderRadius: 10, padding: 8, display: 'flex' }}>
           <Clock size={18} color="#475569" />
@@ -91,6 +95,7 @@ export function DashboardOverview({
       value: recentAttemptsCount,
       title: 'Recent Attempts',
       glowColor: '15, 118, 110',
+      href: '/admin/assignments?filterStatus=completed#all-assignments',
       icon: (
         <div style={{ background: '#F0FDFA', borderRadius: 10, padding: 8, display: 'flex' }}>
           <Activity size={18} color="#0F766E" />
