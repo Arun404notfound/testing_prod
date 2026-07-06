@@ -24,11 +24,11 @@ import { BulkTriadPool } from "./bulk-triad-pool";
 import { BuilderHeaderActions } from "./builder-header-actions";
 import { AutoDismissToast } from "@/components/ui/auto-dismiss-toast";
 import { ScrollToId } from "@/components/ui/scroll-to-id";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 type Search = {
   tab?: string;
-  section?: string;
-  factor?: string;
+  sentiment?: string;
   attribute?: string;
   groupCode?: string;
   saved?: string;
@@ -90,16 +90,14 @@ export default async function AssessmentBuilderPage({
 
   const assessmentType = assessment.assessmentType;
   const tab = resolveTab(assessmentType, sp.tab);
-  const sectionQ = sp.section?.trim() || "";
-  const factorQ = sp.factor?.trim() || "";
+  const sentimentQ = sp.sentiment === "POSITIVE" || sp.sentiment === "NEGATIVE" ? sp.sentiment : "";
   const attributeQ = sp.attribute?.trim() || "";
   const groupCodeQ = sp.groupCode?.trim() || "";
 
   const hybridTabHref = (nextTab: PoolTab) => {
     const params = new URLSearchParams();
     params.set("tab", nextTab);
-    if (sectionQ) params.set("section", sectionQ);
-    if (factorQ) params.set("factor", factorQ);
+    if (sentimentQ) params.set("sentiment", sentimentQ);
     if (attributeQ) params.set("attribute", attributeQ);
     if (groupCodeQ) params.set("groupCode", groupCodeQ);
     const qs = params.toString();
@@ -121,9 +119,8 @@ export default async function AssessmentBuilderPage({
           where: {
             OR: [{ assessmentId: { in: tenantAssessmentIds } }, { assessmentId: null }],
             itemType: "LIKERT",
-            ...(sectionQ ? { section: { title: { contains: sectionQ } } } : {}),
-            ...(factorQ ? { factor: { contains: factorQ } } : {}),
-            ...(attributeQ ? { trait: { contains: attributeQ } } : {}),
+            ...(attributeQ ? { trait: attributeQ } : {}),
+            ...(sentimentQ ? { polarity: sentimentQ } : {}),
           },
           include: { section: true },
           orderBy: { displayOrder: "asc" },
@@ -134,7 +131,6 @@ export default async function AssessmentBuilderPage({
       ? prisma.triadGroup.findMany({
           where: {
             OR: [{ assessmentId: { in: tenantAssessmentIds } }, { assessmentId: null }],
-            ...(sectionQ ? { section: { title: { contains: sectionQ } } } : {}),
             ...(groupCodeQ
               ? {
                   OR: [
@@ -143,12 +139,12 @@ export default async function AssessmentBuilderPage({
                   ],
                 }
               : {}),
-            ...(factorQ || attributeQ
+            ...(attributeQ || sentimentQ
               ? {
                   statements: {
                     some: {
-                      ...(factorQ ? { factor: { contains: factorQ } } : {}),
-                      ...(attributeQ ? { trait: { contains: attributeQ } } : {}),
+                      ...(attributeQ ? { trait: attributeQ } : {}),
+                      ...(sentimentQ ? { polarity: sentimentQ } : {}),
                     },
                   },
                 }
@@ -172,6 +168,8 @@ export default async function AssessmentBuilderPage({
       competencyMaps: { include: { competency: { select: { id: true, name: true } } } },
     },
   });
+
+  const attributeNames = [...new Set(allAttributes.map((a) => a.name))].sort((a, b) => a.localeCompare(b));
 
   /** Map: lower-cased attribute name → { code, category, competencies[] } */
   type AttrInfo = { code: string; category: string | null; competencies: string[] };
@@ -382,7 +380,7 @@ export default async function AssessmentBuilderPage({
       </FormCard>
 
       <FormCard title="Filters (pool browser)">
-        <form method="GET" className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
+        <form method="GET" className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm text-[#334155]">
             <span className="mb-1 block font-medium">Item type tab</span>
             <select name="tab" defaultValue={tab} className="tg-input w-full">
@@ -391,22 +389,28 @@ export default async function AssessmentBuilderPage({
             </select>
           </label>
           <label className="text-sm text-[#334155]">
-            <span className="mb-1 block font-medium">Section</span>
-            <input name="section" defaultValue={sectionQ} className="tg-input w-full" placeholder="Contains…" />
-          </label>
-          <label className="text-sm text-[#334155]">
-            <span className="mb-1 block font-medium">Factor</span>
-            <input name="factor" defaultValue={factorQ} className="tg-input w-full" placeholder="Likert / triad" />
+            <span className="mb-1 block font-medium">Sentiment</span>
+            <select name="sentiment" defaultValue={sentimentQ} className="tg-input w-full">
+              <option value="">All</option>
+              <option value="POSITIVE">Positive</option>
+              <option value="NEGATIVE">Negative</option>
+            </select>
           </label>
           <label className="text-sm text-[#334155]">
             <span className="mb-1 block font-medium">Attribute (trait)</span>
-            <input name="attribute" defaultValue={attributeQ} className="tg-input w-full" placeholder="Contains…" />
+            <SearchableSelect
+              name="attribute"
+              options={attributeNames}
+              defaultValue={attributeQ}
+              placeholder="Type to search…"
+              allLabel="All attributes"
+            />
           </label>
           <label className="text-sm text-[#334155]">
             <span className="mb-1 block font-medium">Triad group code</span>
             <input name="groupCode" defaultValue={groupCodeQ} className="tg-input w-full" placeholder="Triad tab" />
           </label>
-          <div className="md:col-span-3 lg:col-span-5">
+          <div className="md:col-span-2 lg:col-span-4">
             <button type="submit" className="tg-button-primary text-sm">
               Apply filters
             </button>
