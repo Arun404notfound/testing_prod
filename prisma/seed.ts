@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../src/generated/prisma/client";
@@ -273,6 +274,7 @@ async function main() {
     data: {
       candidateId: candidate3.id,
       assessmentId: likertAssessment.id,
+      accessToken: randomBytes(24).toString("base64url"),
       status: "assigned",
     },
   });
@@ -382,6 +384,7 @@ async function main() {
         data: {
           candidateId: candidate1.id,
           assessmentId: triadAssessment.id,
+          accessToken: randomBytes(24).toString("base64url"),
           status: "assigned",
         },
       });
@@ -407,22 +410,6 @@ async function main() {
   }
 
   const demoPassword = await bcrypt.hash("demo1234", 10);
-
-  for (const c of [candidate1, candidate2, candidate3]) {
-    const email = c.email.trim().toLowerCase();
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash: demoPassword,
-        role: "CANDIDATE",
-        tenantId: tenant.id,
-      },
-    });
-    await prisma.candidate.update({
-      where: { id: c.id },
-      data: { userId: user.id },
-    });
-  }
 
   await prisma.user.create({
     data: {

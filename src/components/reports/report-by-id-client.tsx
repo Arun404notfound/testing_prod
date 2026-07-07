@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useSearchParams } from "next/navigation";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import type { ReportPayload } from "@/lib/report-data";
@@ -50,9 +50,11 @@ function pdfFileName(assessmentName: string) {
 export default function ReportByIdClient() {
   const { resultId } = useParams<{ resultId: string }>();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
   const isCandidate = pathname.startsWith("/candidate/reports");
-  const backHref = isCandidate ? "/candidate" : "/admin/reports";
-  const backLabel = isCandidate ? "Back to my tests" : "Back to reports";
+  const backHref = "/admin/reports";
+  const backLabel = "Back to reports";
 
   const hasResultId = Boolean(resultId);
   const pagesRef = useRef<HTMLDivElement>(null);
@@ -63,14 +65,15 @@ export default function ReportByIdClient() {
   useEffect(() => {
     if (!hasResultId) return;
     (async () => {
-      const response = await fetch(`/api/reports/${resultId}`);
+      const url = token ? `/api/reports/${resultId}?token=${encodeURIComponent(token)}` : `/api/reports/${resultId}`;
+      const response = await fetch(url);
       if (response.ok) {
         const normalized = normalizeReportPayload(await response.json());
         if (normalized) setReport(normalized);
       }
       setLoading(false);
     })();
-  }, [hasResultId, resultId]);
+  }, [hasResultId, resultId, token]);
 
   const completedDate = useMemo(() => {
     if (!report) return "-";
@@ -159,9 +162,11 @@ export default function ReportByIdClient() {
     <main className="min-h-screen px-4 py-8 md:px-10" style={{ backgroundColor: reportTheme.pageBackground }}>
       <div className="mx-auto max-w-6xl">
         <div className="mb-5 space-y-3">
-          <Link href={backHref} className="inline-flex items-center gap-1 text-sm font-medium hover:underline" style={{ color: reportTheme.accent }}>
-            ← {backLabel}
-          </Link>
+          {!isCandidate && (
+            <Link href={backHref} className="inline-flex items-center gap-1 text-sm font-medium hover:underline" style={{ color: reportTheme.accent }}>
+              ← {backLabel}
+            </Link>
+          )}
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-xl font-semibold" style={{ color: reportTheme.primary }}>
               Report Preview
@@ -169,7 +174,7 @@ export default function ReportByIdClient() {
             <div className="flex items-center gap-2">
               {isCandidate && (
                 <Link
-                  href={`/candidate/reports/${resultId}/submissions`}
+                  href={`/candidate/reports/${resultId}/submissions${token ? `?token=${encodeURIComponent(token)}` : ""}`}
                   className="rounded-lg border px-3 py-2 text-xs font-semibold transition hover:opacity-80"
                   style={{ borderColor: reportTheme.primary, color: reportTheme.primary }}
                 >

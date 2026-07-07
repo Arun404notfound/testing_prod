@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { unauthorizedIfNotAdmin } from "@/lib/auth/require-admin-api";
-import { createCandidateWithLoginUser } from "@/lib/candidate-user";
+import { createCandidate } from "@/lib/candidate-user";
 
 export const runtime = "nodejs";
 
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   }
 
   const tenantId = await getDefaultTenantId();
-  const result = await createCandidateWithLoginUser({
+  const result = await createCandidate({
     tenantId,
     fullName: body.fullName!.trim(),
     email: body.email!.trim(),
@@ -61,19 +61,7 @@ export async function POST(request: Request) {
   });
 
   if (!result.ok) {
-    const status =
-      result.error === "email_in_use_non_candidate"
-        ? 409
-        : result.error === "email_linked_other_candidate"
-          ? 409
-          : 400;
-    const message =
-      result.error === "email_in_use_non_candidate"
-        ? "Email already used by a non-candidate user"
-        : result.error === "email_linked_other_candidate"
-          ? "Email already linked to another candidate"
-          : "Could not create candidate";
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json({ error: "Could not create candidate" }, { status: 400 });
   }
 
   const candidate = await prisma.candidate.findUnique({

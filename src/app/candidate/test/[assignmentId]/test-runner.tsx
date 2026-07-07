@@ -490,6 +490,7 @@ function MobileNavDrawer({ blocks, answers, currentIndex, onClose }: {
 // Best-effort fire-and-forget autosave — never throws, never blocks UI
 async function autosave(
   attemptId: string,
+  accessToken: string,
   answers: Answers,
   skipped: Set<number>,
   blocks: TestBlock[],
@@ -500,7 +501,7 @@ async function autosave(
     await fetch(`/api/candidate/attempts/${attemptId}/autosave`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers, skippedKeys, remainingSeconds }),
+      body: JSON.stringify({ answers, skippedKeys, remainingSeconds, token: accessToken }),
       credentials: "same-origin",
     });
   } catch {
@@ -515,9 +516,10 @@ function firstUnansweredIndex(blocks: TestBlock[], saved: Answers): number {
 }
 
 export function CandidateTestRunner({
-  assignmentId, blocks, assessmentTitle, candidateName, durationMinutes, attemptId, savedAnswers, startedAtIso, savedRemainingSeconds, timerSavedAt,
+  assignmentId, accessToken, blocks, assessmentTitle, candidateName, durationMinutes, attemptId, savedAnswers, startedAtIso, savedRemainingSeconds, timerSavedAt,
 }: {
   assignmentId: string;
+  accessToken: string;
   blocks: TestBlock[];
   assessmentTitle?: string;
   candidateName?: string;
@@ -573,7 +575,7 @@ export function CandidateTestRunner({
   useEffect(() => {
     if (!attemptId) return;
     const id = setTimeout(() => {
-      void autosave(attemptId, answersRef.current, new Set(), blocks, remainingRef.current);
+      void autosave(attemptId, accessToken, answersRef.current, new Set(), blocks, remainingRef.current);
     }, 1500);
     return () => clearTimeout(id);
   }, [answers, attemptId, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -582,7 +584,7 @@ export function CandidateTestRunner({
   useEffect(() => {
     if (!attemptId) return;
     const id = setInterval(() => {
-      void autosave(attemptId, answersRef.current, new Set(), blocks, remainingRef.current);
+      void autosave(attemptId, accessToken, answersRef.current, new Set(), blocks, remainingRef.current);
     }, 15_000);
     return () => clearInterval(id);
   }, [attemptId, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -610,7 +612,7 @@ export function CandidateTestRunner({
   useEffect(() => {
     if (!attemptId) return;
     const handleOnline = () => {
-      void autosave(attemptId, answersRef.current, new Set(), blocks, remainingRef.current);
+      void autosave(attemptId, accessToken, answersRef.current, new Set(), blocks, remainingRef.current);
     };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
@@ -633,7 +635,7 @@ export function CandidateTestRunner({
   useEffect(() => {
     if (!attemptId) return;
     const handleUnload = () => {
-      const payload = JSON.stringify({ answers: answersRef.current, skippedKeys: [], remainingSeconds: remainingRef.current, trigger: "beforeunload" });
+      const payload = JSON.stringify({ answers: answersRef.current, skippedKeys: [], remainingSeconds: remainingRef.current, trigger: "beforeunload", token: accessToken });
       try {
         navigator.sendBeacon(
           `/api/candidate/attempts/${attemptId}/autosave`,
@@ -658,7 +660,7 @@ export function CandidateTestRunner({
       const res = await fetch("/api/candidate/demo-submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignmentId, answers, skippedKeys: [], submissionType }),
+        body: JSON.stringify({ assignmentId, answers, skippedKeys: [], submissionType, token: accessToken }),
         credentials: "same-origin",
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; resultId?: string; error?: string };
@@ -669,12 +671,12 @@ export function CandidateTestRunner({
       }
       try { sessionStorage.removeItem("activeAttemptId"); } catch { /* ignore */ }
       setSubmitDone(true);
-      setTimeout(() => router.push(`/candidate/reports/${data.resultId}`), 1500);
+      setTimeout(() => router.push(`/candidate/reports/${data.resultId}?token=${accessToken}`), 1500);
     } catch {
       setError("Your internet connection was interrupted and the submission could not be sent. Please check your connection and try again.");
       setLoading(false);
     }
-  }, [assignmentId, answers, skipped, blocks, router]);
+  }, [assignmentId, accessToken, answers, skipped, blocks, router]);
 
   const handleTimesUp = useCallback(() => {
     setTimesUp(true);
@@ -722,7 +724,7 @@ export function CandidateTestRunner({
     navLockRef.current = true;
 
     if (attemptId) {
-      void autosave(attemptId, answers, new Set(), blocks, remainingRef.current);
+      void autosave(attemptId, accessToken, answers, new Set(), blocks, remainingRef.current);
     }
 
     if (currentIndex < total - 1) {

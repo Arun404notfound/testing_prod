@@ -9,7 +9,6 @@ import {
   ClipboardList,
   FileUp,
   HelpCircle,
-  KeyRound,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -35,13 +34,13 @@ const navGroups = [
     label: "People",
     items: [
       { href: "/admin/candidates", label: "Candidates", icon: Users },
-      { href: "/admin/assignments", label: "Assignments", icon: UserPlus },
+      { href: "/admin/assignments", label: "Assign Assessments", icon: UserPlus },
     ],
   },
   {
     label: "Content",
     items: [
-      { href: "/admin/assessments", label: "Assessments", icon: ClipboardList },
+      { href: "/admin/assessments", label: "Assessment Builder", icon: ClipboardList },
       { href: "/admin/questions", label: "Questions", icon: HelpCircle },
       { href: "/admin/competencies", label: "Competencies", icon: Brain },
       { href: "/admin/imports", label: "Imports", icon: FileUp },
@@ -51,7 +50,6 @@ const navGroups = [
     label: "Reports & Settings",
     items: [
       { href: "/admin/reports", label: "Reports", icon: BarChart3 },
-      { href: "/admin/authentication", label: "Authentication", icon: KeyRound },
     ],
   },
 ];

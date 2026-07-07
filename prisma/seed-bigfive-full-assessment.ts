@@ -22,6 +22,7 @@
  */
 
 import "dotenv/config";
+import { randomBytes } from "node:crypto";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../src/generated/prisma/client";
 
@@ -426,6 +427,7 @@ async function main() {
     data: {
       candidateId: candidate.id,
       assessmentId: assessment.id,
+      accessToken: randomBytes(24).toString("base64url"),
       status: "assigned",
     },
   });

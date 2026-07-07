@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
-import { createCandidateWithLoginUser } from "@/lib/candidate-user";
+import { createCandidate } from "@/lib/candidate-user";
 
 export type ImportKind = "CANDIDATES" | "MCQ_QUESTIONS" | "LIKERT_ITEMS" | "TRIAD_ITEMS";
 
@@ -116,7 +116,7 @@ export async function processImportFile(args: {
           throw new Error(`Missing required fields: ${missing.join(", ")}`);
         }
 
-        const created = await createCandidateWithLoginUser({
+        const created = await createCandidate({
           tenantId: args.tenantId,
           fullName: row.fullname,
           email: row.email,
@@ -128,13 +128,7 @@ export async function processImportFile(args: {
           batchName: args.batchName ?? null,
         });
         if (!created.ok) {
-          throw new Error(
-            created.error === "email_in_use_non_candidate"
-              ? "Email already used by a non-candidate account"
-              : created.error === "email_linked_other_candidate"
-                ? "Email already linked to another candidate"
-                : "Could not create candidate login",
-          );
+          throw new Error("Could not create candidate");
         }
       } else if (args.importType === "MCQ_QUESTIONS") {
         const required = [

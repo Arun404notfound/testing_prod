@@ -6,6 +6,8 @@ import { ClipboardCheck, Clock, UserCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { getDefaultTenantId } from "@/lib/tenant";
+import { appUrl } from "@/lib/app-url";
+import { generateAccessToken, sendAssignmentAssignedEmail } from "@/lib/email/assignment-email";
 import { AssignmentForm } from "./assignment-form";
 import { AssignmentsTable } from "./assignments-table";
 import { AutoDismissToast } from "@/components/ui/auto-dismiss-toast";
@@ -25,14 +27,15 @@ async function bulkAssignBatch(formData: FormData) {
 
   const tenantId = await getDefaultTenantId();
   const [assessment, candidates] = await Promise.all([
-    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true } }),
-    prisma.candidate.findMany({ where: { tenantId, batchName: { in: batchNames } }, select: { id: true } }),
+    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true, title: true } }),
+    prisma.candidate.findMany({ where: { tenantId, batchName: { in: batchNames } }, select: { id: true, fullName: true, email: true } }),
   ]);
 
   if (!assessment) redirect("/admin/assignments?status=error&reason=not_found");
   if (candidates.length === 0) redirect("/admin/assignments?status=error&reason=batch_empty");
 
   let created = 0;
+  let emailFailures = 0;
   for (const candidate of candidates) {
     const existing = await prisma.assessmentAssignment.findFirst({
       where: {
@@ -43,16 +46,25 @@ async function bulkAssignBatch(formData: FormData) {
       },
     });
     if (!existing) {
-      await prisma.assessmentAssignment.create({
-        data: { candidateId: candidate.id, assessmentId, status: "assigned", expiresAt, durationMinutes },
+      const accessToken = generateAccessToken();
+      const assignment = await prisma.assessmentAssignment.create({
+        data: { candidateId: candidate.id, assessmentId, accessToken, status: "assigned", expiresAt, durationMinutes },
       });
       created++;
+      const emailResult = await sendAssignmentAssignedEmail({
+        candidateEmail: candidate.email,
+        candidateName: candidate.fullName,
+        assessmentTitle: assessment.title,
+        link: appUrl(`/candidate/test/${assignment.id}?token=${accessToken}`),
+        durationMinutes,
+        expiresAt,
+      });
+      if (!emailResult.ok) emailFailures++;
     }
   }
 
   revalidatePath("/admin/assignments");
-  revalidatePath("/candidate");
-  redirect(`/admin/assignments?status=bulk_success&count=${created}&total=${candidates.length}`);
+  redirect(`/admin/assignments?status=bulk_success&count=${created}&total=${candidates.length}&emailFailures=${emailFailures}`);
 }
 
 async function createAssignment(formData: FormData) {
@@ -68,8 +80,8 @@ async function createAssignment(formData: FormData) {
 
   const tenantId = await getDefaultTenantId();
   const [candidate, assessment] = await Promise.all([
-    prisma.candidate.findFirst({ where: { id: candidateId, tenantId }, select: { id: true } }),
-    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true } }),
+    prisma.candidate.findFirst({ where: { id: candidateId, tenantId }, select: { id: true, fullName: true, email: true } }),
+    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true, title: true } }),
   ]);
   if (!candidate || !assessment) redirect("/admin/assignments?status=error&reason=not_found");
 
@@ -83,13 +95,22 @@ async function createAssignment(formData: FormData) {
   });
   if (existing) redirect("/admin/assignments?status=error&reason=duplicate");
 
-  await prisma.assessmentAssignment.create({
-    data: { candidateId, assessmentId, status: "assigned", expiresAt, durationMinutes },
+  const accessToken = generateAccessToken();
+  const assignment = await prisma.assessmentAssignment.create({
+    data: { candidateId, assessmentId, accessToken, status: "assigned", expiresAt, durationMinutes },
+  });
+
+  const emailResult = await sendAssignmentAssignedEmail({
+    candidateEmail: candidate.email,
+    candidateName: candidate.fullName,
+    assessmentTitle: assessment.title,
+    link: appUrl(`/candidate/test/${assignment.id}?token=${accessToken}`),
+    durationMinutes,
+    expiresAt,
   });
 
   revalidatePath("/admin/assignments");
-  revalidatePath("/candidate");
-  redirect("/admin/assignments?status=success");
+  redirect(`/admin/assignments?status=success${emailResult.ok ? "" : "&emailFailed=1"}`);
 }
 
 async function cancelAssignment(formData: FormData) {
@@ -178,7 +199,7 @@ function fmtDate(d: Date) {
 export default async function AssignmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; reason?: string; assessmentId?: string; assessmentTitle?: string; count?: string; total?: string; batchName?: string; deletedCount?: string; filterStatus?: string }>;
+  searchParams: Promise<{ status?: string; reason?: string; assessmentId?: string; assessmentTitle?: string; count?: string; total?: string; batchName?: string; deletedCount?: string; filterStatus?: string; emailFailed?: string; emailFailures?: string }>;
 }) {
   const sp = await searchParams;
   const tenantId = await getDefaultTenantId();
@@ -224,7 +245,7 @@ export default async function AssignmentsPage({
   return (
     <main className="tg-page space-y-6">
       <PageHeader
-        title="Assignments"
+        title="Assign Assessments"
         subtitle="Assign assessments to candidates and track their status."
         right={
           <div className="flex items-center gap-3">
@@ -238,11 +259,22 @@ export default async function AssignmentsPage({
 
       {/* Toast notifications */}
       {sp.status === "success" && (
-        <AutoDismissToast message="Assignment created. The candidate can now start the assessment." />
+        <AutoDismissToast
+          variant={sp.emailFailed ? "error" : undefined}
+          message={
+            sp.emailFailed
+              ? "Assignment created, but the notification email could not be sent. Check the Brevo configuration."
+              : "Assignment created. The candidate has been emailed a link to start the assessment."
+          }
+        />
       )}
       {sp.status === "bulk_success" && (
         <AutoDismissToast
-          message={`Bulk assigned: ${sp.count} new assignment${Number(sp.count) !== 1 ? "s" : ""} created (${sp.total} candidates in batch, duplicates skipped).`}
+          variant={Number(sp.emailFailures) > 0 ? "error" : undefined}
+          message={
+            `Bulk assigned: ${sp.count} new assignment${Number(sp.count) !== 1 ? "s" : ""} created (${sp.total} candidates in batch, duplicates skipped).` +
+            (Number(sp.emailFailures) > 0 ? ` ${sp.emailFailures} notification email${Number(sp.emailFailures) !== 1 ? "s" : ""} failed to send.` : "")
+          }
         />
       )}
       {sp.status === "delete_batch_success" && (

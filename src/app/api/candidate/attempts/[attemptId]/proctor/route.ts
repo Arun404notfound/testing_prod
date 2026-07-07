@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getDefaultTenantId } from "@/lib/tenant";
-import { tenantMatchesRow } from "@/lib/tenant-match";
-import { getSession } from "@/lib/auth/session";
 import type { ProctoringEventType } from "@/generated/prisma/enums";
 
 export const runtime = "nodejs";
@@ -10,9 +7,9 @@ export const runtime = "nodejs";
 const MAX_SNAPSHOT_CHARS = 450_000;
 
 type ProctorBody =
-  | { action: "event"; eventType: ProctoringEventType }
-  | { action: "snapshot"; dataUrl: string }
-  | { action: "camera"; granted: boolean };
+  | { action: "event"; eventType: ProctoringEventType; token?: string }
+  | { action: "snapshot"; dataUrl: string; token?: string }
+  | { action: "camera"; granted: boolean; token?: string };
 
 export async function POST(
   request: Request,
@@ -30,25 +27,15 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const session = await getSession();
-  if (!session || session.role !== "CANDIDATE" || !session.candidateId) {
+  if (!body.token) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const tenantId = await getDefaultTenantId();
   const attempt = await prisma.assessmentAttempt.findFirst({
-    where: { id: attemptId, status: "IN_PROGRESS" },
-    include: {
-      assignment: { include: { candidate: true, assessment: true } },
-    },
+    where: { id: attemptId, status: "IN_PROGRESS", assignment: { accessToken: body.token } },
   });
 
-  if (
-    !attempt ||
-    !attempt.assignment ||
-    attempt.assignment.candidateId !== session.candidateId ||
-    !tenantMatchesRow(attempt.assignment.candidate.tenantId, tenantId)
-  ) {
+  if (!attempt) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

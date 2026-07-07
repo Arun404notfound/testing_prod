@@ -151,7 +151,7 @@ export function AssignmentForm({
               <p className="text-xs font-semibold uppercase tracking-wide text-[#475569]">Assignment settings</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Expiry date <span className="font-normal text-[#94A3B8]">(optional)</span></label>
+                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Deadline <span className="font-normal text-[#94A3B8]">(optional)</span></label>
                   <input
                     type="datetime-local"
                     name="expiresAt"
@@ -240,7 +240,7 @@ export function AssignmentForm({
               <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">Assignment settings</p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Expiry date <span className="font-normal text-[#94A3B8]">(optional)</span></label>
+                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Deadline <span className="font-normal text-[#94A3B8]">(optional)</span></label>
                   <input
                     type="datetime-local"
                     name="expiresAt"

@@ -16,6 +16,7 @@ import type { TestBlock } from "@/lib/candidate-test-payload";
 
 interface Props {
   assignmentId: string;
+  accessToken: string;
   blocks: TestBlock[];
   assessmentTitle?: string;
   candidateName?: string;
@@ -45,7 +46,7 @@ const INSTRUCTIONS = [
 
 type SessionState = "checking" | "duplicate" | "fresh";
 
-export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candidateName, durationMinutes, assessmentDurationMinutes, durationIsOverridden, activeAttemptId, activeProgressData, activeStartedAt }: Props) {
+export function InstructionsGate({ assignmentId, accessToken, blocks, assessmentTitle, candidateName, durationMinutes, assessmentDurationMinutes, durationIsOverridden, activeAttemptId, activeProgressData, activeStartedAt }: Props) {
   const [accepted, setAccepted] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -98,6 +99,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
     return (
       <CandidateTestRunner
         assignmentId={assignmentId}
+        accessToken={accessToken}
         attemptId={attemptId}
         blocks={blocks}
         assessmentTitle={assessmentTitle}
@@ -142,14 +144,6 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
               Continuing here will run two sessions in parallel and may cause answers to overwrite each other.
             </p>
           </div>
-          <div className="mt-5">
-            <a
-              href="/candidate"
-              className="w-full rounded-xl bg-[#2563EB] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1D4EDB] text-center block"
-            >
-              Go to Dashboard
-            </a>
-          </div>
         </div>
       </div>
     );
@@ -162,7 +156,7 @@ export function InstructionsGate({ assignmentId, blocks, assessmentTitle, candid
       const res = await fetch("/api/candidate/attempts/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assignmentId }),
+        body: JSON.stringify({ assignmentId, token: accessToken }),
         credentials: "same-origin",
       });
       const data = (await res.json().catch(() => ({}))) as {

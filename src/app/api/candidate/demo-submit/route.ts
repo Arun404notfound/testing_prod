@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
-import { tenantMatchesRow } from "@/lib/tenant-match";
-import { getSession } from "@/lib/auth/session";
 import { buildTestBlocks, type TestBlock } from "@/lib/candidate-test-payload";
 import { scoreAssessment, type AnswerMap, type ScoringContext } from "@/lib/scoring/scoringEngine";
 import {
@@ -157,11 +155,6 @@ function buildDemo70ScoringResult(): ReturnType<typeof scoreAssessment> {
 }
 
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session || session.role !== "CANDIDATE" || !session.candidateId) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -169,11 +162,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  const b = body as { assignmentId?: string; answers?: unknown; submissionType?: string };
+  const b = body as { assignmentId?: string; answers?: unknown; submissionType?: string; token?: string };
   const assignmentId = String(b.assignmentId ?? "").trim();
   const submissionType = typeof b.submissionType === "string" ? b.submissionType : "NORMAL";
+  const token = String(b.token ?? "").trim();
   if (!assignmentId) {
     return NextResponse.json({ ok: false, error: "Missing assignmentId" }, { status: 400 });
+  }
+  if (!token) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
   const requestAnswers: AnswerMap =
@@ -227,11 +224,7 @@ export async function POST(req: Request) {
     },
   });
 
-  if (
-    !assignment ||
-    assignment.candidateId !== session.candidateId ||
-    !tenantMatchesRow(assignment.candidate.tenantId, tenantId)
-  ) {
+  if (!assignment || assignment.accessToken !== token) {
     return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
   }
 
@@ -248,7 +241,7 @@ export async function POST(req: Request) {
   // If the request body answers are empty, fall back to autosaved progressData so
   // responses are never lost when the submit fires before answers are fully hydrated.
   const inProgressAttempt = await prisma.assessmentAttempt.findFirst({
-    where: { assignmentId: assignment.id, status: "IN_PROGRESS", candidateId: session.candidateId },
+    where: { assignmentId: assignment.id, status: "IN_PROGRESS", candidateId: assignment.candidateId },
     orderBy: { createdAt: "desc" },
     select: { id: true, attemptNo: true, startedAt: true, progressData: true },
   });
@@ -463,7 +456,7 @@ export async function POST(req: Request) {
     console.log("[demo-submit] ok", {
       assignmentId,
       resultId: createdResult.id,
-      candidateId: session.candidateId,
+      candidateId: assignment.candidateId,
       overallScore,
     });
 

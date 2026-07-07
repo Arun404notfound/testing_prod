@@ -81,7 +81,7 @@ export default async function AssessmentsPage() {
   return (
     <main className="tg-page space-y-6">
       <PageHeader
-        title="Assessments"
+        title="Assessment Builder"
         subtitle="Create assessments, add items in the builder, then publish before assigning."
         right={
           <div className="flex items-center gap-3">

@@ -9,8 +9,6 @@ import { getTemplateColumns } from "@/lib/import-templates";
 import { PageHeader } from "@/components/ui/page-header";
 import { FormCard } from "@/components/ui/form-card";
 import { TableCard } from "@/components/ui/table-card";
-import { appUrl, createPasswordToken } from "@/lib/auth/password-tokens";
-import { ShareLinkCard } from "@/components/auth/share-link-card";
 
 async function runImport(formData: FormData) {
   "use server";
@@ -41,7 +39,6 @@ async function runImport(formData: FormData) {
     select: { id: true },
   });
 
-  let invite: string | null = null;
   try {
     const result = await processImportFile({
       tenantId,
@@ -66,7 +63,6 @@ async function runImport(formData: FormData) {
         },
       },
     });
-    if (importType === "CANDIDATES" && result.successRows > 0) invite = await createPasswordToken({ purpose: "BATCH_SETUP", tenantId, batchName });
   } catch {
     await prisma.importJob.update({
       where: { id: job.id },
@@ -83,15 +79,15 @@ async function runImport(formData: FormData) {
   }
 
   revalidatePath("/admin/imports");
-  redirect(`/admin/imports?jobId=${job.id}${invite ? `&invite=${encodeURIComponent(invite)}` : ""}`);
+  redirect(`/admin/imports?jobId=${job.id}`);
 }
 
 export default async function ImportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; jobId?: string; invite?: string }>;
+  searchParams: Promise<{ status?: string; jobId?: string }>;
 }) {
-  const { status, jobId, invite } = await searchParams;
+  const { status, jobId } = await searchParams;
   const tenantId = await getDefaultTenantId();
   const templateColumns = getTemplateColumns();
 
@@ -144,8 +140,6 @@ export default async function ImportsPage({
             Please select an import type and file.
           </div>
         ) : null}
-
-        {invite && <ShareLinkCard message="Generate your password for your AptIQ account through the following link:" link={appUrl(`/set-password/${invite}`)} />}
 
         <FormCard title="Upload File">
           <form action={runImport} className="space-y-4">

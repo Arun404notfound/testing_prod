@@ -257,4 +257,12 @@
   position: absolute;
   inset: 0;
   z-index: 10;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  appearance: none;
+  font: inherit;
+  text-align: inherit;
 }

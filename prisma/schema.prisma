@@ -85,7 +85,6 @@ enum ReportTemplateType {
 enum UserRole {
   SUPER_ADMIN
   ADMIN
-  CANDIDATE
 }
 
 model Tenant {
@@ -122,60 +121,14 @@ model User {
   updatedAt    DateTime @default(now()) @updatedAt
   passwordSetAt DateTime?
   tenant           Tenant?    @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  candidateProfile Candidate? @relation("UserCandidateProfile")
-  passwordTokens PasswordToken[]
-  passwordResetRequests PasswordResetRequest[]
 
   @@index([tenantId])
   @@index([role])
 }
 
-enum PasswordTokenPurpose {
-  INITIAL_SETUP
-  RESET
-  BATCH_SETUP
-}
-
-enum PasswordResetStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-model PasswordToken {
-  id        String               @id @default(cuid())
-  tokenHash String               @unique
-  purpose   PasswordTokenPurpose
-  userId    String?
-  tenantId  String?
-  batchName String?
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime             @default(now())
-  user      User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([tenantId, batchName])
-}
-
-model PasswordResetRequest {
-  id          String              @id @default(cuid())
-  userId      String
-  tenantId    String?
-  status      PasswordResetStatus @default(PENDING)
-  reviewedAt  DateTime?
-  reviewedBy  String?
-  createdAt   DateTime            @default(now())
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId, status])
-  @@index([userId, createdAt])
-}
-
 model Candidate {
   id          String                 @id @default(cuid())
   tenantId    String?
-  userId      String?                @unique
   fullName    String
   email       String
   mobile      String
@@ -187,7 +140,6 @@ model Candidate {
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @default(now()) @updatedAt
   tenant      Tenant?                @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  user        User?                  @relation("UserCandidateProfile", fields: [userId], references: [id], onDelete: SetNull)
   assignments AssessmentAssignment[]
   attempts    AssessmentAttempt[]
   results     AssessmentResult[]
@@ -384,6 +336,7 @@ model AssessmentAssignment {
   id              String              @id @default(cuid())
   candidateId     String
   assessmentId    String
+  accessToken     String              @unique
   status          AssignmentStatus    @default(assigned)
   assignedAt      DateTime            @default(now())
   completedAt     DateTime?

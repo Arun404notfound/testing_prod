@@ -8,8 +8,10 @@ import {
   Users,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getDefaultTenantId } from "@/lib/tenant";
 import { ModuleCard } from "@/components/ui/module-card";
 import { DashboardOverview } from "@/components/ui/DashboardOverview";
+import { quickAssignAction } from "@/app/admin/assignments/quick-assign-action";
 
 const cards = [
   {
@@ -25,13 +27,13 @@ const cards = [
     icon: HelpCircle,
   },
   {
-    title: "Assessments",
+    title: "Assessment Builder",
     description: "Create demo assessments from existing questions.",
     href: "/admin/assessments",
     icon: ClipboardList,
   },
   {
-    title: "Assignments",
+    title: "Assign Assessments",
     description: "Assign assessments to candidates and track status.",
     href: "/admin/assignments",
     icon: UserPlus,
@@ -57,10 +59,14 @@ function formatShortDate(d: Date) {
 export default async function AdminDashboardPage() {
   // eslint-disable-next-line react-hooks/purity -- server component, runs per-request
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const tenantId = await getDefaultTenantId();
 
   const [
     totalCandidates,
     activeAssessments,
+    activeAssessmentsList,
+    assignableCandidates,
+    batchRows,
     completedTests,
     avgScoreAgg,
     pendingAssignments,
@@ -72,6 +78,21 @@ export default async function AdminDashboardPage() {
     prisma.candidate.count(),
     prisma.assessment.count({
       where: { lifecycleStatus: "published", isActive: true },
+    }),
+    prisma.assessment.findMany({
+      where: { lifecycleStatus: "published", isActive: true },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, title: true, assessmentType: true, durationMinutes: true },
+    }),
+    prisma.candidate.findMany({
+      where: { tenantId },
+      orderBy: { fullName: "asc" },
+      select: { id: true, fullName: true, email: true },
+    }),
+    prisma.candidate.findMany({
+      where: { tenantId },
+      select: { batchName: true },
+      orderBy: { batchName: "asc" },
     }),
     prisma.assessmentResult.count(),
     prisma.assessmentResult.aggregate({ _avg: { overallScore: true } }),
@@ -125,6 +146,8 @@ export default async function AdminDashboardPage() {
   const avgScore =
     rawAvg % 1 === 0 ? Math.round(rawAvg) : Math.round(rawAvg * 10) / 10;
 
+  const batches = [...new Set(batchRows.map((b) => b.batchName).filter((b): b is string => Boolean(b)))];
+
   return (
     <main className="tg-page space-y-8 md:[background-image:url('/dash_logo.webp')] md:bg-cover md:bg-no-repeat md:[background-position:top_right]">
       <div className="mb-8">
@@ -139,6 +162,10 @@ export default async function AdminDashboardPage() {
         <DashboardOverview
           totalCandidates={totalCandidates}
           activeAssessments={activeAssessments}
+          activeAssessmentsList={activeAssessmentsList}
+          assignableCandidates={assignableCandidates}
+          batches={batches}
+          quickAssignAction={quickAssignAction}
           completedTests={completedTests}
           avgScore={avgScore}
           pendingAssignments={pendingAssignments}

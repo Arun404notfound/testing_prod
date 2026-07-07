@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth/session";
 
 export const runtime = "nodejs";
 
@@ -9,11 +8,6 @@ export async function POST(
   { params }: { params: Promise<{ attemptId: string }> },
 ) {
   try {
-    const session = await getSession();
-    if (!session || session.role !== "CANDIDATE" || !session.candidateId) {
-      return NextResponse.json({ ok: false }, { status: 401 });
-    }
-
     const { attemptId } = await params;
     if (!attemptId) return NextResponse.json({ ok: false }, { status: 400 });
 
@@ -24,19 +18,22 @@ export async function POST(
       return NextResponse.json({ ok: false }, { status: 400 });
     }
 
-    const { answers, skippedKeys, remainingSeconds, trigger } = body as {
+    const { answers, skippedKeys, remainingSeconds, trigger, token } = body as {
       answers?: Record<string, unknown>;
       skippedKeys?: string[];
       remainingSeconds?: number;
       trigger?: string;
+      token?: string;
     };
 
-    // Verify the attempt belongs to this candidate and is still in progress
+    if (!token) return NextResponse.json({ ok: false }, { status: 401 });
+
+    // Verify the attempt's assignment access token matches and it is still in progress
     const attempt = await prisma.assessmentAttempt.findFirst({
       where: {
         id: attemptId,
-        candidateId: session.candidateId,
         status: "IN_PROGRESS",
+        assignment: { accessToken: token },
       },
       select: { id: true },
     });

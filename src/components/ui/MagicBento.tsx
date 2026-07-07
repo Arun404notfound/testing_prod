@@ -361,6 +361,7 @@ export interface BentoCardData {
   glowColor: string;
   isLarge?: boolean;
   href?: string;
+  onClick?: () => void;
 }
 
 interface MagicBentoProps {
@@ -450,7 +451,18 @@ const MagicBento = ({
             </>
           );
 
-          const linkedClassName = card.href ? `${baseClassName} magic-bento-card--link` : baseClassName;
+          const linkedClassName = card.href || card.onClick ? `${baseClassName} magic-bento-card--link` : baseClassName;
+
+          const overlay = card.onClick ? (
+            <button
+              type="button"
+              onClick={card.onClick}
+              className="magic-bento-card__link-overlay"
+              aria-label={card.title}
+            />
+          ) : card.href ? (
+            <Link href={card.href} className="magic-bento-card__link-overlay" aria-label={card.title} />
+          ) : null;
 
           if (enableStars) {
             return (
@@ -466,9 +478,7 @@ const MagicBento = ({
                 enableMagnetism={enableMagnetism}
                 data-variant={card.variant}
               >
-                {card.href ? (
-                  <Link href={card.href} className="magic-bento-card__link-overlay" aria-label={card.title} />
-                ) : null}
+                {overlay}
                 {content}
               </ParticleCard>
             );
@@ -476,9 +486,7 @@ const MagicBento = ({
 
           return (
             <div key={index} className={linkedClassName} style={cardStyle} data-variant={card.variant}>
-              {card.href ? (
-                <Link href={card.href} className="magic-bento-card__link-overlay" aria-label={card.title} />
-              ) : null}
+              {overlay}
               {content}
             </div>
           );

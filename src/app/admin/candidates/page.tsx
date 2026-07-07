@@ -5,9 +5,7 @@ import { UserCheck, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { getDefaultTenantId } from "@/lib/tenant";
-import { createCandidateWithLoginUser } from "@/lib/candidate-user";
-import { appUrl, createPasswordToken } from "@/lib/auth/password-tokens";
-import { ShareLinkCard } from "@/components/auth/share-link-card";
+import { createCandidate } from "@/lib/candidate-user";
 import { CandidatesTable } from "./candidates-table";
 import { BatchSelect } from "@/components/ui/batch-select";
 
@@ -28,16 +26,10 @@ async function addCandidate(formData: FormData) {
   if (Object.values(payload).some((v) => !v)) redirect("/admin/candidates?status=error&reason=missing");
 
   const tenantId = await getDefaultTenantId();
-  const result = await createCandidateWithLoginUser({ ...payload, tenantId, batchName });
-  if (!result.ok) {
-    const reason = result.error === "email_in_use_non_candidate" ? "email_admin" : result.error === "email_linked_other_candidate" ? "email_candidate" : "unknown";
-    redirect(`/admin/candidates?status=error&reason=${reason}`);
-  }
+  const result = await createCandidate({ ...payload, tenantId, batchName });
+  if (!result.ok) redirect("/admin/candidates?status=error&reason=unknown");
   revalidatePath("/admin/candidates");
-  const candidate = await prisma.candidate.findUnique({ where: { id: result.candidateId }, select: { userId: true } });
-  if (!candidate?.userId) redirect("/admin/candidates?status=error&reason=unknown");
-  const token = await createPasswordToken({ purpose: "INITIAL_SETUP", userId: candidate.userId, tenantId });
-  redirect(`/admin/candidates?status=success&invite=${encodeURIComponent(token)}&name=${encodeURIComponent(payload.fullName)}&email=${encodeURIComponent(payload.email)}`);
+  redirect("/admin/candidates?status=success");
 }
 
 async function updateCandidate(formData: FormData) {
@@ -62,35 +54,21 @@ async function deleteCandidate(formData: FormData) {
   "use server";
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
-  const candidate = await prisma.candidate.findUnique({ where: { id }, select: { userId: true } });
-  if (candidate?.userId) {
-    await prisma.user.delete({ where: { id: candidate.userId } }).catch(() => {});
-  } else {
-    await prisma.candidate.delete({ where: { id } }).catch(() => {});
-  }
+  await prisma.candidate.delete({ where: { id } }).catch(() => {});
   revalidatePath("/admin/candidates");
 }
 
 async function deleteCandidateById(id: string) {
   "use server";
   if (!id) return;
-  const candidate = await prisma.candidate.findUnique({ where: { id }, select: { userId: true } });
-  if (candidate?.userId) {
-    await prisma.user.delete({ where: { id: candidate.userId } }).catch(() => {});
-  } else {
-    await prisma.candidate.delete({ where: { id } }).catch(() => {});
-  }
+  await prisma.candidate.delete({ where: { id } }).catch(() => {});
   revalidatePath("/admin/candidates");
 }
 
 async function bulkDeleteCandidates(ids: string[]) {
   "use server";
   if (!ids.length) return;
-  const candidates = await prisma.candidate.findMany({ where: { id: { in: ids } }, select: { id: true, userId: true } });
-  const userIds = candidates.map((c) => c.userId).filter((id): id is string => Boolean(id));
-  const candidateIdsWithNoUser = candidates.filter((c) => !c.userId).map((c) => c.id);
-  if (userIds.length) await prisma.user.deleteMany({ where: { id: { in: userIds } } }).catch(() => {});
-  if (candidateIdsWithNoUser.length) await prisma.candidate.deleteMany({ where: { id: { in: candidateIdsWithNoUser } } }).catch(() => {});
+  await prisma.candidate.deleteMany({ where: { id: { in: ids } } }).catch(() => {});
   revalidatePath("/admin/candidates");
 }
 
@@ -116,7 +94,7 @@ function Field({ label, name, value, type = "text", placeholder }: {
 export default async function CandidatesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; reason?: string; editId?: string; addNew?: string; invite?: string; name?: string; email?: string }>;
+  searchParams: Promise<{ status?: string; reason?: string; editId?: string; addNew?: string }>;
 }) {
   const sp = await searchParams;
   const tenantId = await getDefaultTenantId();
@@ -126,17 +104,15 @@ export default async function CandidatesPage({
   const allCandidates = await prisma.candidate.findMany({
     where: { tenantId },
     orderBy: { createdAt: "desc" },
-    include: { user: { select: { id: true, email: true } } },
   });
 
   const editingCandidate = editId ? allCandidates.find((c) => c.id === editId) ?? null : null;
-  const linked = allCandidates.filter((c) => c.userId).length;
 
   return (
     <main className="tg-page space-y-6">
       <PageHeader
         title="Candidates"
-        subtitle="Manage candidate profiles and login accounts."
+        subtitle="Manage candidate profiles."
         right={
           <Link href="/admin/candidates?addNew=1" className="tg-button-primary text-sm">+ Add Candidate</Link>
         }
@@ -144,17 +120,14 @@ export default async function CandidatesPage({
 
       {/* Status banners */}
       {sp.status === "success" && (
-        sp.invite ? <ShareLinkCard message={`Hey, ${sp.name ?? "there"}, you can set your password now for the account linked to ${sp.email ?? "your email"} by clicking on the link below:`} link={appUrl(`/set-password/${sp.invite}`)} /> : null
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">✓ Candidate added successfully.</div>
       )}
       {sp.status === "edit_success" && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">✓ Candidate updated successfully.</div>
       )}
       {sp.status === "error" && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {sp.reason === "missing" ? "Please fill in all required fields." :
-           sp.reason === "email_admin" ? "That email belongs to a non-candidate account." :
-           sp.reason === "email_candidate" ? "That email is already linked to another candidate." :
-           "Something went wrong — please try again."}
+          {sp.reason === "missing" ? "Please fill in all required fields." : "Something went wrong — please try again."}
         </div>
       )}
 
@@ -172,14 +145,16 @@ export default async function CandidatesPage({
           <div className="absolute left-0 top-0 h-[3px] w-full rounded-t-2xl bg-[#0F766E]" />
           <div className="rounded-xl bg-[#CCFBF1] p-2.5 w-fit shadow-sm"><UserCheck size={18} className="text-[#0F766E]" strokeWidth={2.2} /></div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#0F766E]/80">Login Linked</p>
-            <p className="mt-1 text-[32px] font-bold leading-none tracking-tight text-[#0F172A]">{linked}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#0F766E]/80">Batches</p>
+            <p className="mt-1 text-[32px] font-bold leading-none tracking-tight text-[#0F172A]">
+              {new Set(allCandidates.map((c) => c.batchName).filter(Boolean)).size}
+            </p>
           </div>
         </div>
         <div className="relative flex min-h-[130px] flex-col justify-between overflow-hidden rounded-2xl border border-[#FDE68A] p-5 shadow-sm" style={{ background: "linear-gradient(145deg,#FFFBEB 0%,#ffffff 100%)" }}>
           <div className="absolute left-0 top-0 h-[3px] w-full rounded-t-2xl bg-[#D97706]" />
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#D97706]/80">Secure onboarding</p>
-          <p className="mt-2 text-sm font-semibold text-[#92400E]">Candidates create their own password</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#D97706]/80">Link-based access</p>
+          <p className="mt-2 text-sm font-semibold text-[#92400E]">Candidates take tests via an emailed link — no login required</p>
         </div>
       </div>
 
@@ -211,7 +186,7 @@ export default async function CandidatesPage({
             </div>
             {!editingCandidate && (
               <p className="mt-3 rounded-lg border border-[#FDE68A] bg-[#FFFBEB] px-3 py-2 text-[11px] text-[#92400E]">
-                A secure password setup link will be generated after creation. Email cannot be changed later.
+                No password setup needed — candidates get a one-time test link by email when you assign an assessment. Email cannot be changed later.
               </p>
             )}
             <div className="mt-5 flex justify-end gap-3 border-t border-[#F1F5F9] pt-5">
@@ -235,8 +210,6 @@ export default async function CandidatesPage({
           department: c.department,
           location: c.location,
           batchName: c.batchName,
-          userId: c.userId,
-          userEmail: c.user?.email ?? null,
         }))}
         editId={editId}
         deleteCandidateById={deleteCandidateById}

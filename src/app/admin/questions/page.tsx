@@ -29,11 +29,13 @@ async function createLikertQuestion(formData: FormData) {
   "use server";
   const prompt = String(formData.get("prompt") ?? "").trim();
   const factor = String(formData.get("factor") ?? "").trim();
-  const trait = String(formData.get("trait") ?? "").trim();
   const polarity = String(formData.get("polarity") ?? "POSITIVE") as "POSITIVE" | "NEGATIVE";
-  const attributeId = String(formData.get("attributeId") ?? "").trim() || null;
+  const attributeId = String(formData.get("attributeId") ?? "").trim();
 
-  if (!prompt || !factor || !trait) redirect("/admin/questions?tab=likert&status=error&reason=missing");
+  if (!prompt || !factor || !attributeId) redirect("/admin/questions?tab=likert&status=error&reason=missing");
+
+  const attribute = await prisma.attribute.findUnique({ where: { id: attributeId }, select: { name: true } });
+  if (!attribute) redirect("/admin/questions?tab=likert&status=error&reason=missing");
 
   const displayOrder = await nextLikertDisplayOrder();
 
@@ -43,10 +45,10 @@ async function createLikertQuestion(formData: FormData) {
         itemType: "LIKERT",
         prompt,
         factor,
-        trait,
-        definition: trait,
+        trait: attribute.name,
+        definition: attribute.name,
         polarity,
-        attributeId: attributeId || undefined,
+        attributeId,
         displayOrder,
       },
     });
@@ -71,13 +73,21 @@ async function createTriadGroup(formData: FormData) {
 
   const stmts = [0, 1, 2].map((i) => ({
     text: String(formData.get(`stmt_${i}_text`) ?? "").trim(),
-    attributeId: String(formData.get(`stmt_${i}_attributeId`) ?? "").trim() || null,
+    attributeId: String(formData.get(`stmt_${i}_attributeId`) ?? "").trim(),
     polarity: (String(formData.get(`stmt_${i}_polarity`) ?? "POSITIVE")) as "POSITIVE" | "NEGATIVE",
     factor: String(formData.get(`stmt_${i}_factor`) ?? "").trim(),
-    trait: String(formData.get(`stmt_${i}_trait`) ?? "").trim(),
   }));
 
-  if (!title || stmts.some((s) => !s.text)) {
+  if (!title || stmts.some((s) => !s.text || !s.attributeId)) {
+    redirect("/admin/questions?tab=triad&status=error&reason=missing");
+  }
+
+  const attrs = await prisma.attribute.findMany({
+    where: { id: { in: stmts.map((s) => s.attributeId) } },
+    select: { id: true, name: true },
+  });
+  const attrNameById = new Map(attrs.map((a) => [a.id, a.name]));
+  if (stmts.some((s) => !attrNameById.has(s.attributeId))) {
     redirect("/admin/questions?tab=triad&status=error&reason=missing");
   }
 
@@ -90,15 +100,18 @@ async function createTriadGroup(formData: FormData) {
         title,
         displayOrder,
         statements: {
-          create: stmts.map((s, i) => ({
-            statementText: s.text,
-            displayOrder: i,
-            factor: s.factor || "General",
-            trait: s.trait || s.text.slice(0, 30),
-            definition: s.trait || s.text.slice(0, 30),
-            polarity: s.polarity,
-            attributeId: s.attributeId || undefined,
-          })),
+          create: stmts.map((s, i) => {
+            const traitName = attrNameById.get(s.attributeId)!;
+            return {
+              statementText: s.text,
+              displayOrder: i,
+              factor: s.factor || "General",
+              trait: traitName,
+              definition: traitName,
+              polarity: s.polarity,
+              attributeId: s.attributeId,
+            };
+          }),
         },
       },
     });
@@ -328,19 +341,15 @@ export default async function QuestionsPage({
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute *</label>
-                  <input name="trait" required placeholder="e.g. Sociability" className={inputCls} />
+                  <select name="attributeId" required defaultValue="" className={inputCls}>
+                    {attrOptions}
+                  </select>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-[#475569]">Polarity *</label>
                   <select name="polarity" className={inputCls}>
                     <option value="POSITIVE">Positive (score as-is)</option>
                     <option value="NEGATIVE">Negative (reverse scored)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[#475569]">Link to Attribute</label>
-                  <select name="attributeId" className={inputCls}>
-                    {attrOptions}
                   </select>
                 </div>
                 <div className="sm:col-span-2 flex justify-end gap-3 border-t border-[#F1F5F9] pt-4">
@@ -443,8 +452,8 @@ export default async function QuestionsPage({
                       </div>
                       <div className="grid gap-3 sm:grid-cols-4">
                         <div className="sm:col-span-2">
-                          <label className="mb-1 block text-xs font-medium text-[#475569]">Link to Attribute</label>
-                          <select name={`stmt_${i}_attributeId`} className={inputCls}>{attrOptions}</select>
+                          <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute *</label>
+                          <select name={`stmt_${i}_attributeId`} required defaultValue="" className={inputCls}>{attrOptions}</select>
                         </div>
                         <div>
                           <label className="mb-1 block text-xs font-medium text-[#475569]">Big 5</label>
@@ -460,10 +469,6 @@ export default async function QuestionsPage({
                             <option value="NEGATIVE">Negative</option>
                           </select>
                         </div>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute (optional)</label>
-                        <input name={`stmt_${i}_trait`} placeholder="e.g. Trust, Sociability…" className={inputCls} />
                       </div>
                     </div>
                   );

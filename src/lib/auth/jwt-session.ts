@@ -7,7 +7,6 @@ export type SessionPayload = {
   email: string;
   role: UserRole;
   tenantId: string | null;
-  candidateId: string | null;
 };
 
 function getSecretKey(): Uint8Array {
@@ -26,7 +25,6 @@ export async function signSession(payload: SessionPayload): Promise<string> {
     email: payload.email,
     role: payload.role,
     tenantId: payload.tenantId,
-    candidateId: payload.candidateId,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(payload.sub)
@@ -41,13 +39,12 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
     const sub = typeof payload.sub === "string" ? payload.sub : "";
     if (!sub) return null;
     const role = payload.role as UserRole;
-    if (role !== "SUPER_ADMIN" && role !== "ADMIN" && role !== "CANDIDATE") return null;
+    if (role !== "SUPER_ADMIN" && role !== "ADMIN") return null;
     return {
       sub,
       email: typeof payload.email === "string" ? payload.email : "",
       role,
       tenantId: typeof payload.tenantId === "string" ? payload.tenantId : null,
-      candidateId: typeof payload.candidateId === "string" ? payload.candidateId : null,
     };
   } catch {
     return null;

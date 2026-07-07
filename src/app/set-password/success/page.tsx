@@ -1,3 +1,0 @@
-import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
-export default function PasswordSuccessPage() { return <main className="flex min-h-screen items-center justify-center bg-[#F8FAFC] px-4"><div className="w-full max-w-md rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-lg"><CheckCircle2 className="mx-auto text-emerald-600" size={48}/><h1 className="mt-4 text-2xl font-bold text-[#0F172A]">Password set successfully</h1><p className="mt-2 text-sm text-[#64748B]">Your AptIQ account is ready.</p><Link href="/login" className="tg-button-primary mt-6 inline-flex">Continue to login</Link></div></main>; }

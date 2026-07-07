@@ -1,11 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import { Users, ClipboardList, BarChart3, Monitor, Clock, Activity } from 'lucide-react';
 import MagicBento, { BentoCardData } from './MagicBento';
+import { ActiveAssessmentsModal, ActiveAssessmentSummary, AssignableCandidate } from './active-assessments-modal';
+import { QuickAssignState } from '@/app/admin/assignments/quick-assign-action';
 
 interface DashboardOverviewProps {
   totalCandidates: number;
   activeAssessments: number;
+  activeAssessmentsList: ActiveAssessmentSummary[];
+  assignableCandidates: AssignableCandidate[];
+  batches: string[];
+  quickAssignAction: (prevState: QuickAssignState, formData: FormData) => Promise<QuickAssignState>;
   completedTests: number;
   avgScore: number | string;
   pendingAssignments: number;
@@ -15,11 +22,16 @@ interface DashboardOverviewProps {
 export function DashboardOverview({
   totalCandidates,
   activeAssessments,
+  activeAssessmentsList,
+  assignableCandidates,
+  batches,
+  quickAssignAction,
   completedTests,
   avgScore,
   pendingAssignments,
   recentAttemptsCount,
 }: DashboardOverviewProps) {
+  const [isActiveModalOpen, setIsActiveModalOpen] = useState(false);
   const cards: BentoCardData[] = [
     {
       variant: 'white',
@@ -40,7 +52,7 @@ export function DashboardOverview({
       value: activeAssessments,
       title: 'Active Assessments',
       glowColor: '37, 99, 235',
-      href: '/admin/assessments',
+      onClick: () => setIsActiveModalOpen(true),
       icon: (
         <div style={{ background: '#DBEAFE', borderRadius: 10, padding: 8, display: 'flex' }}>
           <ClipboardList size={18} color="#1D4ED8" />
@@ -105,17 +117,27 @@ export function DashboardOverview({
   ];
 
   return (
-    <MagicBento
-      cards={cards}
-      textAutoHide={false}
-      enableStars={true}
-      enableSpotlight={true}
-      enableBorderGlow={true}
-      enableTilt={false}
-      enableMagnetism={true}
-      clickEffect={true}
-      spotlightRadius={280}
-      particleCount={8}
-    />
+    <>
+      <MagicBento
+        cards={cards}
+        textAutoHide={false}
+        enableStars={true}
+        enableSpotlight={true}
+        enableBorderGlow={true}
+        enableTilt={false}
+        enableMagnetism={true}
+        clickEffect={true}
+        spotlightRadius={280}
+        particleCount={8}
+      />
+      <ActiveAssessmentsModal
+        open={isActiveModalOpen}
+        onClose={() => setIsActiveModalOpen(false)}
+        assessments={activeAssessmentsList}
+        candidates={assignableCandidates}
+        batches={batches}
+        quickAssignAction={quickAssignAction}
+      />
+    </>
   );
 }

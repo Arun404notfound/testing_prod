@@ -3,7 +3,7 @@
  *
  * Wipes all junk from the DB and leaves exactly:
  *   Tenant   : TechGrah Demo Client
- *   Users    : alex.chen@example.com (CANDIDATE) + admin@demo.local (ADMIN)
+ *   Users    : admin@demo.local (ADMIN) — candidates have no login
  *   Candidate: Alex Chen
  *   Assessment: "Big Five Psychometric Assessment" (HYBRID, 50 questions)
  *   Assignment: Alex Chen → Big Five (status = assigned, fresh)
@@ -15,6 +15,7 @@
  */
 
 import "dotenv/config";
+import { randomBytes } from "node:crypto";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../src/generated/prisma/client";
 
@@ -41,9 +42,7 @@ async function main() {
   if (!assessment) throw new Error(`Assessment "${KEEP_ASSESSMENT}" not found.`);
   console.log(`✅ Keep assessment: ${assessment.title} (${assessment.id})`);
 
-  const candidateUser = await prisma.user.findUnique({ where: { email: KEEP_CANDIDATE_EMAIL } });
-  if (!candidateUser) throw new Error(`User ${KEEP_CANDIDATE_EMAIL} not found.`);
-  const candidate = await prisma.candidate.findFirst({ where: { userId: candidateUser.id } });
+  const candidate = await prisma.candidate.findFirst({ where: { email: KEEP_CANDIDATE_EMAIL } });
   if (!candidate) throw new Error("Alex Chen candidate record not found.");
   console.log(`✅ Keep candidate: ${KEEP_CANDIDATE_EMAIL} (candidateId: ${candidate.id})`);
 
@@ -144,7 +143,7 @@ async function main() {
   // ── 8. Delete extra candidates & users ────────────────────────────────────
   const extraCandidates = await prisma.candidate.findMany({
     where: { id: { not: candidate.id } },
-    select: { id: true, userId: true },
+    select: { id: true },
   });
   console.log(`\n🗑  Deleting ${extraCandidates.length} extra candidates...`);
   await prisma.candidate.deleteMany({
@@ -153,7 +152,7 @@ async function main() {
 
   const extraUsers = await prisma.user.findMany({
     where: {
-      email: { notIn: [KEEP_CANDIDATE_EMAIL, KEEP_ADMIN_EMAIL] },
+      email: { not: KEEP_ADMIN_EMAIL },
     },
     select: { id: true, email: true },
   });
@@ -180,6 +179,7 @@ async function main() {
     data: {
       candidateId: candidate.id,
       assessmentId: assessment.id,
+      accessToken: randomBytes(24).toString("base64url"),
       status: "assigned",
     },
   });
@@ -207,7 +207,7 @@ async function main() {
   labels.forEach((l, i) => console.log(`   ${l}: ${counts[i]}`));
 
   console.log("\n🎉 Database is clean and ready for demo!");
-  console.log(`\n   Login as candidate : alex.chen@example.com / demo1234`);
+  console.log(`\n   Candidate access   : assignment link emailed to alex.chen@example.com (assignment ${newAssignment.id})`);
   console.log(`   Login as admin     : admin@demo.local / demo1234`);
 }
 

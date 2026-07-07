@@ -16,10 +16,7 @@ export async function loginAction(formData: FormData) {
     redirect("/login?error=missing");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: { candidateProfile: { select: { id: true } } },
-  });
+  const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     redirect("/login?error=invalid");
@@ -30,19 +27,10 @@ export async function loginAction(formData: FormData) {
     email: user.email,
     role: user.role,
     tenantId: user.tenantId,
-    candidateId: user.candidateProfile?.id ?? null,
   });
 
-  if (next.startsWith("/") && !next.startsWith("//")) {
-    if (user.role === "CANDIDATE") {
-      if (next === "/candidate" || next.startsWith("/candidate/")) redirect(next);
-    } else if (next === "/admin/dashboard" || next.startsWith("/admin/")) {
-      redirect(next);
-    }
-  }
-
-  if (user.role === "CANDIDATE") {
-    redirect("/candidate");
+  if (next.startsWith("/") && !next.startsWith("//") && (next === "/admin/dashboard" || next.startsWith("/admin/"))) {
+    redirect(next);
   }
   redirect("/admin/dashboard");
 }

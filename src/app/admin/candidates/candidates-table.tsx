@@ -14,8 +14,6 @@ export type CandidateRow = {
   department: string;
   location: string;
   batchName: string | null;
-  userId: string | null;
-  userEmail: string | null;
 };
 
 // ─── Searchable batch combobox ────────────────────────────────────────────────
@@ -335,7 +333,7 @@ export function CandidatesTable({
                   </label>
                 </th>
                 <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Email / Login</th>
+                <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Batch</th>
                 <th className="px-4 py-3">Mobile</th>
                 <th className="px-4 py-3">Emp ID</th>
@@ -347,8 +345,6 @@ export function CandidatesTable({
             </thead>
             <tbody className="divide-y divide-[#F8FAFC]">
               {filtered.map((c) => {
-                const hasLogin = Boolean(c.userId);
-                const emailOk = hasLogin && c.userEmail?.toLowerCase() === c.email.toLowerCase();
                 const isSelected = selected.has(c.id);
                 return (
                   <tr
@@ -368,10 +364,6 @@ export function CandidatesTable({
                     </td>
                     <td className="px-4 py-3.5">
                       <p className="text-[#334155]">{c.email}</p>
-                      <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${hasLogin && emailOk ? "text-emerald-600" : hasLogin ? "text-amber-600" : "text-rose-500"}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${hasLogin && emailOk ? "bg-emerald-500" : hasLogin ? "bg-amber-400" : "bg-rose-400"}`} />
-                        {hasLogin && emailOk ? "Login active" : hasLogin ? "Email mismatch" : "No login"}
-                      </span>
                     </td>
                     <td className="px-4 py-3.5">
                       {c.batchName ? (

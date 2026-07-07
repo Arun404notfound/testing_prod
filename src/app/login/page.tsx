@@ -10,10 +10,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; next?: string }>;
 }) {
   const existing = await getOptionalSession();
-  if (existing) {
-    if (existing.role === "CANDIDATE") redirect("/candidate");
-    redirect("/admin/dashboard");
-  }
+  if (existing) redirect("/admin/dashboard");
 
   const { error, next } = await searchParams;
 

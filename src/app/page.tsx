@@ -6,8 +6,5 @@ export default async function HomePage() {
   if (!session) {
     redirect("/login");
   }
-  if (session.role === "CANDIDATE") {
-    redirect("/candidate");
-  }
   redirect("/admin/dashboard");
 }

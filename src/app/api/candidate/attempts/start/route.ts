@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getDefaultTenantId } from "@/lib/tenant";
-import { tenantMatchesRow } from "@/lib/tenant-match";
-import { getSession } from "@/lib/auth/session";
 
 function accessBlocked(
   assessment: {
@@ -36,6 +33,12 @@ function readAssignmentIdFromBody(body: unknown): string {
   return "";
 }
 
+function readTokenFromBody(body: unknown): string {
+  if (!body || typeof body !== "object") return "";
+  const raw = (body as { token?: unknown }).token;
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
@@ -51,6 +54,7 @@ export async function POST(request: Request) {
     }
 
     const rawId = readAssignmentIdFromBody(body);
+    const token = readTokenFromBody(body);
 
     if (process.env.NODE_ENV === "development") {
       console.log("[api/candidate/attempts/start] POST", { assignmentId: rawId || "(empty)" });
@@ -67,19 +71,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const session = await getSession();
-    if (!session || session.role !== "CANDIDATE" || !session.candidateId) {
+    if (!token) {
       return NextResponse.json(
         {
           code: "unauthorized",
           reason: "unauthorized",
-          message: "Candidate sign-in required to start an attempt.",
+          message: "A valid access token is required to start an attempt.",
         },
         { status: 401 },
       );
     }
-
-    const tenantId = await getDefaultTenantId();
 
     const assignment = await prisma.assessmentAssignment.findUnique({
       where: { id: rawId },
@@ -124,23 +125,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (assignment.candidateId !== session.candidateId) {
+    if (assignment.accessToken !== token) {
       return NextResponse.json(
         {
           code: "forbidden",
           reason: "forbidden",
-          message: "This assignment does not belong to your account.",
-        },
-        { status: 403 },
-      );
-    }
-
-    if (!tenantMatchesRow(assignment.candidate.tenantId, tenantId)) {
-      return NextResponse.json(
-        {
-          code: "tenant_mismatch",
-          reason: "tenant_mismatch",
-          message: "Candidate tenant does not match the current portal tenant.",
+          message: "Invalid access token for this assignment.",
         },
         { status: 403 },
       );

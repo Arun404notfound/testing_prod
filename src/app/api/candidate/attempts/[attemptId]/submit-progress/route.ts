@@ -1,25 +1,26 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth/session";
 import { type AnswerMap } from "@/lib/scoring/scoringEngine";
 import { ASSESSMENT_INCLUDE, scoreAndSave } from "@/lib/score-and-save";
 
 export const runtime = "nodejs";
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ attemptId: string }> },
 ) {
   try {
-    const session = await getSession();
-    if (!session || session.role !== "CANDIDATE" || !session.candidateId) {
+    const { attemptId } = await params;
+
+    const reqBody = await req.json().catch(() => ({})) as { token?: string; submissionType?: string };
+    const token = typeof reqBody.token === "string" ? reqBody.token : "";
+
+    if (!token) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { attemptId } = await params;
-
     const attempt = await prisma.assessmentAttempt.findFirst({
-      where: { id: attemptId, candidateId: session.candidateId },
+      where: { id: attemptId, assignment: { accessToken: token } },
       select: { id: true, assignmentId: true, status: true, progressData: true },
     });
 
@@ -62,11 +63,7 @@ export async function POST(
     const pd = attempt.progressData as { answers?: Record<string, unknown> } | null;
     const answers = (pd?.answers ?? {}) as AnswerMap;
 
-    let submissionType = "SIGNED_OUT";
-    try {
-      const body = await _req.json().catch(() => ({})) as { submissionType?: string };
-      if (body.submissionType) submissionType = body.submissionType;
-    } catch { /* body optional */ }
+    const submissionType = reqBody.submissionType ?? "SIGNED_OUT";
 
     const result = await scoreAndSave(full, answers, attempt.id, submissionType);
     return NextResponse.json(result);

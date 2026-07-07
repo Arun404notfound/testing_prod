@@ -1,8 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getDefaultTenantId } from "@/lib/tenant";
-import { tenantMatchesRow } from "@/lib/tenant-match";
-import { getSession } from "@/lib/auth/session";
 import { shuffleArray } from "@/lib/shuffle";
 import { buildTestBlocks, shuffleBlockOptions } from "@/lib/candidate-test-payload";
 import { InstructionsGate } from "./instructions-gate";
@@ -26,15 +23,15 @@ function testAccessBlocked(
 
 export default async function CandidateTestPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ assignmentId: string }>;
-  searchParams?: Promise<unknown>;
+  searchParams: Promise<{ token?: string }>;
 }) {
   const { assignmentId } = await params;
-  const session = await getSession();
-  if (!session || session.role !== "CANDIDATE" || !session.candidateId) notFound();
+  const { token } = await searchParams;
+  if (!token) notFound();
 
-  const tenantId = await getDefaultTenantId();
   const assignment = await prisma.assessmentAssignment.findUnique({
     where: { id: assignmentId },
     include: {
@@ -69,10 +66,17 @@ export default async function CandidateTestPage({
     },
   });
 
-  if (!assignment || assignment.candidateId !== session.candidateId || !tenantMatchesRow(assignment.candidate.tenantId, tenantId)) {
+  if (!assignment || assignment.accessToken !== token) {
     notFound();
   }
-  if (assignment.status === "completed") redirect("/candidate");
+  if (assignment.status === "completed") {
+    const existingResult = await prisma.assessmentResult.findFirst({
+      where: { assignmentId: assignment.id },
+      select: { id: true },
+    });
+    if (existingResult) redirect(`/candidate/reports/${existingResult.id}?token=${token}`);
+    notFound();
+  }
 
   // Secondary guard: if a result already exists for this assignment, send the candidate there.
   // This covers edge cases where assignment.status is stale (e.g. concurrent tab, cached page).
@@ -80,7 +84,7 @@ export default async function CandidateTestPage({
     where: { assignmentId: assignment.id },
     select: { id: true },
   });
-  if (existingResult) redirect(`/candidate/reports/${existingResult.id}`);
+  if (existingResult) redirect(`/candidate/reports/${existingResult.id}?token=${token}`);
 
   // Check expiry: if the assignment has a deadline that has passed and it's not yet started/completed
   if (assignment.expiresAt && new Date() > assignment.expiresAt && assignment.status === "assigned") {
@@ -92,9 +96,7 @@ export default async function CandidateTestPage({
             This assignment expired on{" "}
             {assignment.expiresAt.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}.
           </p>
-          <a href="/candidate" className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 shadow-sm transition-all duration-200 hover:-translate-y-px hover:border-red-300 hover:shadow-md">
-            ← Back to Dashboard
-          </a>
+          <p className="mt-4 text-sm text-red-700">Contact your administrator if you believe this is a mistake.</p>
         </div>
       </div>
     );
@@ -141,6 +143,7 @@ export default async function CandidateTestPage({
   return (
     <InstructionsGate
       assignmentId={assignment.id}
+      accessToken={token}
       blocks={blocks}
       assessmentTitle={assignment.assessment.title}
       candidateName={assignment.candidate.fullName}

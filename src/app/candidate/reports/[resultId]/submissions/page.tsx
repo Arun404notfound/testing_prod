@@ -2,13 +2,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSubmissions } from "@/lib/get-submissions";
 import { SubmissionsView } from "@/components/submissions/submissions-view";
+import { canAccessReport } from "@/lib/auth/report-access";
 
 export default async function CandidateSubmissionsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ resultId: string }>;
+  searchParams: Promise<{ token?: string }>;
 }) {
   const { resultId } = await params;
+  const { token } = await searchParams;
+  if (!(await canAccessReport(resultId, { session: null, token }))) notFound();
+
   const data = await getSubmissions(resultId);
   if (!data) notFound();
 
@@ -18,12 +24,8 @@ export default async function CandidateSubmissionsPage({
     <main className="tg-page space-y-6">
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/candidate" className="inline-flex items-center gap-1 text-sm font-medium text-[#2563EB] hover:underline">
-            ← My Assessments
-          </Link>
-          <span className="text-[#CBD5E1]">·</span>
-          <Link href={`/candidate/reports/${resultId}`} className="inline-flex items-center gap-1.5 rounded-lg border border-[#2563EB] px-3 py-1.5 text-sm font-semibold text-[#2563EB] hover:bg-teal-50 transition">
-            View Report →
+          <Link href={`/candidate/reports/${resultId}?token=${token}`} className="inline-flex items-center gap-1.5 rounded-lg border border-[#2563EB] px-3 py-1.5 text-sm font-semibold text-[#2563EB] hover:bg-teal-50 transition">
+            ← View Report
           </Link>
         </div>
         <div>
