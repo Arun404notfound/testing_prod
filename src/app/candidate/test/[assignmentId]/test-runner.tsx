@@ -616,14 +616,36 @@ export function CandidateTestRunner({
     return () => window.removeEventListener("online", handleOnline);
   }, [attemptId, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Show/hide offline warning banner
+  // Show/hide offline warning banner.
+  // The browser's online/offline events only detect the network *interface* going down —
+  // "connected to Wi-Fi with no working internet" never fires them. So alongside those events
+  // (for instant feedback on an obvious disconnect) we actively probe the server periodically
+  // and treat a failed/timed-out ping as offline too.
   useEffect(() => {
     setIsOffline(!navigator.onLine);
     const handleOffline = () => setIsOffline(true);
     const handleOnline = () => setIsOffline(false);
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", handleOnline);
+
+    let cancelled = false;
+    const probe = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        await fetch("/api/ping", { cache: "no-store", signal: controller.signal });
+        clearTimeout(timeout);
+        if (!cancelled) setIsOffline(false);
+      } catch {
+        if (!cancelled) setIsOffline(true);
+      }
+    };
+    void probe();
+    const intervalId = setInterval(probe, 10_000);
+
     return () => {
+      cancelled = true;
+      clearInterval(intervalId);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
     };
