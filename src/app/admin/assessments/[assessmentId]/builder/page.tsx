@@ -24,8 +24,8 @@ import { BulkTriadPool } from "./bulk-triad-pool";
 import { BuilderHeaderActions } from "./builder-header-actions";
 import { AutoDismissToast } from "@/components/ui/auto-dismiss-toast";
 import { ScrollToId } from "@/components/ui/scroll-to-id";
-import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SelectedContentList, type SelectedRow } from "./selected-content-list";
+import { PoolFiltersForm } from "./pool-filters-form";
 
 type Search = {
   tab?: string;
@@ -376,42 +376,15 @@ export default async function AssessmentBuilderPage({
       </FormCard>
 
       <FormCard title="Filters (pool browser)">
-        <form method="GET" className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <label className="text-sm text-[#334155]">
-            <span className="mb-1 block font-medium">Item type tab</span>
-            <select name="tab" defaultValue={tab} className="tg-input w-full">
-              {allowsLikertPool(assessmentType) ? <option value="likert">Likert pool</option> : null}
-              {allowsTriadPool(assessmentType) ? <option value="triad">Triad pool</option> : null}
-            </select>
-          </label>
-          <label className="text-sm text-[#334155]">
-            <span className="mb-1 block font-medium">Sentiment</span>
-            <select name="sentiment" defaultValue={sentimentQ} className="tg-input w-full">
-              <option value="">All</option>
-              <option value="POSITIVE">Positive</option>
-              <option value="NEGATIVE">Negative</option>
-            </select>
-          </label>
-          <label className="text-sm text-[#334155]">
-            <span className="mb-1 block font-medium">Attribute (trait)</span>
-            <SearchableSelect
-              name="attribute"
-              options={attributeNames}
-              defaultValue={attributeQ}
-              placeholder="Type to search…"
-              allLabel="All attributes"
-            />
-          </label>
-          <label className="text-sm text-[#334155]">
-            <span className="mb-1 block font-medium">Triad group code</span>
-            <input name="groupCode" defaultValue={groupCodeQ} className="tg-input w-full" placeholder="Triad tab" />
-          </label>
-          <div className="md:col-span-2 lg:col-span-4">
-            <button type="submit" className="tg-button-primary text-sm">
-              Apply filters
-            </button>
-          </div>
-        </form>
+        <PoolFiltersForm
+          tab={tab}
+          sentimentQ={sentimentQ}
+          attributeQ={attributeQ}
+          groupCodeQ={groupCodeQ}
+          attributeNames={attributeNames}
+          showLikert={allowsLikertPool(assessmentType)}
+          showTriad={allowsTriadPool(assessmentType)}
+        />
       </FormCard>
 
       <FormCard title="Selected content (by section)">
