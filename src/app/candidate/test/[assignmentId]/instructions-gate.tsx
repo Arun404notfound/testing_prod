@@ -24,8 +24,8 @@ interface Props {
   assessmentDurationMinutes?: number;
   durationIsOverridden?: boolean;
   activeAttemptId?: string;
-  activeProgressData?: { answers?: Record<string, unknown>; remainingSeconds?: number; savedAt?: string } | null;
-  activeStartedAt?: string;
+  activeProgressData?: { answers?: Record<string, unknown> } | null;
+  activeRemainingSeconds?: number;
 }
 
 function fmt(mins: number) {
@@ -46,13 +46,15 @@ const INSTRUCTIONS = [
 
 type SessionState = "checking" | "duplicate" | "fresh";
 
-export function InstructionsGate({ assignmentId, accessToken, blocks, assessmentTitle, candidateName, durationMinutes, assessmentDurationMinutes, durationIsOverridden, activeAttemptId, activeProgressData, activeStartedAt }: Props) {
+export function InstructionsGate({ assignmentId, accessToken, blocks, assessmentTitle, candidateName, durationMinutes, assessmentDurationMinutes, durationIsOverridden, activeAttemptId, activeProgressData, activeRemainingSeconds }: Props) {
   const [accepted, setAccepted] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [savedAnswers, setSavedAnswers] = useState<Record<string, unknown> | null>(null);
-  const [startedAt, setStartedAt] = useState<string | null>(activeStartedAt ?? null);
+  const [remainingSecondsAtStart, setRemainingSecondsAtStart] = useState<number>(
+    activeRemainingSeconds ?? durationMinutes * 60
+  );
   const [sessionState, setSessionState] = useState<SessionState>(activeAttemptId ? "checking" : "fresh");
 
   // BroadcastChannel: detect if test is open in another tab, else auto-resume
@@ -68,7 +70,6 @@ export function InstructionsGate({ assignmentId, accessToken, blocks, assessment
       if (state === "resume") {
         const saved = (activeProgressData?.answers ?? null) as Record<string, unknown> | null;
         setSavedAnswers(saved);
-        if (activeStartedAt) setStartedAt(activeStartedAt);
         setAttemptId(activeAttemptId);
       } else {
         setSessionState("duplicate");
@@ -106,9 +107,7 @@ export function InstructionsGate({ assignmentId, accessToken, blocks, assessment
         candidateName={candidateName}
         durationMinutes={durationMinutes}
         savedAnswers={savedAnswers ?? undefined}
-        startedAtIso={startedAt ?? undefined}
-        savedRemainingSeconds={activeProgressData?.remainingSeconds}
-        timerSavedAt={activeProgressData?.savedAt}
+        initialRemainingSeconds={remainingSecondsAtStart}
       />
     );
   }
@@ -162,7 +161,7 @@ export function InstructionsGate({ assignmentId, accessToken, blocks, assessment
       const data = (await res.json().catch(() => ({}))) as {
         attemptId?: string;
         progressData?: { answers?: Record<string, unknown> } | null;
-        startedAt?: string | null;
+        remainingSeconds?: number;
         message?: string;
       };
       if (!res.ok || !data.attemptId) {
@@ -172,7 +171,7 @@ export function InstructionsGate({ assignmentId, accessToken, blocks, assessment
       if (data.progressData?.answers) {
         setSavedAnswers(data.progressData.answers);
       }
-      if (data.startedAt) setStartedAt(data.startedAt);
+      if (typeof data.remainingSeconds === "number") setRemainingSecondsAtStart(data.remainingSeconds);
       setAttemptId(data.attemptId);
       try { sessionStorage.setItem("activeAttemptId", data.attemptId); } catch { /* ignore */ }
     } catch {

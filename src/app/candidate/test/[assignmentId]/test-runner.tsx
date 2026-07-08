@@ -516,7 +516,7 @@ function firstUnansweredIndex(blocks: TestBlock[], saved: Answers): number {
 }
 
 export function CandidateTestRunner({
-  assignmentId, accessToken, blocks, assessmentTitle, candidateName, durationMinutes, attemptId, savedAnswers, startedAtIso, savedRemainingSeconds, timerSavedAt,
+  assignmentId, accessToken, blocks, assessmentTitle, candidateName, durationMinutes, attemptId, savedAnswers, initialRemainingSeconds,
 }: {
   assignmentId: string;
   accessToken: string;
@@ -526,9 +526,7 @@ export function CandidateTestRunner({
   durationMinutes?: number;
   attemptId?: string;
   savedAnswers?: Record<string, unknown>;
-  startedAtIso?: string;
-  savedRemainingSeconds?: number;
-  timerSavedAt?: string;
+  initialRemainingSeconds: number;
 }) {
   const router = useRouter();
   const initialAnswers = (savedAnswers ?? {}) as Answers;
@@ -684,22 +682,10 @@ export function CandidateTestRunner({
   }, [handleSubmit]);
 
   const effectiveDuration = (durationMinutes && durationMinutes > 0) ? durationMinutes : 0;
-  const initialSeconds = (() => {
-    const total = effectiveDuration * 60;
-    if (total === 0) return 0;
-    // Prefer saved remaining + correct for gap since last save (≤1.5 s error max).
-    if (savedRemainingSeconds !== undefined && timerSavedAt) {
-      const gapSecs = Math.floor((Date.now() - new Date(timerSavedAt).getTime()) / 1000);
-      return Math.max(0, savedRemainingSeconds - gapSecs);
-    }
-    // Fallback: wall-clock from startedAt (only used on fresh start where elapsed ≈ 0).
-    if (startedAtIso) {
-      const elapsed = Math.floor((Date.now() - new Date(startedAtIso).getTime()) / 1000);
-      return Math.max(0, total - elapsed);
-    }
-    return total;
-  })();
-  const { mm, ss, isWarning, isCritical, remaining } = useCountdownTimer(initialSeconds, effectiveDuration * 60, handleTimesUp);
+  // initialRemainingSeconds is computed server-side from the attempt's immutable `startedAt`
+  // anchor (see candidate/test/[assignmentId]/page.tsx and /api/candidate/attempts/start) —
+  // never from a client-ticked snapshot, so it can only ever count down, never jump back up.
+  const { mm, ss, isWarning, isCritical, remaining } = useCountdownTimer(initialRemainingSeconds, effectiveDuration * 60, handleTimesUp);
   remainingRef.current = remaining;
 
   // Timer warnings: 1 min (only for tests > 5 min total) and 10 sec

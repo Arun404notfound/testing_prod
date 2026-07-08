@@ -155,6 +155,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // Remaining time is always derived from the immutable `startedAt` anchor at request time,
+    // never from a client-ticked snapshot — this is the sole source of truth the client trusts.
+    const durationMinutes = assignment.durationMinutes ?? assignment.assessment.durationMinutes;
+    const totalSeconds = durationMinutes > 0 ? durationMinutes * 60 : 0;
+    function remainingSecondsFrom(startedAt: Date): number {
+      if (totalSeconds === 0) return 0;
+      return Math.max(0, totalSeconds - Math.floor((Date.now() - startedAt.getTime()) / 1000));
+    }
+
     const existing = await prisma.assessmentAttempt.findFirst({
       where: { assignmentId: assignment.id, status: "IN_PROGRESS" },
       orderBy: { createdAt: "desc" },
@@ -164,7 +173,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         attemptId: existing.id,
         progressData: existing.progressData ?? null,
-        startedAt: existing.startedAt?.toISOString() ?? null,
+        remainingSeconds: existing.startedAt ? remainingSecondsFrom(existing.startedAt) : totalSeconds,
       });
     }
 
@@ -188,7 +197,10 @@ export async function POST(request: Request) {
       select: { id: true, startedAt: true },
     });
 
-    return NextResponse.json({ attemptId: attempt.id, startedAt: attempt.startedAt?.toISOString() ?? null });
+    return NextResponse.json({
+      attemptId: attempt.id,
+      remainingSeconds: attempt.startedAt ? remainingSecondsFrom(attempt.startedAt) : totalSeconds,
+    });
   } catch (e) {
     console.error("[api/candidate/attempts/start]", e);
     return NextResponse.json(

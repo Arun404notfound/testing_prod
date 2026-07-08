@@ -140,6 +140,16 @@ export default async function CandidateTestPage({
     select: { id: true, progressData: true, startedAt: true },
   });
 
+  // Remaining time is always derived server-side from the immutable `startedAt` anchor,
+  // never from a client-ticked snapshot that could be overwritten out of order.
+  const totalSeconds = durationMinutes > 0 ? durationMinutes * 60 : 0;
+  const activeRemainingSeconds =
+    activeAttempt && totalSeconds > 0 && activeAttempt.startedAt
+      ? Math.max(0, totalSeconds - Math.floor((Date.now() - activeAttempt.startedAt.getTime()) / 1000))
+      : activeAttempt
+        ? 0
+        : undefined;
+
   return (
     <InstructionsGate
       assignmentId={assignment.id}
@@ -152,7 +162,7 @@ export default async function CandidateTestPage({
       durationIsOverridden={durationIsOverridden}
       activeAttemptId={activeAttempt?.id}
       activeProgressData={activeAttempt?.progressData as { answers?: Record<string, unknown> } | null | undefined}
-      activeStartedAt={activeAttempt?.startedAt?.toISOString()}
+      activeRemainingSeconds={activeRemainingSeconds}
     />
   );
 }
