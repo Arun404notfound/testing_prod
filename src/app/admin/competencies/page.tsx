@@ -540,24 +540,24 @@ export default async function CompetenciesPage({
           <div className="space-y-6">
           <div className={card}>
             <div className={cardHeader}>
-              <h2 className="text-sm font-semibold text-[#0F172A]">Map Attribute → Competency</h2>
+              <h2 className="text-sm font-semibold text-[#0F172A]">Map Competency → Attribute</h2>
             </div>
             <form action={createMapping} className="space-y-4 p-5">
-              <div>
-                <label className={labelCls}>Attribute *</label>
-                <select name="attributeId" required className={inputCls}>
-                  <option value="">Select attribute...</option>
-                  {attributes.map((a) => (
-                    <option key={a.id} value={a.id}>[{a.code}] {a.name}</option>
-                  ))}
-                </select>
-              </div>
               <div>
                 <label className={labelCls}>Competency *</label>
                 <select name="competencyId" required className={inputCls}>
                   <option value="">Select competency...</option>
                   {competencies.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Attribute *</label>
+                <select name="attributeId" required className={inputCls}>
+                  <option value="">Select attribute...</option>
+                  {attributes.map((a) => (
+                    <option key={a.id} value={a.id}>[{a.code}] {a.name}</option>
                   ))}
                 </select>
               </div>
