@@ -246,7 +246,7 @@ export default function ReportByIdClient() {
   return (
     <div
       className="fixed inset-0 z-40 flex flex-col"
-      style={{ backgroundColor: reportTheme.cardBackground }}
+      style={{ backgroundColor: reportTheme.pageBackground }}
     >
       {/* Fixed header — stays in place; only the document viewport below scrolls */}
       <div
