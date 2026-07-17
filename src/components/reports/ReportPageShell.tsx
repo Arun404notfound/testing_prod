@@ -12,7 +12,7 @@ export function ReportPageShell({ children }: { children: ReactNode }) {
     minHeight: "297mm",
   };
   return (
-    <div className="report-page mx-auto w-full rounded-md border px-2 py-4 shadow-sm sm:px-10 sm:py-10 sm:w-[210mm]" style={style}>
+    <div className="report-page mx-auto w-[210mm] rounded-md border px-10 py-10 shadow-sm" style={style}>
       {children}
     </div>
   );

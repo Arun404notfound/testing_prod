@@ -1,14 +1,27 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getSubmissions(resultId: string) {
+export async function getSubmissions(resultId: string, tenantId?: string) {
   const result = await prisma.assessmentResult.findFirst({
-    where: { id: resultId },
+    where: {
+      id: resultId,
+      ...(tenantId ? { candidate: { tenantId } } : {}),
+    },
     include: {
-      candidate: { select: { fullName: true, email: true } },
+      candidate: {
+        select: {
+          fullName: true,
+          email: true,
+          employeeId: true,
+          designation: true,
+          batchName: true,
+        },
+      },
       assessment: {
         select: {
           title: true,
           assessmentType: true,
+          jobRoleId: true,
+          jobRole: { select: { name: true } },
           // Legacy MCQ questions (junction table)
           questions: {
             include: {
@@ -27,12 +40,17 @@ export async function getSubmissions(resultId: string) {
           },
           // Direct likert items owned by this assessment
           items: {
-            select: { id: true, displayOrder: true, prompt: true, itemType: true, factor: true },
+            select: { id: true, displayOrder: true, prompt: true, itemType: true, factor: true, trait: true, polarity: true },
             orderBy: { displayOrder: "asc" },
           },
           // Direct triad groups owned by this assessment
           triadGroups: {
-            select: { id: true, title: true, displayOrder: true },
+            select: {
+              id: true,
+              title: true,
+              displayOrder: true,
+              statements: { select: { id: true, factor: true, trait: true, polarity: true } },
+            },
             orderBy: { displayOrder: "asc" },
           },
           // Composition items (imported from pool assessments)
@@ -42,10 +60,14 @@ export async function getSubmissions(resultId: string) {
               id: true,
               displayOrder: true,
               sourceItem: {
-                select: { id: true, prompt: true, itemType: true, factor: true },
+                select: { id: true, prompt: true, itemType: true, factor: true, trait: true, polarity: true },
               },
               sourceTriad: {
-                select: { id: true, title: true },
+                select: {
+                  id: true,
+                  title: true,
+                  statements: { select: { id: true, factor: true, trait: true, polarity: true } },
+                },
               },
             },
           },
@@ -76,11 +98,11 @@ export async function getSubmissions(resultId: string) {
         include: {
           responses: {
             include: {
-              item: { select: { id: true, prompt: true, itemType: true, factor: true } },
+              item: { select: { id: true, prompt: true, itemType: true, factor: true, trait: true, polarity: true } },
               itemOption: { select: { label: true, value: true } },
               triadGroup: { select: { id: true, title: true } },
-              triadMostStatement: { select: { statementText: true } },
-              triadLeastStatement: { select: { statementText: true } },
+              triadMostStatement: { select: { statementText: true, trait: true, factor: true, polarity: true } },
+              triadLeastStatement: { select: { statementText: true, trait: true, factor: true, polarity: true } },
             },
           },
         },

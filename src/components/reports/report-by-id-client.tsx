@@ -99,7 +99,8 @@ export default function ReportByIdClient() {
       if (pageNodes.length === 0) return;
 
       const pdf = new jsPDF("p", "mm", "a4");
-
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
       for (let i = 0; i < pageNodes.length; i += 1) {
         const node = pageNodes[i];
         const canvas = await html2canvas(node, {
@@ -107,11 +108,9 @@ export default function ReportByIdClient() {
           backgroundColor: "#ffffff",
           useCORS: true,
         });
-        const image = canvas.toDataURL("image/png");
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
+
         if (i > 0) pdf.addPage();
-        pdf.addImage(image, "PNG", 0, 0, pageWidth, pageHeight);
+        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
       }
 
       pdf.save(pdfFileName(report.assessmentName));
@@ -122,7 +121,7 @@ export default function ReportByIdClient() {
 
   if (loading) {
     return (
-      <main className="min-h-screen p-8" style={{ backgroundColor: reportTheme.pageBackground, color: reportTheme.secondary }}>
+      <main className="fixed inset-0 z-40 p-8" style={{ backgroundColor: reportTheme.pageBackground, color: reportTheme.secondary }}>
         Loading...
       </main>
     );
@@ -130,7 +129,7 @@ export default function ReportByIdClient() {
 
   if (!hasResultId) {
     return (
-      <main className="min-h-screen p-8" style={{ backgroundColor: reportTheme.pageBackground, color: reportTheme.incorrect }}>
+      <main className="fixed inset-0 z-40 p-8" style={{ backgroundColor: reportTheme.pageBackground, color: reportTheme.incorrect }}>
         Report id missing.
       </main>
     );
@@ -138,7 +137,7 @@ export default function ReportByIdClient() {
 
   if (!report) {
     return (
-      <main className="min-h-screen p-8" style={{ backgroundColor: reportTheme.pageBackground, color: reportTheme.incorrect }}>
+      <main className="fixed inset-0 z-40 p-8" style={{ backgroundColor: reportTheme.pageBackground, color: reportTheme.incorrect }}>
         Report not found.
       </main>
     );
@@ -146,7 +145,7 @@ export default function ReportByIdClient() {
 
   const renderAttributeScoresStack = () => (
     <ReportPageShell>
-      <div className="p-4 sm:p-8 space-y-6">
+      <div className="space-y-6 p-8">
         <div>
           <h2 className="text-xl font-bold text-[#0F172A]">Attribute Scores</h2>
           <p className="mt-1 text-sm text-[#64748B]">Raw score range: 5 – 17</p>
@@ -157,24 +156,43 @@ export default function ReportByIdClient() {
     </ReportPageShell>
   );
 
-  const renderCompetencyStack = () =>
-    report.competencyScores.length > 0 ? (
-      <ReportPageShell>
-        <div className="p-4 sm:p-8">
-          <CompetencyReportPage
-            competencies={report.competencyScores}
-            heading={report.jobRoleName ? `${report.jobRoleName} — Competency Profile` : "Competency Profile"}
-          />
-        </div>
-      </ReportPageShell>
-    ) : null;
+  const renderCompetencyStack = () => {
+    if (report.competencyScores.length === 0) return null;
+
+    const heading = report.jobRoleName ? `${report.jobRoleName} — Competency Profile` : "Competency Profile";
+    return (
+      <>
+        <ReportPageShell>
+          <div className="p-8">
+            <CompetencyReportPage
+              competencies={report.competencyScores}
+              detailCompetencies={[]}
+              heading={heading}
+            />
+          </div>
+        </ReportPageShell>
+        {report.competencyScores.map((competency, index) => (
+          <ReportPageShell key={competency.competencyId}>
+            <div className="p-8">
+              <CompetencyReportPage
+                competencies={report.competencyScores}
+                detailCompetencies={[competency]}
+                showOverview={false}
+                detailIndexOffset={index}
+              />
+            </div>
+          </ReportPageShell>
+        ))}
+      </>
+    );
+  };
 
   const renderMcqStack = renderAttributeScoresStack;
 
   const renderLikertStack = () => (
     <>
       <ReportPageShell>
-        <div className="p-4 sm:p-8">
+        <div className="p-8">
           <PsychometricGlancePage report={report} completedDate={completedDate} />
         </div>
       </ReportPageShell>
@@ -192,7 +210,7 @@ export default function ReportByIdClient() {
   const renderHybridStack = () => (
     <>
       <ReportPageShell>
-        <div className="p-4 sm:p-8">
+        <div className="p-8">
           <HybridOverviewPage report={report} />
         </div>
       </ReportPageShell>
@@ -202,7 +220,7 @@ export default function ReportByIdClient() {
 
   const renderPlaceholderStack = () => (
     <ReportPageShell>
-      <div className="p-4 sm:p-8">
+      <div className="p-8">
         <ReportTemplatePlaceholderPage reportTemplateType={report.reportTemplateType} />
       </div>
     </ReportPageShell>
@@ -226,9 +244,16 @@ export default function ReportByIdClient() {
   };
 
   return (
-    <main className="min-h-screen px-4 py-8 md:px-10" style={{ backgroundColor: reportTheme.pageBackground }}>
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-5 space-y-3">
+    <div
+      className="fixed inset-0 z-40 flex flex-col"
+      style={{ backgroundColor: reportTheme.cardBackground }}
+    >
+      {/* Fixed header — stays in place; only the document viewport below scrolls */}
+      <div
+        className="shrink-0 border-b px-4 py-4 md:px-10"
+        style={{ borderColor: reportTheme.border, backgroundColor: reportTheme.cardBackground }}
+      >
+        <div className="mx-auto max-w-6xl space-y-3">
           {!isCandidate && (
             <Link href={backHref} className="inline-flex items-center gap-1 text-sm font-medium hover:underline" style={{ color: reportTheme.accent }}>
               ← {backLabel}
@@ -258,20 +283,25 @@ export default function ReportByIdClient() {
               </button>
             </div>
           </div>
-        </div>
 
-        {report.submissionType && report.submissionType !== "NORMAL" && (
-          <SubmissionTypeBanner submissionType={report.submissionType} />
-        )}
-
-        <div ref={pagesRef} className="space-y-6 overflow-x-auto">
-          {report ? (
-            <ReportThemeProvider branding={report.tenantBranding}>
-              {renderStack()}
-            </ReportThemeProvider>
-          ) : null}
+          {report.submissionType && report.submissionType !== "NORMAL" && (
+            <SubmissionTypeBanner submissionType={report.submissionType} />
+          )}
         </div>
       </div>
-    </main>
+
+      {/* Scrollable document viewport — the "pages" scroll up within the fixed backdrop */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-8 md:px-10">
+        <div className="mx-auto max-w-6xl">
+          <div ref={pagesRef} className="space-y-6 overflow-x-auto">
+            {report ? (
+              <ReportThemeProvider branding={report.tenantBranding}>
+                {renderStack()}
+              </ReportThemeProvider>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

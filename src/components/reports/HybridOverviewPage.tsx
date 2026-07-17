@@ -9,7 +9,6 @@ export function HybridOverviewPage({ report }: { report: ReportPayload }) {
   const competencyScores = Array.isArray(report.competencyScores) ? report.competencyScores : [];
   const hasLikert = attemptResponses.some((r) => r.kind === "likert");
   const hasTriad = attemptResponses.some((r) => r.kind === "triad");
-  const triadRows = attemptResponses.filter((r) => r.kind === "triad");
   return (
     <section className="rounded-md border p-6" style={{ borderColor: theme.border }}>
       <h3 className="text-lg font-semibold" style={{ color: theme.primary }}>
@@ -31,48 +30,22 @@ export function HybridOverviewPage({ report }: { report: ReportPayload }) {
           <p className="text-sm font-semibold" style={{ color: theme.primary }}>
             Likert / triad profile signals (competency level)
           </p>
-          <div className="mt-3 space-y-2">
+          <div className="mt-4">
             {competencyScores.map((c) => {
               const pct = Number.isFinite(c.percent) ? c.percent : 0;
               return (
-                <div key={c.competencyId}>
-                  <div className="flex justify-between text-xs">
+                <div key={c.competencyId} className="mb-4 last:mb-0">
+                  <div className="flex h-5 items-center justify-between text-xs leading-5">
                     <span>{c.competencyName}</span>
                     <span>{pct}%</span>
                   </div>
-                  <div className="h-2 w-full rounded-full" style={{ backgroundColor: "#e5e7eb" }}>
+                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: "#e5e7eb" }}>
                     <div className="h-2 rounded-full" style={{ width: `${pct}%`, backgroundColor: theme.accent }} />
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      ) : null}
-
-      {triadRows.length > 0 ? (
-        <div className="mt-6 border-t pt-5" style={{ borderColor: theme.border }}>
-          <p className="text-sm font-semibold" style={{ color: theme.primary }}>
-            Most / least (triad)
-          </p>
-          <table className="mt-2 w-full text-left text-xs">
-            <thead style={{ color: theme.muted }}>
-              <tr>
-                <th className="py-1 pr-2">Group</th>
-                <th className="py-1 pr-2">Most</th>
-                <th className="py-1">Least</th>
-              </tr>
-            </thead>
-            <tbody>
-              {triadRows.map((r) => (
-                <tr key={r.id} className="border-t" style={{ borderColor: theme.border }}>
-                  <td className="py-1 pr-2">{r.triadGroupTitle ?? "—"}</td>
-                  <td className="py-1 pr-2">{r.mostStatement ?? "—"}</td>
-                  <td className="py-1">{r.leastStatement ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       ) : null}
     </section>

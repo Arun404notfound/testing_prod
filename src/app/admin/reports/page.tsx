@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BackToDashboard } from "@/components/ui/back-to-dashboard";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
-import { Search, X } from "lucide-react";
+import { FileSpreadsheet, Search, X } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 
 type SearchParams = {
@@ -263,6 +263,7 @@ export default async function ReportsIndexPage({
                 <th className="px-5 py-3.5">Date</th>
                 <th className="px-5 py-3.5">Report</th>
                 <th className="px-5 py-3.5">Submissions</th>
+                <th className="px-5 py-3.5">Export</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F1F5F9]">
@@ -323,11 +324,21 @@ export default async function ReportsIndexPage({
                       View Submissions
                     </Link>
                   </td>
+                  <td className="px-5 py-3">
+                    <a
+                      href={`/api/reports/${result.id}/responses.xlsx`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100"
+                      title={`Export ${result.candidate.fullName}'s responses to Excel`}
+                    >
+                      <FileSpreadsheet size={13} aria-hidden="true" />
+                      Export XLSX
+                    </a>
+                  </td>
                 </tr>
               ))}
               {results.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center">
+                  <td colSpan={8} className="px-5 py-10 text-center">
                     <p className="text-sm text-[#64748B]">
                       {hasFilter
                         ? "No results match the applied filters. Try adjusting or clearing them."

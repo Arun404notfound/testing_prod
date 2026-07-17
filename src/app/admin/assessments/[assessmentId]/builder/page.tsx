@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AssessmentTenantSelect } from "@/components/admin/assessment-tenant-select";
 import { prisma } from "@/lib/prisma";
 import { FormCard } from "@/components/ui/form-card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -15,7 +14,6 @@ import {
   removeMcqQuestion,
   saveAssessmentDetails,
   setLifecycleStatus,
-  updateAssessmentBrandingTenant,
   updateAssessmentJobRole,
 } from "./actions";
 import { BulkLikertPool } from "./bulk-likert-pool";
@@ -65,7 +63,6 @@ export default async function AssessmentBuilderPage({
   const assessment = await prisma.assessment.findFirst({
     where: { id: assessmentId },
     include: {
-      tenant: { select: { id: true, name: true, logoUrl: true } },
       sections: { orderBy: { displayOrder: "asc" } },
       questions: { include: { question: true } },
       compositionItems: {
@@ -80,16 +77,11 @@ export default async function AssessmentBuilderPage({
 
   if (!assessment) notFound();
 
-  const tenants = await prisma.tenant.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, logoUrl: true },
-  });
   const jobRoles = await prisma.jobRole.findMany({
     where: { tenantId },
     orderBy: { displayOrder: "asc" },
     select: { id: true, name: true },
   });
-  const boundUpdateBrandingTenant = updateAssessmentBrandingTenant.bind(null, assessment.id);
   const boundUpdateJobRole = updateAssessmentJobRole.bind(null, assessment.id);
   const boundSaveDetails = saveAssessmentDetails.bind(null, assessment.id);
 
@@ -335,19 +327,6 @@ export default async function AssessmentBuilderPage({
           </label>
           <button type="submit" className="tg-button-primary w-fit text-sm">
             Save details
-          </button>
-        </form>
-      </FormCard>
-
-      <FormCard title="Tenant & branding">
-        <p className="mb-4 text-sm text-[#64748B]">
-          Sets which client logo and colors appear on reports and the candidate test screen. Pool browsers still
-          use the demo workspace question bank.
-        </p>
-        <form action={boundUpdateBrandingTenant} className="space-y-4">
-          <AssessmentTenantSelect tenants={tenants} initialTenantId={assessment.tenantId} />
-          <button type="submit" className="tg-button-primary text-sm">
-            Save tenant
           </button>
         </form>
       </FormCard>

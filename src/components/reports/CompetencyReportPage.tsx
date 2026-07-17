@@ -24,6 +24,9 @@ export type CompetencyScoreData = {
 type Props = {
   competencies: CompetencyScoreData[];
   heading?: string;
+  detailCompetencies?: CompetencyScoreData[];
+  showOverview?: boolean;
+  detailIndexOffset?: number;
 };
 
 function bandColor(band: string): { bg: string; text: string; border: string } {
@@ -53,25 +56,77 @@ function bandColor(band: string): { bg: string; text: string; border: string } {
   }
 }
 
-function ScoreGauge({ score, max = 10, color }: { score: number; max?: number; color: string }) {
+function ScoreBar({ score, max = 10, color }: { score: number; max?: number; color: string }) {
   const pct = Math.min(100, (score / max) * 100);
   return (
-    <div className="flex items-center gap-3">
-      <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-[#E2E8F0]">
-        <div
-          className="absolute inset-y-0 left-0 rounded-full transition-all"
-          style={{ width: `${pct}%`, backgroundColor: color }}
-        />
-      </div>
-      <span className="w-12 text-right text-sm font-bold" style={{ color }}>
-        {score.toFixed(1)}<span className="text-xs font-normal text-[#94A3B8]">/10</span>
-      </span>
+    <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-[#E2E8F0]">
+      <div
+        className="absolute inset-y-0 left-0 rounded-full"
+        style={{ width: `${pct}%`, backgroundColor: color }}
+      />
     </div>
   );
 }
 
-export function CompetencyReportPage({ competencies, heading = "Competency Profile" }: Props) {
+function CompetencyNumberBadge({ number, color }: { number: number; color: string }) {
+  return (
+    <svg className="h-8 w-8 shrink-0" viewBox="0 0 32 32" aria-label={`Competency ${number}`}>
+      <circle cx="16" cy="16" r="16" fill={color} />
+      <text
+        x="16"
+        y="16"
+        fill="#ffffff"
+        fontFamily="Arial, sans-serif"
+        fontSize="14"
+        fontWeight="700"
+        textAnchor="middle"
+        dominantBaseline="central"
+      >
+        {number}
+      </text>
+    </svg>
+  );
+}
+
+function BandBadge({ band, colors }: { band: string; colors: ReturnType<typeof bandColor> }) {
+  return (
+    <svg className="h-7 w-24 shrink-0" viewBox="0 0 96 28" aria-label={band}>
+      <rect x="0.5" y="0.5" width="95" height="27" rx="13.5" fill={colors.bg} stroke={colors.border} />
+      <text
+        x="48"
+        y="14"
+        fill={colors.text}
+        fontFamily="Arial, sans-serif"
+        fontSize="12"
+        fontWeight="600"
+        textAnchor="middle"
+        dominantBaseline="central"
+      >
+        {band}
+      </text>
+    </svg>
+  );
+}
+
+export function CompetencyReportPage({
+  competencies,
+  heading = "Competency Profile",
+  detailCompetencies = competencies,
+  showOverview = true,
+  detailIndexOffset = 0,
+}: Props) {
   const { theme } = useReportTheme();
+  const developmentProjectCompetencyIds = new Set(
+    competencies
+      .map((competency, index) => ({ competency, index }))
+      .sort(
+        (a, b) =>
+          a.competency.scaledScore - b.competency.scaledScore || a.index - b.index,
+      )
+      .slice(0, 3)
+      .filter(({ competency }) => competency.scaledScore <= 6.5)
+      .map(({ competency }) => competency.competencyId),
+  );
 
   if (competencies.length === 0) {
     return (
@@ -83,6 +138,7 @@ export function CompetencyReportPage({ competencies, heading = "Competency Profi
 
   return (
     <div className="space-y-6 px-2">
+      {showOverview && (<>
       {/* Heading */}
       <div>
         <h2 className="text-xl font-bold" style={{ color: theme.primary }}>
@@ -103,25 +159,26 @@ export function CompetencyReportPage({ competencies, heading = "Competency Profi
               const colors = bandColor(c.band);
               return (
                 <div key={c.competencyId}>
-                  <div className="mb-1 flex items-center justify-between">
+                  <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
                     <span className="text-sm font-medium text-[#0F172A]">{c.competencyName}</span>
-                    <span
-                      className="rounded-full px-2 py-0.5 text-xs font-semibold"
-                      style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
-                    >
-                      {c.band}
+                    <span className="grid grid-cols-[auto_auto] items-center gap-2 whitespace-nowrap">
+                      <span className="text-sm font-bold leading-none" style={{ color: theme.primary }}>
+                        {c.scaledScore.toFixed(1)}<span className="text-xs font-normal text-[#94A3B8]">/10</span>
+                      </span>
+                      <BandBadge band={c.band} colors={colors} />
                     </span>
                   </div>
-                  <ScoreGauge score={c.scaledScore} color={theme.primary} />
+                  <ScoreBar score={c.scaledScore} color={theme.primary} />
                 </div>
               );
             })}
         </div>
       </div>
+      </>)}
 
       {/* Detailed competency cards, grouped by Domain when present */}
       <div className="space-y-6">
-        {groupByDomain(competencies).map(([domainName, group]) => (
+        {groupByDomain(detailCompetencies).map(([domainName, group]) => (
           <div key={domainName ?? "__ungrouped"} className="space-y-4">
             {domainName && (
               <h3 className="text-sm font-bold uppercase tracking-wide text-[#94A3B8]">{domainName}</h3>
@@ -137,29 +194,19 @@ export function CompetencyReportPage({ competencies, heading = "Competency Profi
                 >
                   {/* Card header */}
                   <div
-                    className="flex items-center justify-between px-5 py-3"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3"
                     style={{ backgroundColor: colors.bg }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white"
-                        style={{ backgroundColor: theme.primary }}
-                      >
-                        {idx + 1}
-                      </div>
-                      <h3 className="font-semibold text-[#0F172A]">{c.competencyName}</h3>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <CompetencyNumberBadge number={detailIndexOffset + idx + 1} color={theme.primary} />
+                      <h3 className="min-w-0 font-semibold leading-tight text-[#0F172A]">{c.competencyName}</h3>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl font-bold" style={{ color: theme.primary }}>
+                    <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+                      <span className="text-2xl font-bold leading-none" style={{ color: theme.primary }}>
                         {c.scaledScore.toFixed(1)}
                       </span>
                       <span className="text-sm text-[#94A3B8]">/ 10</span>
-                      <span
-                        className="rounded-full px-3 py-1 text-xs font-semibold"
-                        style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
-                      >
-                        {c.band}
-                      </span>
+                      <BandBadge band={c.band} colors={colors} />
                     </div>
                   </div>
 
@@ -234,7 +281,9 @@ export function CompetencyReportPage({ competencies, heading = "Competency Profi
                     )}
 
                     {/* On-the-job development projects */}
-                    {c.developmentProjects && c.developmentProjects.length > 0 && (
+                    {developmentProjectCompetencyIds.has(c.competencyId) &&
+                      c.developmentProjects &&
+                      c.developmentProjects.length > 0 && (
                       <div>
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
                           On-the-Job Development Projects
@@ -245,6 +294,18 @@ export function CompetencyReportPage({ competencies, heading = "Competency Profi
                               <p className="text-xs font-bold text-[#0F172A]">{p.title}</p>
                               <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">What to do</p>
                               <p className="whitespace-pre-line text-[11px] text-[#475569]">{p.whatToDo}</p>
+                              {p.howToDoIt && (
+                                <>
+                                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">How to do it</p>
+                                  <p className="whitespace-pre-line text-[11px] text-[#475569]">{p.howToDoIt}</p>
+                                </>
+                              )}
+                              {p.evidence && (
+                                <>
+                                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">How to measure</p>
+                                  <p className="whitespace-pre-line text-[11px] text-[#475569]">{p.evidence}</p>
+                                </>
+                              )}
                             </div>
                           ))}
                         </div>
