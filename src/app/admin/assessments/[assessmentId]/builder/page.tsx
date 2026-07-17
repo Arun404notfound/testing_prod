@@ -16,9 +16,8 @@ import {
   saveAssessmentDetails,
   setLifecycleStatus,
   updateAssessmentBrandingTenant,
-  updateAssessmentReportTemplate,
+  updateAssessmentJobRole,
 } from "./actions";
-import { REPORT_TEMPLATE_LABELS, REPORT_TEMPLATE_TYPES } from "@/lib/report-layout";
 import { BulkLikertPool } from "./bulk-likert-pool";
 import { BulkTriadPool } from "./bulk-triad-pool";
 import { BuilderHeaderActions } from "./builder-header-actions";
@@ -85,8 +84,13 @@ export default async function AssessmentBuilderPage({
     orderBy: { name: "asc" },
     select: { id: true, name: true, logoUrl: true },
   });
+  const jobRoles = await prisma.jobRole.findMany({
+    where: { tenantId },
+    orderBy: { displayOrder: "asc" },
+    select: { id: true, name: true },
+  });
   const boundUpdateBrandingTenant = updateAssessmentBrandingTenant.bind(null, assessment.id);
-  const boundUpdateReportTemplate = updateAssessmentReportTemplate.bind(null, assessment.id);
+  const boundUpdateJobRole = updateAssessmentJobRole.bind(null, assessment.id);
   const boundSaveDetails = saveAssessmentDetails.bind(null, assessment.id);
 
   const assessmentType = assessment.assessmentType;
@@ -348,29 +352,31 @@ export default async function AssessmentBuilderPage({
         </form>
       </FormCard>
 
-      <FormCard title="Report template">
+      <FormCard title="Job role">
         <p className="mb-4 text-sm text-[#64748B]">
-          Controls which PDF layout is used for this assessment&apos;s results. Pick the template that matches the
-          assessment type (for example forced-choice assessments use the forced-choice report template). “Custom” picks
-          the layout from the assessment type.
+          When set, competency scoring and report content come from this Job Role&apos;s Domain →
+          Competency → Attribute framework, and its own report template (if configured) takes
+          over automatically. When left as None, the report layout is derived automatically
+          from the assessment type.
         </p>
-        <form action={boundUpdateReportTemplate} className="flex flex-wrap items-end gap-4">
+        <form action={boundUpdateJobRole} className="flex flex-wrap items-end gap-4">
           <label className="min-w-[240px] flex-1 text-sm text-[#334155]">
-            <span className="mb-1 block font-medium">Template</span>
+            <span className="mb-1 block font-medium">Job role</span>
             <select
-              name="reportTemplateType"
-              defaultValue={assessment.reportTemplateType}
+              name="jobRoleId"
+              defaultValue={assessment.jobRoleId ?? ""}
               className="tg-input w-full"
             >
-              {REPORT_TEMPLATE_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {REPORT_TEMPLATE_LABELS[t]}
+              <option value="">None</option>
+              {jobRoles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
                 </option>
               ))}
             </select>
           </label>
           <button type="submit" className="tg-button-primary text-sm">
-            Save template
+            Save job role
           </button>
         </form>
       </FormCard>

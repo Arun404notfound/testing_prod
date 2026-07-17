@@ -109,6 +109,8 @@ model Tenant {
   attributes          Attribute[]
   competencies        Competency[]
   bigFiveFactorConfigs BigFiveFactorConfig[]
+  jobRoles             JobRole[]
+  domains              Domain[]
 }
 
 model User {
@@ -155,6 +157,7 @@ model Assessment {
   tenantId             String?
   reportTemplateId     String?
   reportTemplateType   ReportTemplateType         @default(TECHNICAL_SKILLS_REPORT)
+  jobRoleId            String?
   title                String
   description          String
   assessmentType       AssessmentType             @default(KNOWLEDGE_MCQ)
@@ -170,6 +173,7 @@ model Assessment {
   updatedAt            DateTime                   @default(now()) @updatedAt
   tenant               Tenant?                    @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   reportTemplate       ReportTemplate?            @relation(fields: [reportTemplateId], references: [id], onDelete: SetNull)
+  jobRole              JobRole?                   @relation(fields: [jobRoleId], references: [id], onDelete: SetNull)
   sections             AssessmentSection[]
   items                AssessmentItem[]
   triadGroups          TriadGroup[]
@@ -184,6 +188,7 @@ model Assessment {
   @@index([reportTemplateId])
   @@index([reportTemplateType])
   @@index([lifecycleStatus])
+  @@index([jobRoleId])
 }
 
 model AssessmentSection {
@@ -531,6 +536,10 @@ model BigFiveFactorAttributeMap {
 model Competency {
   id                String   @id @default(cuid())
   tenantId          String?
+  /// Null for legacy tenant-wide competencies (e.g. the original Big Five set).
+  /// Set for competencies that belong to a specific Job Role framework.
+  jobRoleId         String?
+  domainId          String?
   name              String
   description       String?
   reportDescription String?
@@ -539,15 +548,102 @@ model Competency {
   /// Supported values: "WEIGHTED_AVERAGE" | "SIMPLE_AVERAGE"
   /// Future values can be added without a schema migration.
   scoringFormula    String   @default("WEIGHTED_AVERAGE")
+  /// Which band thresholds to apply to this competency's scaledScore.
+  /// "GENERIC_5"  — Exceptional/Strong/Moderate/Developing/Low (legacy default)
+  /// "MATURITY_4" — Developing/Intermediate/Proficient/Expert (job-role framework)
+  proficiencyScale         String   @default("GENERIC_5")
+  strengthStatement        String?
+  developmentNeedStatement String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @default(now()) @updatedAt
 
   tenant         Tenant?                  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  jobRole        JobRole?                 @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+  domain         Domain?                  @relation(fields: [domainId], references: [id], onDelete: SetNull)
   attributeMaps  AttributeCompetencyMap[]
   scores         CompetencyScore[]
+  bandContents   CompetencyBandContent[]
+  developmentProjects DevelopmentProject[]
+
+  @@unique([tenantId, jobRoleId, name])
+  @@index([tenantId])
+  @@index([jobRoleId])
+  @@index([domainId])
+}
+
+model JobRole {
+  id           String   @id @default(cuid())
+  tenantId     String?
+  name         String
+  slug         String?
+  description  String?
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  tenant         Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  domains        Domain[]
+  competencies   Competency[]
+  assessments    Assessment[]
+  reportTemplate ReportTemplate?
 
   @@unique([tenantId, name])
   @@index([tenantId])
+}
+
+model Domain {
+  id           String   @id @default(cuid())
+  tenantId     String?
+  jobRoleId    String
+  name         String
+  description  String?
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  tenant       Tenant?      @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  jobRole      JobRole      @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+  competencies Competency[]
+
+  @@unique([jobRoleId, name])
+  @@index([tenantId])
+  @@index([jobRoleId])
+}
+
+model CompetencyBandContent {
+  id                      String   @id @default(cuid())
+  competencyId            String
+  /// "Developing" | "Intermediate" | "Proficient" | "Expert"
+  band                    String
+  proficiencyDescription  String
+  /// Newline-delimited bullet points.
+  behaviouralImplications String
+  /// Newline-delimited bullet points.
+  watchOuts               String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @default(now()) @updatedAt
+
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([competencyId, band])
+  @@index([competencyId])
+}
+
+model DevelopmentProject {
+  id           String   @id @default(cuid())
+  competencyId String
+  displayOrder Int      @default(0)
+  title        String
+  whatToDo     String
+  howToDoIt    String
+  evidence     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@index([competencyId])
 }
 
 model AttributeCompetencyMap {
@@ -609,6 +705,9 @@ model SectionScore {
 model ReportTemplate {
   id             String         @id @default(cuid())
   tenantId       String?
+  /// Set when this template is owned by a Job Role framework rather than
+  /// picked directly by assessmentType.
+  jobRoleId      String?        @unique
   name           String
   assessmentType AssessmentType
   headerTitle    String
@@ -617,6 +716,7 @@ model ReportTemplate {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @default(now()) @updatedAt
   tenant         Tenant?        @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  jobRole        JobRole?       @relation(fields: [jobRoleId], references: [id], onDelete: SetNull)
   assessments    Assessment[]
 
   @@unique([tenantId, name, assessmentType])

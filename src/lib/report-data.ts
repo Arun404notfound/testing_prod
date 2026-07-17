@@ -58,12 +58,21 @@ export type ReportFactorAggregate = {
 export type ReportCompetencyScore = {
   competencyId: string;
   competencyName: string;
+  domainName: string | null;
   scaledScore: number;
   percent: number;
   band: string;
   reportDescription: string | null;
   scoringFormula: string;
   attributes: Array<{ code: string; name: string }>;
+  strengthStatement: string | null;
+  developmentNeedStatement: string | null;
+  bandContent: {
+    proficiencyDescription: string;
+    behaviouralImplications: string[];
+    watchOuts: string[];
+  } | null;
+  developmentProjects: Array<{ title: string; whatToDo: string; howToDoIt: string; evidence: string }>;
 };
 
 export type ReportPayload = {
@@ -92,6 +101,7 @@ export type ReportPayload = {
   attemptResponses: ReportAttemptResponseRow[];
   tenantBranding: ReportTenantBranding;
   competencyScores: ReportCompetencyScore[];
+  jobRoleName: string | null;
 };
 
 function asStringArray(v: unknown): string[] {
@@ -219,7 +229,7 @@ export async function getReportPayload(
     where,
     include: {
       candidate: { include: { tenant: true } },
-      assessment: { include: { tenant: true } },
+      assessment: { include: { tenant: true, jobRole: { select: { name: true } } } },
       sectionScores: true,
       questionResponses: {
         include: { question: true },
@@ -252,6 +262,9 @@ export async function getReportPayload(
               competency: {
                 include: {
                   attributeMaps: { include: { attribute: { select: { code: true, name: true } } } },
+                  domain: { select: { name: true } },
+                  bandContents: true,
+                  developmentProjects: { orderBy: { displayOrder: "asc" } },
                 },
               },
             },
@@ -404,16 +417,36 @@ export async function getReportPayload(
   const factorAggregates = aggregateFactors(traitScores, factorConfigs, attributeScoresForFactors);
 
   // Build competency scores
-  const competencyScores: ReportCompetencyScore[] = (attempt?.competencyScores ?? []).map((cs) => ({
-    competencyId: cs.competencyId,
-    competencyName: cs.competency.name,
-    scaledScore: cs.scaledScore,
-    percent: cs.percent,
-    band: cs.band ?? "Moderate",
-    reportDescription: cs.competency.reportDescription ?? null,
-    scoringFormula: cs.competency.scoringFormula ?? "WEIGHTED_AVERAGE",
-    attributes: cs.competency.attributeMaps.map((m) => ({ code: m.attribute.code, name: m.attribute.name })),
-  }));
+  const competencyScores: ReportCompetencyScore[] = (attempt?.competencyScores ?? []).map((cs) => {
+    const band = cs.band ?? "Moderate";
+    const bandContentRow = cs.competency.bandContents.find((b) => b.band === band) ?? null;
+    return {
+      competencyId: cs.competencyId,
+      competencyName: cs.competency.name,
+      domainName: cs.competency.domain?.name ?? null,
+      scaledScore: cs.scaledScore,
+      percent: cs.percent,
+      band,
+      reportDescription: cs.competency.reportDescription ?? null,
+      scoringFormula: cs.competency.scoringFormula ?? "WEIGHTED_AVERAGE",
+      attributes: cs.competency.attributeMaps.map((m) => ({ code: m.attribute.code, name: m.attribute.name })),
+      strengthStatement: cs.competency.strengthStatement ?? null,
+      developmentNeedStatement: cs.competency.developmentNeedStatement ?? null,
+      bandContent: bandContentRow
+        ? {
+            proficiencyDescription: bandContentRow.proficiencyDescription,
+            behaviouralImplications: bandContentRow.behaviouralImplications.split("\n").filter(Boolean),
+            watchOuts: bandContentRow.watchOuts.split("\n").filter(Boolean),
+          }
+        : null,
+      developmentProjects: cs.competency.developmentProjects.map((p) => ({
+        title: p.title,
+        whatToDo: p.whatToDo,
+        howToDoIt: p.howToDoIt,
+        evidence: p.evidence,
+      })),
+    };
+  });
 
   return {
     id: result.id,
@@ -441,6 +474,7 @@ export async function getReportPayload(
     attemptResponses,
     tenantBranding,
     competencyScores,
+    jobRoleName: result.assessment?.jobRole?.name ?? null,
   };
 }
 

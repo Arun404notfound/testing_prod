@@ -81,6 +81,8 @@ export type CompetencyMap = {
   competencyName: string;
   /** Formula to combine attribute scores. Default: "WEIGHTED_AVERAGE" */
   scoringFormula: string;
+  /** Which band thresholds to apply. Default: "GENERIC_5" (see bandForCompetency). */
+  proficiencyScale?: string;
   attributes: Array<{
     attributeId: string;
     weight: number;
@@ -106,6 +108,22 @@ export function scoreBand(scaledScore: number): string {
   if (scaledScore >= 5) return "Moderate";
   if (scaledScore >= 3) return "Developing";
   return "Low";
+}
+
+/**
+ * Job-role competency framework banding (from the "Scale Guide" sheet):
+ *   Developing (0–3.5), Intermediate (3.51–6.5), Proficient (6.51–8.5), Expert (8.5–10)
+ */
+export function maturityScoreBand(scaledScore: number): string {
+  if (scaledScore >= 8.5) return "Expert";
+  if (scaledScore >= 6.51) return "Proficient";
+  if (scaledScore >= 3.51) return "Intermediate";
+  return "Developing";
+}
+
+/** Picks the right banding function for a competency's `proficiencyScale`. */
+export function bandForCompetency(scaledScore: number, proficiencyScale: string | null | undefined): string {
+  return proficiencyScale === "MATURITY_4" ? maturityScoreBand(scaledScore) : scoreBand(scaledScore);
 }
 
 /**
@@ -198,7 +216,7 @@ export function computeCompetencyScores(
       maxScore: totalMax,
       scaledScore,
       percent,
-      band: scoreBand(scaledScore),
+      band: bandForCompetency(scaledScore, comp.proficiencyScale),
     });
   }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   BarChart3,
   Brain,
+  Briefcase,
   ChevronDown,
   ClipboardList,
   FileUp,
@@ -43,6 +44,7 @@ const navGroups = [
       { href: "/admin/assessments", label: "Assessment Builder", icon: ClipboardList },
       { href: "/admin/questions", label: "Questions", icon: HelpCircle },
       { href: "/admin/competencies", label: "Competencies", icon: Brain },
+      { href: "/admin/job-roles", label: "Job Roles", icon: Briefcase },
       { href: "/admin/imports", label: "Imports", icon: FileUp },
     ],
   },

@@ -9,9 +9,6 @@ import {
   allowsMcqPool,
   allowsTriadPool,
 } from "@/lib/assessment-pools";
-import type { ReportTemplateType } from "@/generated/prisma/enums";
-import { isReportTemplateType } from "@/lib/report-layout";
-
 async function assertAssessment(assessmentId: string) {
   const assessment = await prisma.assessment.findFirst({
     where: { id: assessmentId },
@@ -131,13 +128,22 @@ export async function updateAssessmentBrandingTenant(assessmentId: string, formD
   revalidatePath("/admin/assessments");
 }
 
-export async function updateAssessmentReportTemplate(assessmentId: string, formData: FormData) {
+export async function updateAssessmentJobRole(assessmentId: string, formData: FormData) {
   await assertAssessment(assessmentId);
-  const raw = String(formData.get("reportTemplateType") ?? "").trim();
-  if (!isReportTemplateType(raw)) return;
+  const raw = String(formData.get("jobRoleId") ?? "").trim();
+  const jobRoleId = raw || null;
+  const jobRole = jobRoleId
+    ? await prisma.jobRole.findFirst({ where: { id: jobRoleId }, select: { id: true, reportTemplate: { select: { id: true } } } })
+    : null;
+  if (jobRoleId && !jobRole) return;
   await prisma.assessment.update({
     where: { id: assessmentId },
-    data: { reportTemplateType: raw as ReportTemplateType },
+    data: {
+      jobRoleId,
+      // A Job Role's own report template takes over; clearing the Job Role
+      // leaves reportTemplateId untouched (falls back to assessmentType lookup).
+      ...(jobRoleId ? { reportTemplateId: jobRole?.reportTemplate?.id ?? null } : {}),
+    },
   });
   revalidatePath(`/admin/assessments/${assessmentId}/builder`);
   revalidatePath("/admin/assessments");

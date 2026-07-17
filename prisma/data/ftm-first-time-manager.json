@@ -1,0 +1,829 @@
+{
+  "framework": [
+    {
+      "domain": "Leading Self",
+      "competency": "Ownership and Accountability",
+      "definition": "Takes responsibility for team commitments, decisions and outcomes, and enables team members to deliver rather than doing everything personally.",
+      "keyBehaviours": [
+        "Takes responsibility for team outcomes.",
+        "Follows through on commitments.",
+        "Addresses problems without assigning blame.",
+        "Makes decisions within own authority.",
+        "Supports employees without taking over their work.",
+        "Escalates risks with facts and possible solutions."
+      ],
+      "attributes": [
+        "Dutifulness",
+        "Achievement Striving",
+        "Self-Discipline",
+        "Competence",
+        "Straightforwardness"
+      ]
+    },
+    {
+      "domain": "Leading Self",
+      "competency": "Emotional Management",
+      "definition": "Recognises and manages personal emotions and remains calm, respectful and constructive during pressure, setbacks and disagreement.",
+      "keyBehaviours": [
+        "Remains composed under pressure.",
+        "Responds calmly during disagreement.",
+        "Receives feedback without becoming defensive.",
+        "Avoids impulsive reactions.",
+        "Recognises the impact of personal behaviour.",
+        "Acknowledges mistakes and takes corrective action."
+      ],
+      "attributes": [
+        "Emotional Control",
+        "Impulse Control",
+        "Stress Resilience",
+        "Self-Regard",
+        "Feelings"
+      ]
+    },
+    {
+      "domain": "Leading Self",
+      "competency": "Learning and Adaptability",
+      "definition": "Learns from experience and feedback and adjusts the managerial approach according to the situation and employee needs.",
+      "keyBehaviours": [
+        "Seeks feedback on managerial effectiveness.",
+        "Reflects on successes and mistakes.",
+        "Changes approaches that are not effective.",
+        "Learns from unfamiliar situations.",
+        "Adapts guidance to employee capability.",
+        "Responds constructively to changing priorities."
+      ],
+      "attributes": [
+        "Actions",
+        "Curiosity",
+        "Self-Regard",
+        "Values",
+        "Deliberation"
+      ]
+    },
+    {
+      "domain": "Managing Work",
+      "competency": "Goal Setting and Prioritisation",
+      "definition": "Converts team requirements into clear goals, priorities, responsibilities and realistic timelines.",
+      "keyBehaviours": [
+        "Defines clear outcomes and timelines.",
+        "Explains what needs to be achieved.",
+        "Distinguishes important work from urgent work.",
+        "Clarifies roles and responsibilities.",
+        "Allocates work based on capability and workload.• Reviews progress against milestones."
+      ],
+      "attributes": [
+        "Orderliness",
+        "Achievement Striving",
+        "Self-Discipline",
+        "Deliberation",
+        "Competence"
+      ]
+    },
+    {
+      "domain": "Managing Work",
+      "competency": "Delegation and Follow-Through",
+      "definition": "Assigns work with clear expectations, appropriate authority and suitable review while allowing employees to take ownership.",
+      "keyBehaviours": [
+        "Delegates meaningful responsibilities.",
+        "Clarifies outcomes, standards and timelines.",
+        "Defines decision-making authority.",
+        "Provides necessary information and resources.",
+        "Establishes suitable review points.",
+        "Supports employees without micromanaging.",
+        "Reviews results and learning."
+      ],
+      "attributes": [
+        "Trust",
+        "Assertiveness",
+        "Orderliness",
+        "Dutifulness",
+        "Deliberation"
+      ]
+    },
+    {
+      "domain": "Managing Work",
+      "competency": "Problem Solving and Decision Making",
+      "definition": "Understands day-to-day team problems, considers relevant information and makes timely and practical decisions.",
+      "keyBehaviours": [
+        "Clarifies the problem before acting.",
+        "Gathers relevant facts.",
+        "Identifies underlying causes.",
+        "Involves others where useful.",
+        "Considers options and consequences.",
+        "Makes routine decisions independently.",
+        "Reviews the effectiveness of decisions."
+      ],
+      "attributes": [
+        "Deliberation",
+        "Curiosity",
+        "Competence",
+        "Actions",
+        "Creativity"
+      ]
+    },
+    {
+      "domain": "Managing Performance",
+      "competency": "Performance Management",
+      "definition": "Sets clear performance expectations, monitors progress, recognises effective work and addresses performance gaps consistently.",
+      "keyBehaviours": [
+        "Clarifies expected results, standards and timelines.",
+        "Checks employee understanding.",
+        "Conducts regular progress discussions.",
+        "Uses evidence to assess performance.",
+        "Recognises effective work.",
+        "Addresses performance gaps early.",
+        "Agrees improvement actions and timelines."
+      ],
+      "attributes": [
+        "Assertiveness",
+        "Straightforwardness",
+        "Orderliness",
+        "Dutifulness",
+        "Deliberation"
+      ]
+    },
+    {
+      "domain": "Managing Performance",
+      "competency": "Feedback and Coaching",
+      "definition": "Provides timely, specific feedback and uses questions and guidance to help employees improve their performance.",
+      "keyBehaviours": [
+        "Gives feedback close to the relevant event.",
+        "Uses specific examples.",
+        "Explains the impact of behaviour or performance.",
+        "Provides appreciative and corrective feedback.",
+        "Asks reflective questions.",
+        "Guides without giving every answer.",
+        "Follows up on agreed actions."
+      ],
+      "attributes": [
+        "Sympathy",
+        "Feelings",
+        "Straightforwardness",
+        "Assertiveness",
+        "Altruism"
+      ]
+    },
+    {
+      "domain": "Managing Performance",
+      "competency": "People Development",
+      "definition": "Understands employee strengths and development needs and provides suitable opportunities for learning and growth.",
+      "keyBehaviours": [
+        "Identifies employee strengths and capability gaps.",
+        "Holds development conversations.",
+        "Agrees practical development priorities.",
+        "Provides stretch assignments.",
+        "Offers exposure to new responsibilities.",
+        "Supports employees during learning.",
+        "Reviews development progress."
+      ],
+      "attributes": [
+        "Altruism",
+        "Sympathy",
+        "Feelings",
+        "Trust",
+        "Warmth"
+      ]
+    },
+    {
+      "domain": "Building the Team",
+      "competency": "Effective Communication",
+      "definition": "Communicates information, expectations and decisions clearly and listens actively to understand employee views and concerns.",
+      "keyBehaviours": [
+        "Communicates clearly and on time.",
+        "Explains the purpose and context of work.",
+        "Adapts communication to the audience.",
+        "Checks understanding.",
+        "Listens without interrupting.",
+        "Encourages questions and ideas.",
+        "Conducts purposeful team and one-to-one discussions."
+      ],
+      "attributes": [
+        "Sociability",
+        "Assertiveness",
+        "Straightforwardness",
+        "Warmth",
+        "Feelings"
+      ]
+    },
+    {
+      "domain": "Building the Team",
+      "competency": "Trust and Fairness",
+      "definition": "Builds respectful and dependable relationships and treats team members consistently, ethically and fairly.",
+      "keyBehaviours": [
+        "Treats employees with respect.",
+        "Keeps commitments.",
+        "Applies standards consistently.",
+        "Avoids favouritism.",
+        "Provides fair access to work and development opportunities.",
+        "Encourages different perspectives.",
+        "Maintains confidentiality."
+      ],
+      "attributes": [
+        "Trust",
+        "Straightforwardness",
+        "Dutifulness",
+        "Values",
+        "Altruism"
+      ]
+    },
+    {
+      "domain": "Building the Team",
+      "competency": "Conflict Management",
+      "definition": "Addresses disagreements, behavioural concerns and sensitive issues directly, calmly and respectfully.",
+      "keyBehaviours": [
+        "Addresses issues early.",
+        "Listens to relevant perspectives.",
+        "Separates facts from assumptions.",
+        "Focuses on behaviour rather than personality.",
+        "Clarifies the required change.",
+        "Remains calm during disagreement.",
+        "Agrees actions and follows up."
+      ],
+      "attributes": [
+        "Emotional Control",
+        "Impulse Control",
+        "Assertiveness",
+        "Straightforwardness",
+        "Feelings"
+      ]
+    }
+  ],
+  "reportContent": [
+    {
+      "domain": "Leading Self",
+      "competency": "Ownership and Accountability",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "Is beginning to understand responsibility for team outcomes but continues to depend considerably on senior-manager direction, particularly when decisions are difficult or delivery is at risk.",
+          "behaviouralImplications": "Completes personal responsibilities.\nHesitates to make decisions.\nMay avoid addressing delivery gaps.\nMay take work back from employees.",
+          "watchOuts": "Avoiding difficult decisions.\nBlaming circumstances.\nEscalating routine issues.\nRetaining excessive control."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Takes responsibility for routine team commitments and follows through in familiar situations, although confidence and consistency may reduce when outcomes are uncertain or at risk.",
+          "behaviouralImplications": "Provides basic direction.\nMonitors delivery.\nTakes action on routine issues.\nMay seek excessive support during setbacks.",
+          "watchOuts": "Late escalation.\nInconsistent follow-through.\nDefensiveness when results are poor.\nFocusing on explanations instead of action."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Consistently owns team commitments, decisions and outcomes while enabling employees to take responsibility for their own work and resolve appropriate issues independently.",
+          "behaviouralImplications": "Addresses issues without blame.\nMakes decisions within authority.\nEscalates risks with facts and solutions.\nEnsures commitments are completed.",
+          "watchOuts": "Becoming the solution to every problem.\nConfusing accountability with control.\nBecoming overinvolved in execution."
+        },
+        "Expert": {
+          "proficiencyDescription": "Role-models accountability in difficult and ambiguous situations and establishes a strong culture of ownership, timely escalation and independent corrective action across the team.",
+          "behaviouralImplications": "Creates clear ownership.\nEncourages early risk reporting.\nBuilds independent corrective action.\nHelps other managers strengthen accountability.",
+          "watchOuts": "Expecting ownership without adequate authority.\nSetting unrealistic accountability standards.\nOverlooking capability or resource constraints."
+        }
+      },
+      "strengthStatement": "Creates confidence by taking responsibility, following through and enabling others to own their work.",
+      "developmentNeedStatement": "May avoid difficult decisions or retain excessive control, weakening team ownership and confidence.",
+      "projects": [
+        {
+          "title": "Team Commitment Tracker",
+          "whatToDo": "Select 5–8 important team commitments.\nTrack them for six weeks.",
+          "howToDoIt": "Record outcome, owner, due date, status, risk and next action.\nReview for 15 minutes each week.",
+          "evidence": "Percentage completed on time.\nExamples of risks resolved early."
+        },
+        {
+          "title": "Accountability Review",
+          "whatToDo": "Review one delayed or unsuccessful deliverable.",
+          "howToDoIt": "Compare expected and actual outcomes.\nIdentify what was within the manager’s control.\nDefine two corrective actions.",
+          "evidence": "Completed review note.\nCorrective actions implemented."
+        },
+        {
+          "title": "Decision-Ownership Chart",
+          "whatToDo": "Clarify decisions owned by the manager, employees and reporting manager.",
+          "howToDoIt": "Create a one-page decision-rights chart.\nDiscuss it with the team.\nApply it for four weeks.",
+          "evidence": "Fewer unnecessary escalations.\nThree decisions independently taken by employees."
+        }
+      ]
+    },
+    {
+      "domain": "Leading Self",
+      "competency": "Emotional Management",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "Has limited awareness of emotional triggers and may react visibly during pressure, disagreement or criticism, affecting the quality of interaction and judgement.",
+          "behaviouralImplications": "Tone may become impatient or defensive.\nPersonal reactions may influence decisions.\nEmployees may hesitate to raise concerns.",
+          "watchOuts": "Impulsive reactions.\nVisible frustration.\nDefensive explanations.\nAvoiding difficult situations."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Usually remains composed in routine situations but may struggle to regulate reactions during sustained pressure, criticism or emotionally sensitive conversations.",
+          "behaviouralImplications": "Regains control after reacting.\nDemonstrates awareness of some triggers.\nMay not recognise the impact of the initial response.",
+          "watchOuts": "Suppressing rather than managing emotions.\nInconsistent behaviour under stress.\nDelayed recognition of impact."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Recognises and regulates emotions effectively and remains calm, respectful and constructive during pressure, setbacks, disagreement and feedback.",
+          "behaviouralImplications": "Separates facts from personal reactions.\nReceives feedback openly.\nResponds proportionately.\nMaintains respectful communication.",
+          "watchOuts": "Appearing emotionally distant.\nOvercontrolling emotional expression.\nMissing opportunities to show empathy."
+        },
+        "Expert": {
+          "proficiencyDescription": "Demonstrates exceptional emotional balance in complex and emotionally charged situations and creates stability by helping others remain calm, focused and constructive.",
+          "behaviouralImplications": "Creates stability during conflict.\nModels balanced responses.\nSupports others during uncertainty.\nGuides other managers in emotional management.",
+          "watchOuts": "Taking responsibility for everyone’s emotions.\nAssuming one technique suits everyone.\nBecoming the permanent emotional buffer."
+        }
+      },
+      "strengthStatement": "Brings calmness and balance to difficult situations, enabling constructive decisions and conversations.",
+      "developmentNeedStatement": "Emotional reactions or avoidance may affect judgement and discourage employees from raising concerns.",
+      "projects": [
+        {
+          "title": "Emotional-Trigger Log",
+          "whatToDo": "Record difficult emotional situations for four weeks.",
+          "howToDoIt": "Note the trigger, thought, physical reaction, response and outcome.\nReview patterns every Friday.",
+          "evidence": "Three common triggers identified.\nPlanned response for each trigger."
+        },
+        {
+          "title": "Pause-and-Respond Protocol",
+          "whatToDo": "Apply the protocol in five high-pressure situations.",
+          "howToDoIt": "Pause.\nTake three slow breaths.\nCheck facts.\nIdentify the desired outcome.\nSelect the response.",
+          "evidence": "Five documented examples.\nClear impact on response or outcome."
+        },
+        {
+          "title": "Difficult-Conversation Practice",
+          "whatToDo": "Conduct three planned difficult conversations.",
+          "howToDoIt": "Prepare facts.\nIdentify likely triggers.\nUse neutral language.\nReflect after the conversation.",
+          "evidence": "Conversation notes.\nAgreed actions.\nObserver or manager feedback."
+        }
+      ]
+    },
+    {
+      "domain": "Leading Self",
+      "competency": "Learning and Adaptability",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "Relies primarily on familiar methods and may resist feedback or alternative approaches, even when current practices are not producing the required result.",
+          "behaviouralImplications": "Continues ineffective practices.\nUses the same approach with different employees.\nMay avoid unfamiliar assignments.",
+          "watchOuts": "Defending current methods.\nViewing feedback as criticism.\nAvoiding experimentation."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Accepts feedback and adapts in straightforward situations but may return to familiar habits under pressure or fail to assess whether the new approach was effective.",
+          "behaviouralImplications": "Tries new approaches when encouraged.\nDemonstrates some flexibility.\nDoes not always evaluate effectiveness.",
+          "watchOuts": "Short-lived change.\nSuperficial adaptation.\nChanging without understanding why."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Actively learns from feedback and experience and adjusts the managerial approach according to the situation, employee capability and changing work requirements.",
+          "behaviouralImplications": "Reflects on outcomes.\nTests alternatives.\nAdapts guidance to employee needs.\nSustains effective behavioural changes.",
+          "watchOuts": "Changing approaches too frequently.\nEvaluating new approaches too early.\nCreating inconsistency for employees."
+        },
+        "Expert": {
+          "proficiencyDescription": "Demonstrates high learning agility and converts feedback, experimentation and experience into repeatable practices that improve team effectiveness and support the development of others.",
+          "behaviouralImplications": "Creates regular learning routines.\nHelps employees adapt.\nSupports other managers through change.\nShares tested practices.",
+          "watchOuts": "Introducing too many experiments.\nExpecting everyone to adapt at the same pace.\nCreating change fatigue."
+        }
+      },
+      "strengthStatement": "Learns quickly from experience and adjusts the management approach to different people and situations.",
+      "developmentNeedStatement": "May continue using ineffective approaches or find it difficult to apply feedback consistently.",
+      "projects": [
+        {
+          "title": "Feedback Sprint",
+          "whatToDo": "Collect feedback from one manager, two peers and three employees.",
+          "howToDoIt": "Ask what to continue, stop and start.\nSelect two behaviours to practise for six weeks.",
+          "evidence": "Feedback summary.\nTwo behavioural commitments.\nFollow-up feedback."
+        },
+        {
+          "title": "Adaptive-Management Experiment",
+          "whatToDo": "Use different management approaches with two employees.",
+          "howToDoIt": "Give one employee greater structure.\nGive another greater autonomy.\nReview confidence, quality and progress weekly.",
+          "evidence": "Comparison of outcomes.\nWritten learning on when each style works."
+        },
+        {
+          "title": "After-Action Reviews",
+          "whatToDo": "Review four significant assignments or meetings.",
+          "howToDoIt": "Ask what was expected.\nRecord what happened and why.\nIdentify what should change next time.",
+          "evidence": "Four completed reviews.\nTwo changes applied to future work."
+        }
+      ]
+    },
+    {
+      "domain": "Managing Work",
+      "competency": "Goal Setting and Prioritisation",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "Provides broad instructions and may treat most work as equally urgent, resulting in limited clarity around outcomes, ownership and timelines.",
+          "behaviouralImplications": "Employees may be unclear about priorities.\nRoles and standards may remain undefined.\nWork may be allocated reactively.",
+          "watchOuts": "Overcommitting the team.\nUnclear deadlines.\nFrequent unexplained priority changes."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Sets goals and priorities for routine work but may struggle to balance competing demands, dependencies and available team capacity.",
+          "behaviouralImplications": "Creates basic plans.\nClarifies routine responsibilities.\nMay overlook trade-offs or workload constraints.",
+          "watchOuts": "Planning based on ideal capacity.\nResponding to the loudest stakeholder.\nInsufficient contingency planning."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Converts team requirements into clear outcomes, priorities, responsibilities, success measures and realistic timelines that guide daily execution.",
+          "behaviouralImplications": "Employees understand what matters.\nOwnership and milestones are clear.\nCapacity is considered.\nProgress is reviewed regularly.",
+          "watchOuts": "Overplanning routine work.\nContinuing with outdated plans.\nAssigning too many priorities."
+        },
+        "Expert": {
+          "proficiencyDescription": "Establishes strong planning and prioritisation practices and manages complex, competing demands while protecting critical outcomes and maintaining team clarity.",
+          "behaviouralImplications": "Anticipates dependencies.\nExplains trade-offs.\nRebalances capacity proactively.\nHelps other managers improve planning.",
+          "watchOuts": "Creating overly complex processes.\nMaking decisions without team input.\nExcessive focus on planning over execution."
+        }
+      },
+      "strengthStatement": "Creates clarity and focus by converting requirements into realistic priorities and measurable outcomes.",
+      "developmentNeedStatement": "Unclear or frequently changing priorities may cause confusion, overwork and missed commitments.",
+      "projects": [
+        {
+          "title": "30-Day Team Plan",
+          "whatToDo": "Plan the team’s key outcomes for one month.",
+          "howToDoIt": "List outcomes, milestones, owners, dependencies, risks and measures.\nReview every Monday.",
+          "evidence": "Completed plan.\nWeekly milestone status.\nReprioritisation decisions."
+        },
+        {
+          "title": "Priority-Reset Exercise",
+          "whatToDo": "Review all current team activities.",
+          "howToDoIt": "Classify each as stop, defer, continue or accelerate.\nValidate with the reporting manager.\nExplain changes to the team.",
+          "evidence": "Reduced low-value work.\nClear rationale for revised priorities."
+        },
+        {
+          "title": "Capacity-Planning Board",
+          "whatToDo": "Map team workload for six weeks.",
+          "howToDoIt": "Estimate each employee’s capacity.\nIdentify overload.\nRebalance work weekly.",
+          "evidence": "Lower workload imbalance.\nFewer missed deadlines.\nFewer last-minute reallocations."
+        }
+      ]
+    },
+    {
+      "domain": "Managing Work",
+      "competency": "Delegation and Follow-Through",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "Retains important work or delegates tasks without sufficient clarity, authority or support, resulting in continued dependence on the manager.",
+          "behaviouralImplications": "Employees may not understand ownership.\nDecision authority remains unclear.\nManager becomes a delivery bottleneck.",
+          "watchOuts": "Micromanagement.\nReverse delegation.\nTaking work back too quickly."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Delegates routine work but may provide too much or too little oversight because delegation is not consistently matched to employee readiness or assignment risk.",
+          "behaviouralImplications": "Some employees receive useful independence.\nOthers experience confusion or control.\nFollow-through may be inconsistent.",
+          "watchOuts": "Same review approach for every employee.\nInsufficient clarity on decision authority.\nDelegating mainly low-value tasks."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Delegates meaningful outcomes with clear expectations, authority, resources and proportionate review while allowing employees appropriate independence.",
+          "behaviouralImplications": "Employees take ownership.\nReview is matched to risk and readiness.\nRequired support is available.\nLearning is discussed after completion.",
+          "watchOuts": "Delegating without checking capability.\nOverloading reliable employees.\nIntervening too early."
+        },
+        "Expert": {
+          "proficiencyDescription": "Creates an empowered team and uses delegation deliberately to strengthen delivery, employee capability and independent decision making across the team.",
+          "behaviouralImplications": "Expands authority progressively.\nCreates sustainable ownership practices.\nUses delegation for development.\nHelps other managers delegate effectively.",
+          "watchOuts": "Stretching employees without support.\nAssuming equal readiness for autonomy.\nDelegating only to high performers."
+        }
+      },
+      "strengthStatement": "Builds ownership and capability by delegating meaningful work with clear authority and appropriate support.",
+      "developmentNeedStatement": "May become a bottleneck by retaining work, micromanaging or delegating without sufficient clarity.",
+      "projects": [
+        {
+          "title": "Delegation Matrix",
+          "whatToDo": "Identify responsibilities that can move to employees.",
+          "howToDoIt": "Record current owner, future owner, authority, support and review frequency.\nTransfer three responsibilities.",
+          "evidence": "Three completed transfers.\nEmployee feedback."
+        },
+        {
+          "title": "Staged Delegation",
+          "whatToDo": "Delegate one moderately complex assignment.",
+          "howToDoIt": "Explain outcome and boundaries.\nJointly plan the first stage.\nReview at milestones.\nReduce oversight gradually.",
+          "evidence": "Assignment completed without being taken back.\nPost-task review."
+        },
+        {
+          "title": "Reverse-Delegation Audit",
+          "whatToDo": "Track issues returned to the manager for two weeks.",
+          "howToDoIt": "Ask employees to present the issue, two options and a recommendation.",
+          "evidence": "More employee-led resolutions.\nReduced upward escalation."
+        }
+      ]
+    },
+    {
+      "domain": "Managing Work",
+      "competency": "Problem Solving and Decision Making",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "May act before fully understanding an issue or escalate routine matters unnecessarily, leading to reactive decisions and repeated problems.",
+          "behaviouralImplications": "Assumptions may replace evidence.\nSymptoms may be treated instead of causes.\nRoutine decisions may be delayed.",
+          "watchOuts": "Jumping to solutions.\nWaiting for perfect information.\nEscalating to avoid responsibility."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Resolves familiar problems effectively but may struggle when information is incomplete, perspectives differ or consequences are uncertain.",
+          "behaviouralImplications": "Uses some evidence.\nIdentifies practical options.\nMay not consistently compare alternatives.\nDoes not always review outcomes.",
+          "watchOuts": "Confirmation bias.\nReusing old solutions without testing relevance.\nDelayed decisions."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Clarifies problems, gathers relevant information and makes timely and practical decisions within authority after considering alternatives and consequences.",
+          "behaviouralImplications": "Identifies underlying causes.\nInvolves the right people.\nBalances speed and risk.\nReviews decision effectiveness.",
+          "watchOuts": "Overanalysing low-risk decisions.\nSeeking excessive consensus.\nFailing to record important decisions."
+        },
+        "Expert": {
+          "proficiencyDescription": "Handles complex and ambiguous problems effectively and establishes sound problem-solving and decision-making practices that strengthen judgement across the team.",
+          "behaviouralImplications": "Anticipates recurring problems.\nBalances speed, quality and risk.\nCoaches employees in analysis.\nHelps other managers strengthen judgement.",
+          "watchOuts": "Applying complex methods to simple issues.\nAllowing consultation to delay action.\nBecoming the only decision-maker."
+        }
+      },
+      "strengthStatement": "Makes timely and balanced decisions by clarifying issues, using evidence and considering consequences.",
+      "developmentNeedStatement": "May make reactive decisions, delay action or escalate issues that should be resolved within the team.",
+      "projects": [
+        {
+          "title": "Recurring-Problem Project",
+          "whatToDo": "Select one recurring delay, error or complaint.",
+          "howToDoIt": "Define the problem.\nGather data.\nConduct a five-whys analysis.\nTest one corrective action.",
+          "evidence": "Before-and-after data.\nConfirmed reduction or learning."
+        },
+        {
+          "title": "Decision Log",
+          "whatToDo": "Record six significant decisions.",
+          "howToDoIt": "Capture issue, evidence, options, risks, decision and result.",
+          "evidence": "Completed log.\nTwo lessons applied later."
+        },
+        {
+          "title": "Problem-Solving Huddles",
+          "whatToDo": "Conduct four team sessions on real problems.",
+          "howToDoIt": "Define the issue.\nAnalyse causes.\nGenerate options.\nAgree action and owner.",
+          "evidence": "Four documented decisions.\nProgress against actions."
+        }
+      ]
+    },
+    {
+      "domain": "Managing Performance",
+      "competency": "Performance Management",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "Assumes employees understand expectations and monitors performance inconsistently, allowing gaps to continue until they become difficult to address.",
+          "behaviouralImplications": "Employees may not know required standards.\nPerformance issues remain unaddressed.\nFeedback may come as a surprise.",
+          "watchOuts": "Vague standards.\nAvoiding underperformance conversations.\nWaiting for formal appraisal cycles."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Sets basic expectations and reviews routine performance but may rely on general impressions or delay corrective action in more difficult situations.",
+          "behaviouralImplications": "Provides some accountability.\nConducts routine reviews.\nMay apply standards inconsistently.\nMay overlook early warning signs.",
+          "watchOuts": "Recency bias.\nFocusing only on output.\nInconsistent standards."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Sets clear expectations, reviews evidence consistently, recognises effective performance and addresses gaps promptly, fairly and constructively.",
+          "behaviouralImplications": "Employees know what good performance looks like.\nProgress is reviewed regularly.\nEffective work is recognised.\nImprovement actions are clear.",
+          "watchOuts": "Assuming every gap is motivational.\nIgnoring workload, skill or process issues.\nOverformalising routine discussions."
+        },
+        "Expert": {
+          "proficiencyDescription": "Creates a strong culture of accountability and performance ownership and helps other managers establish fair, evidence-based and developmental performance practices.",
+          "behaviouralImplications": "Anticipates performance risks.\nTailors support.\nBuilds employee self-monitoring.\nStrengthens performance practices in others.",
+          "watchOuts": "Excessive performance pressure.\nNeglecting employee sustainability.\nTreating all performance issues identically."
+        }
+      },
+      "strengthStatement": "Creates clarity and accountability through fair expectations, evidence-based reviews and timely action.",
+      "developmentNeedStatement": "Employees may experience unclear standards, inconsistent monitoring or unresolved performance gaps.",
+      "projects": [
+        {
+          "title": "Performance Rhythm",
+          "whatToDo": "Introduce a three-month review cycle.",
+          "howToDoIt": "Set monthly goals.\nHold fortnightly check-ins.\nConduct monthly reviews.",
+          "evidence": "Completed records.\nGoal achievement percentage.\nEmployee feedback."
+        },
+        {
+          "title": "Performance Evidence Sheet",
+          "whatToDo": "Create a one-page record for each employee.",
+          "howToDoIt": "Track outcomes, quality, deadlines, behaviours, recognition, support and actions.",
+          "evidence": "Discussions supported by examples.\nReduced reliance on impressions."
+        },
+        {
+          "title": "Performance-Improvement Project",
+          "whatToDo": "Address one recurring performance gap.",
+          "howToDoIt": "Clarify expected versus actual performance.\nDiagnose the cause.\nAgree support and actions.\nReview after 30 and 60 days.",
+          "evidence": "Measurable improvement.\nDocumented next step."
+        }
+      ]
+    },
+    {
+      "domain": "Managing Performance",
+      "competency": "Feedback and Coaching",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "Provides feedback that may be vague, delayed or mainly corrective and tends to solve problems for employees rather than helping them think independently.",
+          "behaviouralImplications": "Employees may not understand what to repeat.\nRequired changes may remain unclear.\nIndependent problem solving remains weak.",
+          "watchOuts": "Personality labels.\nExcessive advice.\nAvoiding corrective feedback."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Provides useful feedback in routine situations but may avoid sensitive issues, ask too few questions or provide solutions before understanding the employee’s perspective.",
+          "behaviouralImplications": "Supports immediate correction.\nProvides some developmental guidance.\nMay not build sustained learning.\nFollow-through may be inconsistent.",
+          "watchOuts": "Moving to solutions too quickly.\nAsking too few questions.\nWeak follow-through."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Provides timely, specific and balanced feedback and uses thoughtful questions and guidance to support employee ownership, learning and improvement.",
+          "behaviouralImplications": "Employees understand behaviour and impact.\nImprovement actions are clear.\nEmployees generate possible solutions.\nProgress is followed up.",
+          "watchOuts": "Coaching when direct instruction is needed.\nAvoiding accountability.\nOverusing structured models."
+        },
+        "Expert": {
+          "proficiencyDescription": "Role-models high-quality feedback and coaching, handles sensitive conversations skilfully and builds a strong culture of continuous feedback and learning.",
+          "behaviouralImplications": "Adapts coaching to employee needs.\nDevelops independent judgement.\nBuilds coaching capability in other managers.\nNormalises regular feedback.",
+          "watchOuts": "Overcoaching routine issues.\nCoaching when a clear decision is required.\nCreating dependence on coaching conversations."
+        }
+      },
+      "strengthStatement": "Accelerates improvement through specific feedback, thoughtful questions and consistent follow-up.",
+      "developmentNeedStatement": "Feedback may be too vague, delayed or advice-heavy to create sustained employee learning.",
+      "projects": [
+        {
+          "title": "Weekly Feedback Practice",
+          "whatToDo": "Give every employee one feedback message per week.",
+          "howToDoIt": "Describe the situation, behaviour, impact and desired action.\nAsk for the employee’s perspective.",
+          "evidence": "Feedback log.\nExamples of changed or repeated behaviour."
+        },
+        {
+          "title": "Structured Coaching Conversations",
+          "whatToDo": "Conduct three 30-minute coaching sessions.",
+          "howToDoIt": "Discuss goal, reality, options and way forward.\nEnsure employees generate most options.",
+          "evidence": "Employee-owned actions.\nProgress reviewed within two weeks."
+        },
+        {
+          "title": "Coaching Follow-Through",
+          "whatToDo": "Select two employees with development goals.",
+          "howToDoIt": "Agree one observable behaviour each.\nReview fortnightly for eight weeks.",
+          "evidence": "Before-and-after examples.\nEmployee reflection."
+        }
+      ]
+    },
+    {
+      "domain": "Managing Performance",
+      "competency": "People Development",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "Focuses mainly on immediate delivery and has limited understanding of employee strengths, development needs and career aspirations.",
+          "behaviouralImplications": "Development is generic.\nFormal training is overemphasised.\nOpportunities may be distributed unevenly.",
+          "watchOuts": "Developing only high performers.\nTreating course attendance as development.\nIgnoring career interests."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Identifies basic development needs and provides occasional learning opportunities, but development actions may lack clear goals, support and follow-through.",
+          "behaviouralImplications": "Employees receive some exposure.\nDevelopment may not be individualised.\nApplication of learning may not be reviewed.",
+          "watchOuts": "One-size-fits-all plans.\nAssignments without support.\nWeak learning reviews."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Understands individual strengths and development gaps and provides relevant work-based learning, exposure, coaching and stretch opportunities with appropriate support.",
+          "behaviouralImplications": "Development is linked to actual work.\nOpportunities reflect individual needs.\nProgress is reviewed.\nLearning is applied on the job.",
+          "watchOuts": "Overambitious plans.\nIgnoring workload or readiness.\nInsufficient support during stretch work."
+        },
+        "Expert": {
+          "proficiencyDescription": "Creates a strong talent-development environment that builds future capability, knowledge sharing, internal mobility and succession readiness within and beyond the team.",
+          "behaviouralImplications": "Creates differentiated pathways.\nBuilds readiness for broader roles.\nEncourages knowledge sharing.\nHelps other managers develop people.",
+          "watchOuts": "Neglecting current delivery.\nLabelling potential too early.\nFocusing development on a small group."
+        }
+      },
+      "strengthStatement": "Builds capability and motivation by connecting individual needs with practical development opportunities.",
+      "developmentNeedStatement": "Employees may receive limited, unequal or poorly followed-through development support.",
+      "projects": [
+        {
+          "title": "Team Capability Matrix",
+          "whatToDo": "Map the capability of every employee.",
+          "howToDoIt": "List critical role skills.\nAssess readiness using evidence.\nSelect one priority per person.",
+          "evidence": "Completed matrix.\nOne active action per employee."
+        },
+        {
+          "title": "Supported Stretch Assignment",
+          "whatToDo": "Give one employee a responsibility beyond the current role.",
+          "howToDoIt": "Define delivery and learning outcomes.\nClarify authority and support.\nReview weekly.",
+          "evidence": "Completed assignment.\nEmployee reflection.\nCapability improvement."
+        },
+        {
+          "title": "90-Day Development Plan",
+          "whatToDo": "Create a development plan with one employee.",
+          "howToDoIt": "Use 70% experience.\nUse 20% coaching or exposure.\nUse 10% formal learning.\nReview monthly.",
+          "evidence": "Completed activities.\nNew capability applied at work."
+        }
+      ]
+    },
+    {
+      "domain": "Building the Team",
+      "competency": "Communication and Listening",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "Communicates mainly through instructions and provides limited context or opportunity for discussion, which may reduce understanding and employee participation.",
+          "behaviouralImplications": "Employees may not understand the purpose.\nQuestions may remain unspoken.\nMisunderstandings may go unnoticed.",
+          "watchOuts": "One-way communication.\nAssuming silence means understanding.\nInterrupting employees."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Communicates routine information clearly but may not consistently adapt the message to the audience or listen for underlying questions and concerns.",
+          "behaviouralImplications": "Basic alignment is achieved.\nRoutine instructions are understood.\nMisunderstandings may continue during change.",
+          "watchOuts": "Sharing information late.\nListening only to prepare a response.\nOverlooking quieter voices."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Communicates expectations, decisions and context clearly and listens actively to employee views, questions and concerns to ensure shared understanding.",
+          "behaviouralImplications": "Checks understanding.\nEncourages questions.\nAdapts communication.\nCreates two-way dialogue.",
+          "watchOuts": "Providing excessive detail.\nLosing the central message.\nBecoming the only communication channel."
+        },
+        "Expert": {
+          "proficiencyDescription": "Demonstrates exceptional clarity and listening and establishes effective communication practices that strengthen transparency, alignment and dialogue across teams.",
+          "behaviouralImplications": "Handles sensitive messages well.\nAdapts to different audiences.\nBuilds open information flow.\nDevelops communication capability in others.",
+          "watchOuts": "Assuming one style suits everyone.\nBecoming overinvolved in employee communication.\nCreating unnecessary processes."
+        }
+      },
+      "strengthStatement": "Creates alignment and trust through clear, timely communication and attentive listening.",
+      "developmentNeedStatement": "One-way, unclear or delayed communication may result in misunderstanding and low participation.",
+      "projects": [
+        {
+          "title": "Team-Meeting Redesign",
+          "whatToDo": "Improve six consecutive weekly meetings.",
+          "howToDoIt": "Cover priorities, progress, decisions, risks, questions and actions.\nRotate employee updates.",
+          "evidence": "Documented actions.\nReduced meeting drift.\nEmployee feedback."
+        },
+        {
+          "title": "Communication Cascade",
+          "whatToDo": "Translate one organisational priority for the team.",
+          "howToDoIt": "Explain why it matters.\nClarify what will change.\nExplain individual implications.\nInvite questions.",
+          "evidence": "Employees accurately explain the priority and responsibilities."
+        },
+        {
+          "title": "Listening Interviews",
+          "whatToDo": "Hold a 20-minute discussion with every employee.",
+          "howToDoIt": "Ask what supports performance, what creates difficulty and what the manager should change.",
+          "evidence": "Summary of recurring themes.\nThree visible actions."
+        }
+      ]
+    },
+    {
+      "domain": "Building the Team",
+      "competency": "Trust and Fairness",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "May apply standards inconsistently or make decisions based on personal preference, resulting in perceptions of favouritism or unequal treatment.",
+          "behaviouralImplications": "Opportunities may be unevenly allocated.\nCommitments may not be consistently maintained.\nDecision logic may remain unclear.",
+          "watchOuts": "Informal promises.\nInconsistent exceptions.\nSharing confidential information."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Usually treats employees respectfully and fairly but may become inconsistent under pressure or fail to explain the reasoning behind decisions.",
+          "behaviouralImplications": "Relationships are generally positive.\nStandards are usually applied fairly.\nEmployees may not understand some decisions.",
+          "watchOuts": "Treating fairness as identical treatment.\nExplaining decisions too late.\nFailing to address perceptions of bias."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Builds dependable relationships, keeps commitments and applies standards, opportunities and recognition consistently while accounting for legitimate individual differences.",
+          "behaviouralImplications": "Decisions are explained.\nConfidentiality is maintained.\nOpportunities are allocated fairly.\nConcerns are handled respectfully.",
+          "watchOuts": "Making promises that cannot be fulfilled.\nAvoiding necessary differentiation.\nOverexplaining confidential decisions."
+        },
+        "Expert": {
+          "proficiencyDescription": "Role-models ethical, inclusive and transparent leadership and creates a psychologically safe environment characterised by fairness, openness and respectful treatment.",
+          "behaviouralImplications": "Employees raise concerns early.\nMistakes are discussed constructively.\nAccess to opportunities is monitored.\nOther managers learn from these practices.",
+          "watchOuts": "Treating trust as a substitute for accountability.\nPromising complete transparency.\nAvoiding controls in the name of empowerment."
+        }
+      },
+      "strengthStatement": "Builds commitment by treating employees consistently, keeping commitments and making transparent decisions.",
+      "developmentNeedStatement": "Perceived inconsistency or favouritism may reduce trust, openness and employee confidence.",
+      "projects": [
+        {
+          "title": "Fairness Audit",
+          "whatToDo": "Review work, recognition, visibility and development allocation.",
+          "howToDoIt": "Compare distribution across employees.\nIdentify unexplained imbalances.\nTake corrective action.",
+          "evidence": "Completed audit.\nDocumented reallocation or rationale."
+        },
+        {
+          "title": "Decision-Transparency Practice",
+          "whatToDo": "Explain four significant team decisions.",
+          "howToDoIt": "State criteria, evidence, constraints and trade-offs.\nInvite questions.",
+          "evidence": "Four decision notes.\nImproved employee understanding."
+        },
+        {
+          "title": "Team Norms Charter",
+          "whatToDo": "Agree 5–7 behavioural norms.",
+          "howToDoIt": "Discuss respect, confidentiality, participation, mistakes and disagreement.\nReview monthly.",
+          "evidence": "Published charter.\nExamples of norms used."
+        }
+      ]
+    },
+    {
+      "domain": "Building the Team",
+      "competency": "Conflict Management",
+      "bands": {
+        "Developing": {
+          "proficiencyDescription": "Avoids disagreement, delays intervention or reacts personally to tension, allowing relatively minor issues to become recurring relationship or performance problems.",
+          "behaviouralImplications": "Issues may remain unresolved.\nTension may spread across the team.\nEmployees may lose confidence in the manager.",
+          "watchOuts": "Discussing the issue with others.\nAggressive responses.\nExcessive accommodation."
+        },
+        "Intermediate": {
+          "proficiencyDescription": "Handles straightforward disagreements but may struggle when emotions are strong, positions are fixed or the issue requires sustained follow-through.",
+          "behaviouralImplications": "Facilitates basic discussion.\nRestores temporary cooperation.\nMay not address underlying issues.\nFollow-through may be weak.",
+          "watchOuts": "Accepting superficial agreement.\nPrioritising immediate harmony.\nDelaying necessary escalation."
+        },
+        "Proficient": {
+          "proficiencyDescription": "Addresses conflict early, listens to different perspectives and resolves issues calmly and directly by focusing on facts, behaviour, impact and future action.",
+          "behaviouralImplications": "Issues are raised early.\nDifferent views are heard.\nClear actions are agreed.\nFollow-up is completed.",
+          "watchOuts": "Managing serious misconduct without support.\nBecoming the permanent mediator.\nIgnoring policy or HR requirements."
+        },
+        "Expert": {
+          "proficiencyDescription": "Role-models mature conflict resolution and creates a culture in which disagreement is raised early, handled respectfully and used to improve decisions and working relationships.",
+          "behaviouralImplications": "Handles emotionally charged conflict.\nIdentifies underlying interests.\nBuilds constructive challenge.\nDevelops conflict capability in others.",
+          "watchOuts": "Normalising harmful conflict.\nMediating issues employees should resolve.\nDelaying decisive intervention."
+        }
+      },
+      "strengthStatement": "Protects relationships and performance by addressing disagreements early, calmly and constructively.",
+      "developmentNeedStatement": "Avoided or poorly handled conflict may create recurring tension, low collaboration and loss of trust.",
+      "projects": [
+        {
+          "title": "Current-Conflict Resolution",
+          "whatToDo": "Select one genuine team disagreement.",
+          "howToDoIt": "Meet each person separately.\nClarify facts and impact.\nFacilitate a joint discussion.\nAgree actions.",
+          "evidence": "Written agreement.\nNamed owners.\nTwo-week follow-up."
+        },
+        {
+          "title": "Conflict-Pattern Review",
+          "whatToDo": "Analyse three previous conflicts.",
+          "howToDoIt": "Identify triggers, assumptions, delayed actions and response patterns.\nDefine preventive actions.",
+          "evidence": "Personal conflict-risk checklist.\nChecklist used in one new situation."
+        },
+        {
+          "title": "Constructive-Challenge Process",
+          "whatToDo": "Introduce a method for discussing opposing views.",
+          "howToDoIt": "Ask participants to state the issue, facts, impact, alternative view and recommendation.\nPilot it in three meetings.",
+          "evidence": "Three documented discussions.\nDecisions reached without personal conflict."
+        }
+      ]
+    }
+  ]
+}

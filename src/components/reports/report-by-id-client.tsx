@@ -7,10 +7,15 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import type { ReportPayload } from "@/lib/report-data";
 import { normalizeReportPayload } from "@/lib/normalize-report-payload";
+import { resolveReportLayout } from "@/lib/report-layout";
 import { ReportPageShell } from "@/components/reports/ReportPageShell";
 import { reportTheme } from "@/components/reports/report-theme";
 import { ReportThemeProvider } from "@/components/reports/report-theme-context";
 import { AttributeScoresTable } from "@/components/reports/AttributeScoresTable";
+import { PsychometricGlancePage } from "@/components/reports/PsychometricGlancePage";
+import { CompetencyReportPage } from "@/components/reports/CompetencyReportPage";
+import { HybridOverviewPage } from "@/components/reports/HybridOverviewPage";
+import { ReportTemplatePlaceholderPage } from "@/components/reports/ReportTemplatePlaceholderPage";
 
 
 const SUBMISSION_META: Record<string, { label: string; detail: string; color: string; bg: string; border: string }> = {
@@ -152,11 +157,73 @@ export default function ReportByIdClient() {
     </ReportPageShell>
   );
 
+  const renderCompetencyStack = () =>
+    report.competencyScores.length > 0 ? (
+      <ReportPageShell>
+        <div className="p-4 sm:p-8">
+          <CompetencyReportPage
+            competencies={report.competencyScores}
+            heading={report.jobRoleName ? `${report.jobRoleName} — Competency Profile` : "Competency Profile"}
+          />
+        </div>
+      </ReportPageShell>
+    ) : null;
+
   const renderMcqStack = renderAttributeScoresStack;
-  const renderLikertStack = renderAttributeScoresStack;
-  const renderTriadStack = renderAttributeScoresStack;
-  const renderPlaceholderStack = renderAttributeScoresStack;
-  const renderHybridStack = renderAttributeScoresStack;
+
+  const renderLikertStack = () => (
+    <>
+      <ReportPageShell>
+        <div className="p-4 sm:p-8">
+          <PsychometricGlancePage report={report} completedDate={completedDate} />
+        </div>
+      </ReportPageShell>
+      {renderCompetencyStack()}
+    </>
+  );
+
+  const renderTriadStack = () => (
+    <>
+      {renderAttributeScoresStack()}
+      {renderCompetencyStack()}
+    </>
+  );
+
+  const renderHybridStack = () => (
+    <>
+      <ReportPageShell>
+        <div className="p-4 sm:p-8">
+          <HybridOverviewPage report={report} />
+        </div>
+      </ReportPageShell>
+      {renderCompetencyStack()}
+    </>
+  );
+
+  const renderPlaceholderStack = () => (
+    <ReportPageShell>
+      <div className="p-4 sm:p-8">
+        <ReportTemplatePlaceholderPage reportTemplateType={report.reportTemplateType} />
+      </div>
+    </ReportPageShell>
+  );
+
+  const layoutKind = resolveReportLayout(report.reportTemplateType, report.assessmentType);
+  const renderStack = () => {
+    switch (layoutKind) {
+      case "psychometric_trait":
+        return renderLikertStack();
+      case "triad_forced_choice":
+        return renderTriadStack();
+      case "hybrid":
+        return renderHybridStack();
+      case "placeholder":
+        return renderPlaceholderStack();
+      case "technical_skills":
+      default:
+        return renderMcqStack();
+    }
+  };
 
   return (
     <main className="min-h-screen px-4 py-8 md:px-10" style={{ backgroundColor: reportTheme.pageBackground }}>
@@ -200,7 +267,7 @@ export default function ReportByIdClient() {
         <div ref={pagesRef} className="space-y-6 overflow-x-auto">
           {report ? (
             <ReportThemeProvider branding={report.tenantBranding}>
-              {renderAttributeScoresStack()}
+              {renderStack()}
             </ReportThemeProvider>
           ) : null}
         </div>

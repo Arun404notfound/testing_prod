@@ -132,9 +132,11 @@ export async function scoreAndSave(assignment: any, rawAnswers: AnswerMap, exist
     scored = buildDemo70ScoringResult();
   }
 
-  // Competency scoring
+  // Competency scoring — scoped to this assessment's Job Role (or the legacy
+  // tenant-wide, job-role-less competencies when no Job Role is set).
+  const jobRoleId: string | null = assignment.assessment?.jobRoleId ?? null;
   const competencyMappings = await prisma.attributeCompetencyMap.findMany({
-    where: { competency: { tenantId } },
+    where: { competency: { tenantId, jobRoleId } },
     include: { attribute: true, competency: true },
   });
   const attributesByName = new Map(competencyMappings.map((m) => [m.attribute.name, { id: m.attributeId, name: m.attribute.name }]));
@@ -146,6 +148,7 @@ export async function scoreAndSave(assignment: any, rawAnswers: AnswerMap, exist
         competencyId: m.competencyId,
         competencyName: m.competency.name,
         scoringFormula: m.competency.scoringFormula ?? "WEIGHTED_AVERAGE",
+        proficiencyScale: m.competency.proficiencyScale ?? "GENERIC_5",
         attributes: [],
       });
     }

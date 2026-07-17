@@ -272,9 +272,11 @@ export async function POST(req: Request) {
   }
 
   // ── Competency scoring (Big Five formula) ───────────────────────────────────
-  // Load attribute→competency mappings for this tenant
+  // Load attribute→competency mappings scoped to this assessment's Job Role
+  // (or the legacy tenant-wide, job-role-less competencies when none is set).
+  const jobRoleId: string | null = assignment.assessment?.jobRoleId ?? null;
   const competencyMappings = await prisma.attributeCompetencyMap.findMany({
-    where: { competency: { tenantId } },
+    where: { competency: { tenantId, jobRoleId } },
     include: { attribute: true, competency: true },
   });
 
@@ -294,6 +296,7 @@ export async function POST(req: Request) {
         competencyId: m.competencyId,
         competencyName: m.competency.name,
         scoringFormula: m.competency.scoringFormula ?? "WEIGHTED_AVERAGE",
+        proficiencyScale: m.competency.proficiencyScale ?? "GENERIC_5",
         attributes: [],
       });
     }

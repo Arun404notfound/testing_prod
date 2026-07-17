@@ -7,13 +7,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { AssessmentTenantSelect } from "@/components/admin/assessment-tenant-select";
 import { TextField } from "@/components/ui/text-field";
 import { getDefaultTenantId } from "@/lib/tenant";
-import type { AssessmentLifecycleStatus, AssessmentType, ReportTemplateType } from "@/generated/prisma/enums";
-import {
-  REPORT_TEMPLATE_LABELS,
-  REPORT_TEMPLATE_TYPES,
-  defaultReportTemplateForAssessmentType,
-  isReportTemplateType,
-} from "@/lib/report-layout";
+import type { AssessmentLifecycleStatus, AssessmentType } from "@/generated/prisma/enums";
+import { defaultReportTemplateForAssessmentType } from "@/lib/report-layout";
 import { CreateAssessmentButton } from "./submit-button";
 
 const ASSESSMENT_TYPES: AssessmentType[] = [
@@ -42,10 +37,9 @@ async function createAssessment(formData: FormData) {
     redirect("/admin/assessments/new?status=error");
   }
 
-  const rawReportTemplate = String(formData.get("reportTemplateType") ?? "").trim();
-  const reportTemplateType: ReportTemplateType = isReportTemplateType(rawReportTemplate)
-    ? rawReportTemplate
-    : defaultReportTemplateForAssessmentType(assessmentType);
+  const reportTemplateType = defaultReportTemplateForAssessmentType(assessmentType);
+
+  const jobRoleId = String(formData.get("jobRoleId") ?? "").trim() || null;
 
   if (!LIFECYCLE.includes(lifecycleStatus)) {
     redirect("/admin/assessments/new?status=error");
@@ -65,17 +59,32 @@ async function createAssessment(formData: FormData) {
     brandingTenantId = row?.id ?? null;
   }
 
-  const reportTemplate = await prisma.reportTemplate.findFirst({
-    where: { tenantId: brandingTenantId ?? defaultTenantId, assessmentType },
-  });
+  // A selected Job Role owns its own report template; fall back to the
+  // assessmentType-based lookup when no Job Role is chosen (legacy path).
+  let jobRoleReportTemplateId: string | null = null;
+  if (jobRoleId) {
+    const jobRole = await prisma.jobRole.findFirst({
+      where: { id: jobRoleId, tenantId: brandingTenantId ?? defaultTenantId },
+      select: { id: true, reportTemplate: { select: { id: true } } },
+    });
+    if (!jobRole) redirect("/admin/assessments/new?status=error");
+    jobRoleReportTemplateId = jobRole.reportTemplate?.id ?? null;
+  }
+
+  const reportTemplate = jobRoleId
+    ? null
+    : await prisma.reportTemplate.findFirst({
+        where: { tenantId: brandingTenantId ?? defaultTenantId, assessmentType },
+      });
 
   let createdId: string;
   try {
     const assessment = await prisma.assessment.create({
       data: {
         tenantId: brandingTenantId,
-        reportTemplateId: reportTemplate?.id ?? null,
+        reportTemplateId: jobRoleId ? jobRoleReportTemplateId : reportTemplate?.id ?? null,
         reportTemplateType,
+        jobRoleId,
         title,
         description,
         assessmentType,
@@ -114,6 +123,11 @@ export default async function NewAssessmentPage({
     prisma.tenant.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, logoUrl: true } }),
     getDefaultTenantId(),
   ]);
+  const jobRoles = await prisma.jobRole.findMany({
+    where: { tenantId: defaultTenantId, isActive: true },
+    orderBy: { displayOrder: "asc" },
+    select: { id: true, name: true },
+  });
 
   return (
     <main className="tg-page space-y-6">
@@ -163,28 +177,28 @@ export default async function NewAssessmentPage({
             </label>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="text-sm text-[#334155]">
-              <span className="mb-1 block font-medium">Assessment type</span>
-              <select name="assessmentType" required className="tg-input w-full">
-                {ASSESSMENT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm text-[#334155]">
-              <span className="mb-1 block font-medium">Report template</span>
-              <select name="reportTemplateType" required className="tg-input w-full">
-                {REPORT_TEMPLATE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {REPORT_TEMPLATE_LABELS[t]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <label className="text-sm text-[#334155]">
+            <span className="mb-1 block font-medium">Assessment type</span>
+            <select name="assessmentType" required className="tg-input w-full">
+              {ASSESSMENT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm text-[#334155]">
+            <span className="mb-1 block font-medium">
+              Job role <span className="font-normal text-[#94A3B8]">(optional — drives competency scoring and report content)</span>
+            </span>
+            <select name="jobRoleId" defaultValue="" className="tg-input w-full">
+              <option value="">None (report layout derived from assessment type)</option>
+              {jobRoles.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </label>
 
           <AssessmentTenantSelect tenants={tenants} initialTenantId={defaultTenantId} />
 

@@ -187,5 +187,6 @@ export function normalizeReportPayload(data: unknown): ReportPayload | null {
           !!x && typeof x === "object" && typeof (x as Record<string,unknown>).competencyId === "string"
         )
       : [],
+    jobRoleName: typeof o.jobRoleName === "string" ? o.jobRoleName : null,
   };
 }
