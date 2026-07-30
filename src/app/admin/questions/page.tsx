@@ -131,8 +131,6 @@ async function deleteTriadGroup(formData: FormData) {
 
 async function createMcqQuestion(formData: FormData) {
   "use server";
-  const section = String(formData.get("section") ?? "").trim();
-  const category = String(formData.get("category") ?? "").trim();
   const questionText = String(formData.get("questionText") ?? "").trim();
   const option1 = String(formData.get("option1") ?? "").trim();
   const option2 = String(formData.get("option2") ?? "").trim();
@@ -143,20 +141,25 @@ async function createMcqQuestion(formData: FormData) {
   const attributeId = String(formData.get("attributeId") ?? "").trim();
 
   if (
-    !section || !category || !questionText ||
+    !questionText || !attributeId ||
     !option1 || !option2 || !option3 || !option4 || !explanation ||
     !Number.isInteger(correctOption) || correctOption < 1 || correctOption > 4
   ) {
     redirect("/admin/questions?tab=mcq&status=error&reason=missing");
   }
 
+  const attribute = await prisma.attribute.findUnique({ where: { id: attributeId }, select: { name: true, category: true } });
+  if (!attribute) redirect("/admin/questions?tab=mcq&status=error&reason=missing");
+
   const tenantId = await getDefaultTenantId();
   try {
     await prisma.question.create({
       data: {
         tenantId,
-        section,
-        category,
+        // Mirrors the linked attribute rather than free text — keeps this question
+        // bank consistent with how Likert/Triad derive their section/category metadata.
+        section: attribute.category || "General",
+        category: attribute.name,
         questionText,
         option1,
         option2,
@@ -164,7 +167,7 @@ async function createMcqQuestion(formData: FormData) {
         option4,
         correctOption,
         explanation,
-        attributeId: attributeId || null,
+        attributeId,
       },
     });
   } catch {
@@ -180,9 +183,15 @@ async function updateMcqAttribute(formData: FormData) {
   if (!questionId) redirect("/admin/questions?tab=mcq");
   let saved = false;
   try {
+    const attribute = attributeId
+      ? await prisma.attribute.findUnique({ where: { id: attributeId }, select: { name: true, category: true } })
+      : null;
     await prisma.question.update({
       where: { id: questionId },
-      data: { attributeId: attributeId || null },
+      data: {
+        attributeId: attributeId || null,
+        ...(attribute ? { category: attribute.name, section: attribute.category || "General" } : {}),
+      },
     });
     saved = true;
   } catch { /* swallow — redirect below carries the status */ }
@@ -638,17 +647,14 @@ export default async function QuestionsPage({
                   <label className="mb-1 block text-xs font-medium text-[#475569]">Question *</label>
                   <input name="questionText" required placeholder="e.g. Which HTTP status code indicates a successful request?" className={inputCls} />
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[#475569]">Section *</label>
-                  <input name="section" required placeholder="e.g. Web Fundamentals" className={inputCls} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[#475569]">Category *</label>
-                  <input name="category" required placeholder="e.g. HTTP" className={inputCls} />
-                </div>
                 <div className="sm:col-span-2">
-                  <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute</label>
-                  <select name="attributeId" defaultValue="" className={inputCls}>{attrOptions}</select>
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute *</label>
+                  <select name="attributeId" required defaultValue="" className={inputCls}>
+                    <option value="" disabled>Select attribute…</option>
+                    {attributes.map((a) => (
+                      <option key={a.id} value={a.id}>[{a.code}] {a.name}</option>
+                    ))}
+                  </select>
                 </div>
                 {[1, 2, 3, 4].map((n) => (
                   <div key={n}>
@@ -698,8 +704,6 @@ export default async function QuestionsPage({
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-[#0F172A] leading-snug">{q.questionText}</p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                        <span className="rounded bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-medium text-[#475569]">{q.section}</span>
-                        <span className="rounded bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">{q.category}</span>
                         {q.attribute && (
                           <span className="rounded-full border border-[#D1FAE5] bg-[#EFF6FF] px-2 py-0.5 text-[10px] font-semibold text-[#2563EB]">
                             [{q.attribute.code}] {q.attribute.name}

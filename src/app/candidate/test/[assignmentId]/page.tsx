@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { seededShuffle } from "@/lib/shuffle";
 import { buildTestBlocks, shuffleBlockOptions, type TestBlock } from "@/lib/candidate-test-payload";
@@ -69,22 +69,28 @@ export default async function CandidateTestPage({
   if (!assignment || assignment.accessToken !== token) {
     notFound();
   }
-  if (assignment.status === "completed") {
-    const existingResult = await prisma.assessmentResult.findFirst({
+
+  // Once an assignment is completed (or a result already exists — covers stale-status edge
+  // cases like a concurrent tab or cached page), the candidate never sees their own report.
+  // Reports are for admins/tenants to review and share at their discretion.
+  const hasExistingResult = Boolean(
+    await prisma.assessmentResult.findFirst({
       where: { assignmentId: assignment.id },
       select: { id: true },
-    });
-    if (existingResult) redirect(`/candidate/reports/${existingResult.id}?token=${token}`);
-    notFound();
+    }),
+  );
+  if (assignment.status === "completed" || hasExistingResult) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F1F5F9] p-6">
+        <div className="max-w-md rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
+          <p className="text-lg font-semibold text-emerald-900">Thank You!</p>
+          <p className="mt-2 text-sm text-emerald-800">
+            You have already completed this assessment. Your responses have been submitted successfully.
+          </p>
+        </div>
+      </div>
+    );
   }
-
-  // Secondary guard: if a result already exists for this assignment, send the candidate there.
-  // This covers edge cases where assignment.status is stale (e.g. concurrent tab, cached page).
-  const existingResult = await prisma.assessmentResult.findFirst({
-    where: { assignmentId: assignment.id },
-    select: { id: true },
-  });
-  if (existingResult) redirect(`/candidate/reports/${existingResult.id}?token=${token}`);
 
   // Check expiry: if the assignment has a deadline that has passed and it's not yet started/completed
   if (assignment.expiresAt && new Date() > assignment.expiresAt && assignment.status === "assigned") {

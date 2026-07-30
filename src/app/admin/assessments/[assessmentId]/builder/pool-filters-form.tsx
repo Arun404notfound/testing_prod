@@ -10,8 +10,6 @@ export function PoolFiltersForm({
   sentimentQ,
   attributeQ,
   groupCodeQ,
-  mcqSectionQ,
-  mcqCategoryQ,
   attributeNames,
   showLikert,
   showTriad,
@@ -21,8 +19,6 @@ export function PoolFiltersForm({
   sentimentQ: string;
   attributeQ: string;
   groupCodeQ: string;
-  mcqSectionQ: string;
-  mcqCategoryQ: string;
   attributeNames: string[];
   showLikert: boolean;
   showTriad: boolean;
@@ -56,12 +52,12 @@ export function PoolFiltersForm({
         </select>
       </label>
       <label className="text-sm text-[#334155]">
-        <span className={`mb-1 block font-medium ${isMcq ? "text-[#94A3B8]" : ""}`}>Attribute (trait)</span>
+        <span className="mb-1 block font-medium">Attribute (trait)</span>
         <SearchableSelect
           name="attribute"
           options={attributeNames}
           defaultValue={attributeQ}
-          placeholder={isMcq ? "Only applies to Likert/Triad pool" : "Type to search…"}
+          placeholder="Type to search…"
           allLabel="All attributes"
         />
       </label>
@@ -73,26 +69,6 @@ export function PoolFiltersForm({
           disabled={!isTriad}
           className="tg-input w-full disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:border-[#E2E8F0]"
           placeholder={isTriad ? "Triad tab" : "Only applies to Triad pool"}
-        />
-      </label>
-      <label className="text-sm text-[#334155]">
-        <span className={`mb-1 block font-medium ${isMcq ? "" : "text-[#94A3B8]"}`}>MCQ section</span>
-        <input
-          name="mcqSection"
-          defaultValue={mcqSectionQ}
-          disabled={!isMcq}
-          className="tg-input w-full disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:border-[#E2E8F0]"
-          placeholder={isMcq ? "e.g. Web Fundamentals" : "Only applies to MCQ pool"}
-        />
-      </label>
-      <label className="text-sm text-[#334155]">
-        <span className={`mb-1 block font-medium ${isMcq ? "" : "text-[#94A3B8]"}`}>MCQ category</span>
-        <input
-          name="mcqCategory"
-          defaultValue={mcqCategoryQ}
-          disabled={!isMcq}
-          className="tg-input w-full disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:border-[#E2E8F0]"
-          placeholder={isMcq ? "e.g. HTTP" : "Only applies to MCQ pool"}
         />
       </label>
       <div className="md:col-span-2 lg:col-span-4">

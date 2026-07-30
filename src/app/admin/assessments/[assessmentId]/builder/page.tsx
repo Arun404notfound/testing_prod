@@ -31,8 +31,6 @@ type Search = {
   sentiment?: string;
   attribute?: string;
   groupCode?: string;
-  mcqSection?: string;
-  mcqCategory?: string;
   saved?: string;
 };
 
@@ -95,8 +93,6 @@ export default async function AssessmentBuilderPage({
   const sentimentQ = sp.sentiment === "POSITIVE" || sp.sentiment === "NEGATIVE" ? sp.sentiment : "";
   const attributeQ = sp.attribute?.trim() || "";
   const groupCodeQ = sp.groupCode?.trim() || "";
-  const mcqSectionQ = sp.mcqSection?.trim() || "";
-  const mcqCategoryQ = sp.mcqCategory?.trim() || "";
 
   const hybridTabHref = (nextTab: PoolTab) => {
     const params = new URLSearchParams();
@@ -104,8 +100,6 @@ export default async function AssessmentBuilderPage({
     if (sentimentQ) params.set("sentiment", sentimentQ);
     if (attributeQ) params.set("attribute", attributeQ);
     if (groupCodeQ) params.set("groupCode", groupCodeQ);
-    if (mcqSectionQ) params.set("mcqSection", mcqSectionQ);
-    if (mcqCategoryQ) params.set("mcqCategory", mcqCategoryQ);
     const qs = params.toString();
     return `/admin/assessments/${assessmentId}/builder${qs ? `?${qs}` : ""}`;
   };
@@ -168,9 +162,9 @@ export default async function AssessmentBuilderPage({
       ? prisma.question.findMany({
           where: {
             tenantId,
-            ...(mcqSectionQ ? { section: { contains: mcqSectionQ } } : {}),
-            ...(mcqCategoryQ ? { category: { contains: mcqCategoryQ } } : {}),
+            ...(attributeQ ? { attribute: { name: attributeQ } } : {}),
           },
+          include: { attribute: true },
           orderBy: { createdAt: "desc" },
           take: 500,
         })
@@ -407,8 +401,6 @@ export default async function AssessmentBuilderPage({
           sentimentQ={sentimentQ}
           attributeQ={attributeQ}
           groupCodeQ={groupCodeQ}
-          mcqSectionQ={mcqSectionQ}
-          mcqCategoryQ={mcqCategoryQ}
           attributeNames={attributeNames}
           showLikert={allowsLikertPool(assessmentType)}
           showTriad={allowsTriadPool(assessmentType)}
@@ -469,6 +461,7 @@ export default async function AssessmentBuilderPage({
             assessmentId={assessment.id}
             questions={mcqQuestions}
             selectedIdList={[...selectedMcqIds]}
+            attrByNameEntries={[...attrByName]}
           />
         </FormCard>
       ) : null}

@@ -3,28 +3,32 @@
 import { useState } from "react";
 import { addMcqQuestionsBulk } from "./actions";
 
+type AttrInfo = { code: string; category?: string | null; competencies: string[] };
+
 type McqQuestionRow = {
   id: string;
-  section: string;
-  category: string;
   questionText: string;
   option1: string;
   option2: string;
   option3: string;
   option4: string;
   correctOption: number;
+  attribute: { name: string } | null;
 };
 
 export function BulkMcqPool({
   assessmentId,
   questions,
   selectedIdList,
+  attrByNameEntries,
 }: {
   assessmentId: string;
   questions: McqQuestionRow[];
   selectedIdList: string[];
+  attrByNameEntries: [string, AttrInfo][];
 }) {
   const selectedIds = new Set(selectedIdList);
+  const attrByName = new Map(attrByNameEntries);
   const allIds = questions.map((q) => q.id);
   const [checked, setChecked] = useState<Set<string>>(new Set());
 
@@ -77,6 +81,7 @@ export function BulkMcqPool({
           const options = [q.option1, q.option2, q.option3, q.option4];
           const isAdded = selectedIds.has(q.id);
           const isChecked = checked.has(q.id);
+          const attrInfo = q.attribute ? attrByName.get(q.attribute.name.toLowerCase()) : undefined;
           return (
             <li key={q.id} className={`flex items-start gap-3 p-3 ${isAdded ? "bg-slate-50 opacity-70" : isChecked ? "bg-amber-50" : ""}`}>
               <input
@@ -87,14 +92,32 @@ export function BulkMcqPool({
                 className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
               />
               <div className="min-w-0 flex-1">
-                <div className="mb-1 flex items-center gap-2">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{q.section}</p>
-                  <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">{q.category}</span>
-                  {isAdded && (
+                {isAdded && (
+                  <div className="mb-1">
                     <span className="rounded border border-slate-300 bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">✓ Added</span>
+                  </div>
+                )}
+                <p className="text-sm text-[#0F172A]">{q.questionText}</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {q.attribute ? (
+                    attrInfo ? (
+                      <>
+                        <span className="inline-flex items-center gap-1 rounded border border-[#D1FAE5] bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-semibold text-[#2563EB]">
+                          [{attrInfo.code}] {q.attribute.name}
+                        </span>
+                        {attrInfo.competencies.map((c) => (
+                          <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">{c}</span>
+                        ))}
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">
+                        {q.attribute.name} <span className="ml-1 opacity-60">(no mapping)</span>
+                      </span>
+                    )
+                  ) : (
+                    <span className="inline-flex items-center rounded border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-0.5 text-[11px] text-[#94A3B8]">No attribute linked</span>
                   )}
                 </div>
-                <p className="text-sm text-[#0F172A]">{q.questionText}</p>
                 <div className="mt-1.5 grid gap-1 sm:grid-cols-2">
                   {options.map((opt, oi) => (
                     <p key={oi} className={`flex items-start gap-1.5 text-xs ${oi + 1 === q.correctOption ? "font-semibold text-emerald-700" : "text-[#475569]"}`}>
