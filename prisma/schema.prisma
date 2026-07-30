@@ -490,6 +490,7 @@ model Attribute {
   bigFiveFactorMaps   BigFiveFactorAttributeMap[]
   assessmentItems     AssessmentItem[]
   triadStatements     TriadStatement[]
+  questions           Question[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -790,15 +791,18 @@ model Question {
   option4       String
   correctOption Int
   explanation   String
+  attributeId   String?
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @default(now()) @updatedAt
   tenant        Tenant?              @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  attribute     Attribute?           @relation(fields: [attributeId], references: [id], onDelete: SetNull)
   responses     QuestionResponse[]
   assessments   AssessmentQuestion[]
 
   @@index([tenantId])
   @@index([section])
   @@index([category])
+  @@index([attributeId])
 }
 
 model AssessmentQuestion {

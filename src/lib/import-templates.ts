@@ -35,6 +35,7 @@ const templates: Record<TemplateType, TemplateConfig> = {
       "option4",
       "correctOption",
       "explanation",
+      "attribute",
     ],
     rows: [
       [
@@ -47,6 +48,7 @@ const templates: Record<TemplateType, TemplateConfig> = {
         "Particle board alternative",
         "2",
         "Club Prime is preferred due to feature set and durability.",
+        "Competence",
       ],
       [
         "SE Selling Skills",
@@ -58,6 +60,7 @@ const templates: Record<TemplateType, TemplateConfig> = {
         "Change topic",
         "2",
         "Value-based framing improves conversion quality.",
+        "",
       ],
     ],
   },

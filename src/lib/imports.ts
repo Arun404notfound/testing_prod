@@ -96,6 +96,19 @@ export async function processImportFile(args: {
   let likertAssessmentId: string | null = null;
   const likertSectionByTitle = new Map<string, string>();
 
+  let attributeIdByName: Map<string, string> | null = null;
+  async function resolveAttributeId(name: string): Promise<string | null> {
+    if (!name.trim()) return null;
+    if (!attributeIdByName) {
+      const attrs = await prisma.attribute.findMany({
+        where: { tenantId: args.tenantId },
+        select: { id: true, name: true },
+      });
+      attributeIdByName = new Map(attrs.map((a) => [a.name.toLowerCase(), a.id]));
+    }
+    return attributeIdByName.get(name.trim().toLowerCase()) ?? null;
+  }
+
   for (let index = 0; index < rows.length; index += 1) {
     const rowNumber = index + 2;
     const row = rows[index];
@@ -152,6 +165,8 @@ export async function processImportFile(args: {
           throw new Error("correctOption must be 1, 2, 3, or 4");
         }
 
+        const attributeId = await resolveAttributeId(row.attribute ?? "");
+
         await prisma.question.create({
           data: {
             tenantId: args.tenantId,
@@ -164,6 +179,7 @@ export async function processImportFile(args: {
             option4: row.option4,
             correctOption,
             explanation: row.explanation,
+            attributeId,
           },
         });
       } else if (args.importType === "LIKERT_ITEMS") {

@@ -7,6 +7,7 @@ import { getDefaultTenantId } from "@/lib/tenant";
 import type { AssessmentType } from "@/generated/prisma/enums";
 import {
   allowsLikertPool,
+  allowsMcqPool,
   allowsTriadPool,
 } from "@/lib/assessment-pools";
 import {
@@ -18,6 +19,7 @@ import {
 } from "./actions";
 import { BulkLikertPool } from "./bulk-likert-pool";
 import { BulkTriadPool } from "./bulk-triad-pool";
+import { BulkMcqPool } from "./bulk-mcq-pool";
 import { BuilderHeaderActions } from "./builder-header-actions";
 import { AutoDismissToast } from "@/components/ui/auto-dismiss-toast";
 import { ScrollToId } from "@/components/ui/scroll-to-id";
@@ -29,21 +31,24 @@ type Search = {
   sentiment?: string;
   attribute?: string;
   groupCode?: string;
+  mcqSection?: string;
+  mcqCategory?: string;
   saved?: string;
 };
 
-type PoolTab = "likert" | "triad";
+type PoolTab = "likert" | "triad" | "mcq";
 
 function allowedTabsForType(assessmentType: AssessmentType): PoolTab[] {
   const tabs: PoolTab[] = [];
   if (allowsLikertPool(assessmentType)) tabs.push("likert");
   if (allowsTriadPool(assessmentType)) tabs.push("triad");
+  if (allowsMcqPool(assessmentType)) tabs.push("mcq");
   return tabs;
 }
 
 function resolveTab(assessmentType: AssessmentType, tab: string | undefined): PoolTab {
   const allowed = allowedTabsForType(assessmentType);
-  if (tab === "likert" || tab === "triad") {
+  if (tab === "likert" || tab === "triad" || tab === "mcq") {
     if (allowed.includes(tab)) return tab;
   }
   return allowed[0] ?? "likert";
@@ -90,6 +95,8 @@ export default async function AssessmentBuilderPage({
   const sentimentQ = sp.sentiment === "POSITIVE" || sp.sentiment === "NEGATIVE" ? sp.sentiment : "";
   const attributeQ = sp.attribute?.trim() || "";
   const groupCodeQ = sp.groupCode?.trim() || "";
+  const mcqSectionQ = sp.mcqSection?.trim() || "";
+  const mcqCategoryQ = sp.mcqCategory?.trim() || "";
 
   const hybridTabHref = (nextTab: PoolTab) => {
     const params = new URLSearchParams();
@@ -97,6 +104,8 @@ export default async function AssessmentBuilderPage({
     if (sentimentQ) params.set("sentiment", sentimentQ);
     if (attributeQ) params.set("attribute", attributeQ);
     if (groupCodeQ) params.set("groupCode", groupCodeQ);
+    if (mcqSectionQ) params.set("mcqSection", mcqSectionQ);
+    if (mcqCategoryQ) params.set("mcqCategory", mcqCategoryQ);
     const qs = params.toString();
     return `/admin/assessments/${assessmentId}/builder${qs ? `?${qs}` : ""}`;
   };
@@ -110,7 +119,7 @@ export default async function AssessmentBuilderPage({
     })
   ).map((a) => a.id);
 
-  const [likertItems, triadGroups] = await Promise.all([
+  const [likertItems, triadGroups, mcqQuestions] = await Promise.all([
     allowsLikertPool(assessmentType)
       ? prisma.assessmentItem.findMany({
           where: {
@@ -155,6 +164,17 @@ export default async function AssessmentBuilderPage({
           take: 80,
         })
       : Promise.resolve([]),
+    allowsMcqPool(assessmentType)
+      ? prisma.question.findMany({
+          where: {
+            tenantId,
+            ...(mcqSectionQ ? { section: { contains: mcqSectionQ } } : {}),
+            ...(mcqCategoryQ ? { category: { contains: mcqCategoryQ } } : {}),
+          },
+          orderBy: { createdAt: "desc" },
+          take: 500,
+        })
+      : Promise.resolve([]),
   ]);
 
   // ── Attribute → Competency lookup ───────────────────────────────────────────
@@ -179,6 +199,7 @@ export default async function AssessmentBuilderPage({
     });
   }
 
+  const selectedMcqIds = new Set(assessment.questions.map((aq) => aq.question.id));
   const selectedLikertIds = new Set(
     assessment.compositionItems
       .map((c) => c.sourceAssessmentItemId)
@@ -386,9 +407,12 @@ export default async function AssessmentBuilderPage({
           sentimentQ={sentimentQ}
           attributeQ={attributeQ}
           groupCodeQ={groupCodeQ}
+          mcqSectionQ={mcqSectionQ}
+          mcqCategoryQ={mcqCategoryQ}
           attributeNames={attributeNames}
           showLikert={allowsLikertPool(assessmentType)}
           showTriad={allowsTriadPool(assessmentType)}
+          showMcq={allowsMcqPool(assessmentType)}
         />
       </FormCard>
 
@@ -439,6 +463,16 @@ export default async function AssessmentBuilderPage({
         </FormCard>
       ) : null}
 
+      {tab === "mcq" && allowsMcqPool(assessmentType) ? (
+        <FormCard id="question-pool" title={`MCQ question pool (${mcqQuestions.length})`}>
+          <BulkMcqPool
+            assessmentId={assessment.id}
+            questions={mcqQuestions}
+            selectedIdList={[...selectedMcqIds]}
+          />
+        </FormCard>
+      ) : null}
+
       {assessmentType === "HYBRID" ? (
         <div className="flex flex-wrap gap-2 text-sm">
           <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("likert")}>
@@ -447,6 +481,10 @@ export default async function AssessmentBuilderPage({
           <span className="text-slate-300">|</span>
           <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("triad")}>
             Triad tab
+          </Link>
+          <span className="text-slate-300">|</span>
+          <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("mcq")}>
+            MCQ tab
           </Link>
         </div>
       ) : null}

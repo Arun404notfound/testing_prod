@@ -3,27 +3,34 @@
 import { useState } from "react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
-type PoolTab = "likert" | "triad";
+type PoolTab = "likert" | "triad" | "mcq";
 
 export function PoolFiltersForm({
   tab,
   sentimentQ,
   attributeQ,
   groupCodeQ,
+  mcqSectionQ,
+  mcqCategoryQ,
   attributeNames,
   showLikert,
   showTriad,
+  showMcq,
 }: {
   tab: PoolTab;
   sentimentQ: string;
   attributeQ: string;
   groupCodeQ: string;
+  mcqSectionQ: string;
+  mcqCategoryQ: string;
   attributeNames: string[];
   showLikert: boolean;
   showTriad: boolean;
+  showMcq: boolean;
 }) {
   const [selectedTab, setSelectedTab] = useState<PoolTab>(tab);
   const isTriad = selectedTab === "triad";
+  const isMcq = selectedTab === "mcq";
 
   return (
     <form method="GET" className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -37,23 +44,24 @@ export function PoolFiltersForm({
         >
           {showLikert ? <option value="likert">Likert pool</option> : null}
           {showTriad ? <option value="triad">Triad pool</option> : null}
+          {showMcq ? <option value="mcq">MCQ pool</option> : null}
         </select>
       </label>
       <label className="text-sm text-[#334155]">
-        <span className="mb-1 block font-medium">Sentiment</span>
-        <select name="sentiment" defaultValue={sentimentQ} className="tg-input w-full">
+        <span className={`mb-1 block font-medium ${isMcq ? "text-[#94A3B8]" : ""}`}>Sentiment</span>
+        <select name="sentiment" defaultValue={sentimentQ} disabled={isMcq} className="tg-input w-full disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:border-[#E2E8F0]">
           <option value="">All</option>
           <option value="POSITIVE">Positive</option>
           <option value="NEGATIVE">Negative</option>
         </select>
       </label>
       <label className="text-sm text-[#334155]">
-        <span className="mb-1 block font-medium">Attribute (trait)</span>
+        <span className={`mb-1 block font-medium ${isMcq ? "text-[#94A3B8]" : ""}`}>Attribute (trait)</span>
         <SearchableSelect
           name="attribute"
           options={attributeNames}
           defaultValue={attributeQ}
-          placeholder="Type to search…"
+          placeholder={isMcq ? "Only applies to Likert/Triad pool" : "Type to search…"}
           allLabel="All attributes"
         />
       </label>
@@ -65,6 +73,26 @@ export function PoolFiltersForm({
           disabled={!isTriad}
           className="tg-input w-full disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:border-[#E2E8F0]"
           placeholder={isTriad ? "Triad tab" : "Only applies to Triad pool"}
+        />
+      </label>
+      <label className="text-sm text-[#334155]">
+        <span className={`mb-1 block font-medium ${isMcq ? "" : "text-[#94A3B8]"}`}>MCQ section</span>
+        <input
+          name="mcqSection"
+          defaultValue={mcqSectionQ}
+          disabled={!isMcq}
+          className="tg-input w-full disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:border-[#E2E8F0]"
+          placeholder={isMcq ? "e.g. Web Fundamentals" : "Only applies to MCQ pool"}
+        />
+      </label>
+      <label className="text-sm text-[#334155]">
+        <span className={`mb-1 block font-medium ${isMcq ? "" : "text-[#94A3B8]"}`}>MCQ category</span>
+        <input
+          name="mcqCategory"
+          defaultValue={mcqCategoryQ}
+          disabled={!isMcq}
+          className="tg-input w-full disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:border-[#E2E8F0]"
+          placeholder={isMcq ? "e.g. HTTP" : "Only applies to MCQ pool"}
         />
       </label>
       <div className="md:col-span-2 lg:col-span-4">

@@ -129,6 +129,74 @@ async function deleteTriadGroup(formData: FormData) {
   redirect("/admin/questions?tab=triad");
 }
 
+async function createMcqQuestion(formData: FormData) {
+  "use server";
+  const section = String(formData.get("section") ?? "").trim();
+  const category = String(formData.get("category") ?? "").trim();
+  const questionText = String(formData.get("questionText") ?? "").trim();
+  const option1 = String(formData.get("option1") ?? "").trim();
+  const option2 = String(formData.get("option2") ?? "").trim();
+  const option3 = String(formData.get("option3") ?? "").trim();
+  const option4 = String(formData.get("option4") ?? "").trim();
+  const correctOption = Number(formData.get("correctOption"));
+  const explanation = String(formData.get("explanation") ?? "").trim();
+  const attributeId = String(formData.get("attributeId") ?? "").trim();
+
+  if (
+    !section || !category || !questionText ||
+    !option1 || !option2 || !option3 || !option4 || !explanation ||
+    !Number.isInteger(correctOption) || correctOption < 1 || correctOption > 4
+  ) {
+    redirect("/admin/questions?tab=mcq&status=error&reason=missing");
+  }
+
+  const tenantId = await getDefaultTenantId();
+  try {
+    await prisma.question.create({
+      data: {
+        tenantId,
+        section,
+        category,
+        questionText,
+        option1,
+        option2,
+        option3,
+        option4,
+        correctOption,
+        explanation,
+        attributeId: attributeId || null,
+      },
+    });
+  } catch {
+    redirect("/admin/questions?tab=mcq&status=error&reason=db");
+  }
+  redirect("/admin/questions?tab=mcq&status=success");
+}
+
+async function updateMcqAttribute(formData: FormData) {
+  "use server";
+  const questionId = String(formData.get("questionId") ?? "").trim();
+  const attributeId = String(formData.get("attributeId") ?? "").trim();
+  if (!questionId) redirect("/admin/questions?tab=mcq");
+  let saved = false;
+  try {
+    await prisma.question.update({
+      where: { id: questionId },
+      data: { attributeId: attributeId || null },
+    });
+    saved = true;
+  } catch { /* swallow — redirect below carries the status */ }
+  redirect(`/admin/questions?tab=mcq&status=${saved ? "success" : "error"}&reason=db`);
+}
+
+async function deleteMcqQuestion(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  await prisma.question.delete({ where: { id } }).catch(() => {});
+  redirect("/admin/questions?tab=mcq");
+}
+
 async function updateItemAttribute(formData: FormData) {
   "use server";
   const itemId = String(formData.get("itemId") ?? "").trim();
@@ -190,15 +258,16 @@ const BIG_FIVE_FACTORS = ["Extraversion", "Agreeableness", "Conscientiousness", 
 export default async function QuestionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; status?: string; reason?: string; addLikert?: string; addTriad?: string }>;
+  searchParams: Promise<{ tab?: string; status?: string; reason?: string; addLikert?: string; addTriad?: string; addMcq?: string }>;
 }) {
   const sp = await searchParams;
   const tab = sp.tab ?? "likert";
   const addLikertOpen = sp.addLikert === "1";
   const addTriadOpen = sp.addTriad === "1";
+  const addMcqOpen = sp.addMcq === "1";
   const tenantId = await getDefaultTenantId();
 
-  const [likertItems, triadGroups, attributes, competencies, mappings] = await Promise.all([
+  const [likertItems, triadGroups, mcqQuestions, attributes, competencies, mappings] = await Promise.all([
     prisma.assessmentItem.findMany({
       where: { itemType: "LIKERT" },
       include: {
@@ -218,6 +287,13 @@ export default async function QuestionsPage({
       },
       orderBy: { displayOrder: "asc" },
     }),
+    prisma.question.findMany({
+      where: { tenantId },
+      include: {
+        attribute: { include: { competencyMaps: { include: { competency: true } } } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
     prisma.attribute.findMany({ where: { tenantId }, orderBy: { code: "asc" } }),
     prisma.competency.findMany({ where: { tenantId }, orderBy: { name: "asc" } }),
     prisma.attributeCompetencyMap.findMany({ include: { attribute: true, competency: true } }),
@@ -228,6 +304,7 @@ export default async function QuestionsPage({
   const tabs = [
     { id: "likert", label: `Likert Items (${likertItems.length})` },
     { id: "triad", label: `Triad Groups (${triadGroups.length})` },
+    { id: "mcq", label: `MCQ Questions (${mcqQuestions.length})` },
     { id: "chain", label: "Scoring Chain" },
   ];
 
@@ -535,6 +612,140 @@ export default async function QuestionsPage({
           {triadGroups.length === 0 && (
             <div className={`${card} px-5 py-10 text-center text-sm text-[#64748B]`}>No triad groups yet. Add one above.</div>
           )}
+        </div>
+      )}
+
+      {/* ── MCQ TAB ───────────────────────────────────────────────────────────── */}
+      {tab === "mcq" && (
+        <div className="space-y-4">
+          {/* Add form toggle */}
+          {!addMcqOpen ? (
+            <Link href="/admin/questions?tab=mcq&addMcq=1"
+              className="flex items-center gap-2 rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white px-5 py-3.5 text-sm font-medium text-[#475569] transition hover:border-amber-400 hover:text-amber-600">
+              <Plus size={16} /> Add New MCQ Question
+            </Link>
+          ) : (
+            <div className={card}>
+              <div className={`${cardHeader} flex items-center justify-between`}>
+                <div>
+                  <p className="text-sm font-semibold text-[#0F172A]">Add New MCQ Question</p>
+                  <p className="text-[11px] text-[#64748B]">Four options, one correct answer, plus a short explanation shown after scoring.</p>
+                </div>
+                <Link href="/admin/questions?tab=mcq" className="text-xs text-[#94A3B8] hover:text-[#334155]">Cancel</Link>
+              </div>
+              <form action={createMcqQuestion} className="grid gap-4 p-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Question *</label>
+                  <input name="questionText" required placeholder="e.g. Which HTTP status code indicates a successful request?" className={inputCls} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Section *</label>
+                  <input name="section" required placeholder="e.g. Web Fundamentals" className={inputCls} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Category *</label>
+                  <input name="category" required placeholder="e.g. HTTP" className={inputCls} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute</label>
+                  <select name="attributeId" defaultValue="" className={inputCls}>{attrOptions}</select>
+                </div>
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n}>
+                    <label className="mb-1 block text-xs font-medium text-[#475569]">Option {n} *</label>
+                    <input name={`option${n}`} required placeholder={`Option ${n}`} className={inputCls} />
+                  </div>
+                ))}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Correct option *</label>
+                  <select name="correctOption" required defaultValue="" className={inputCls}>
+                    <option value="" disabled>Select correct option…</option>
+                    <option value="1">Option 1</option>
+                    <option value="2">Option 2</option>
+                    <option value="3">Option 3</option>
+                    <option value="4">Option 4</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Explanation *</label>
+                  <input name="explanation" required placeholder="Shown to candidates/admins after scoring to explain the correct answer." className={inputCls} />
+                </div>
+                <div className="sm:col-span-2 flex justify-end gap-3 border-t border-[#F1F5F9] pt-4">
+                  <Link href="/admin/questions?tab=mcq" className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">Cancel</Link>
+                  <button type="submit" className="rounded-lg bg-amber-600 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-700">
+                    Add Question
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Question list */}
+          <div className={card}>
+            <div className={cardHeader}>
+              <p className="text-sm font-semibold text-[#0F172A]">MCQ Questions</p>
+              <p className="mt-0.5 text-xs text-[#64748B]">Four-option multiple choice, used for knowledge/technical-skills assessments. Attach these to an assessment from its builder page.</p>
+            </div>
+            <div className="divide-y divide-[#F1F5F9]">
+              {mcqQuestions.map((q, idx) => {
+                const options = [q.option1, q.option2, q.option3, q.option4];
+                const competencyLinks = q.attribute?.competencyMaps ?? [];
+                return (
+                  <div key={q.id} className="px-5 py-4 sm:flex sm:items-start sm:gap-4">
+                    <span className="hidden sm:flex h-6 w-6 shrink-0 mt-0.5 items-center justify-center rounded-full bg-[#F1F5F9] text-[11px] font-bold text-[#64748B]">
+                      {idx + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[#0F172A] leading-snug">{q.questionText}</p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <span className="rounded bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-medium text-[#475569]">{q.section}</span>
+                        <span className="rounded bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">{q.category}</span>
+                        {q.attribute && (
+                          <span className="rounded-full border border-[#D1FAE5] bg-[#EFF6FF] px-2 py-0.5 text-[10px] font-semibold text-[#2563EB]">
+                            [{q.attribute.code}] {q.attribute.name}
+                          </span>
+                        )}
+                        {competencyLinks.length > 0 && (
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                            → {competencyLinks.map((m) => m.competency.name).join(", ")}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                        {options.map((opt, oi) => (
+                          <p key={oi} className={`flex items-start gap-1.5 text-xs ${oi + 1 === q.correctOption ? "font-semibold text-emerald-700" : "text-[#475569]"}`}>
+                            <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${oi + 1 === q.correctOption ? "bg-emerald-100 text-emerald-700" : "bg-[#F1F5F9] text-[#94A3B8]"}`}>
+                              {String.fromCharCode(65 + oi)}
+                            </span>
+                            {opt}
+                          </p>
+                        ))}
+                      </div>
+                      {q.explanation && (
+                        <p className="mt-2 text-[11px] italic text-[#94A3B8]">{q.explanation}</p>
+                      )}
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 sm:mt-0 sm:shrink-0 sm:w-56">
+                      <form key={q.attributeId ?? "none"} action={updateMcqAttribute} className="flex flex-1 items-center gap-2">
+                        <input type="hidden" name="questionId" value={q.id} />
+                        <select name="attributeId" defaultValue={q.attributeId ?? ""} className={selectCls}>{attrOptions}</select>
+                        <button type="submit" className={saveBtnCls}>Save</button>
+                      </form>
+                      <form action={deleteMcqQuestion}>
+                        <input type="hidden" name="id" value={q.id} />
+                        <button type="submit" className="rounded-lg border border-rose-200 p-1.5 text-rose-500 hover:bg-rose-50 transition shrink-0" title="Delete">
+                          <Trash2 size={14} />
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                );
+              })}
+              {mcqQuestions.length === 0 && (
+                <p className="px-5 py-10 text-center text-sm text-[#64748B]">No MCQ questions yet. Add one above.</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
