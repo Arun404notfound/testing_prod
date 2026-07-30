@@ -98,6 +98,12 @@ export default function ReportByIdClient() {
       const pageNodes = Array.from(pagesRef.current.querySelectorAll<HTMLElement>(".report-page"));
       if (pageNodes.length === 0) return;
 
+      // html2canvas can capture a page before the custom web font (Geist) has finished
+      // loading, silently falling back to a different font with different line-height
+      // metrics — this clips/misaligns text in the exported PDF even though the same
+      // page renders correctly on screen. Waiting here avoids that race entirely.
+      await document.fonts.ready;
+
       const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
