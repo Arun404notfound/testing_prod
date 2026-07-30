@@ -35,7 +35,7 @@ export async function POST(
         status: "IN_PROGRESS",
         assignment: { accessToken: token },
       },
-      select: { id: true },
+      select: { id: true, progressData: true },
     });
 
     if (!attempt) {
@@ -44,12 +44,17 @@ export async function POST(
       return NextResponse.json({ ok: true, skipped: true });
     }
 
+    // blockOrder is snapshotted once at attempt creation (see attempts/start) and must survive
+    // every autosave — this write otherwise replaces the whole progressData blob wholesale.
+    const existingBlockOrder = (attempt.progressData as { blockOrder?: string[] } | null)?.blockOrder;
+
     const snapshot = {
       answers: answers ?? {},
       skippedKeys: skippedKeys ?? [],
       savedAt: new Date().toISOString(),
       ...(remainingSeconds !== undefined ? { remainingSeconds } : {}),
       ...(trigger ? { trigger } : {}),
+      ...(existingBlockOrder ? { blockOrder: existingBlockOrder } : {}),
     };
 
     await prisma.assessmentAttempt.update({

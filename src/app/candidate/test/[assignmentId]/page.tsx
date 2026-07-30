@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { shuffleArray } from "@/lib/shuffle";
-import { buildTestBlocks, shuffleBlockOptions } from "@/lib/candidate-test-payload";
+import { seededShuffle } from "@/lib/shuffle";
+import { buildTestBlocks, shuffleBlockOptions, type TestBlock } from "@/lib/candidate-test-payload";
 import { InstructionsGate } from "./instructions-gate";
 
 function testAccessBlocked(
@@ -108,8 +108,10 @@ export default async function CandidateTestPage({
   const accessBlocked = testAccessBlocked(assignment.assessment, scoredAttempts);
 
   let blocks = buildTestBlocks(assignment.assessment);
-  if (assignment.assessment.randomizeQuestions) blocks = shuffleArray(blocks);
-  blocks = shuffleBlockOptions(blocks, assignment.assessment.randomizeOptions);
+  // Seeded by the assignment id (stable per candidate) so the order survives reloads/resumes
+  // but still differs from one candidate's assignment to the next.
+  if (assignment.assessment.randomizeQuestions) blocks = seededShuffle(blocks, `${assignment.id}:questions`);
+  blocks = shuffleBlockOptions(blocks, assignment.assessment.randomizeOptions, assignment.id);
 
   // Per-assignment duration overrides the assessment default; fall back to assessment value if not set
   const durationMinutes = assignment.durationMinutes ?? assignment.assessment.durationMinutes;
@@ -139,6 +141,28 @@ export default async function CandidateTestPage({
     where: { assignmentId: assignment.id, status: "IN_PROGRESS" },
     select: { id: true, progressData: true, startedAt: true },
   });
+
+  // An in-progress attempt's question order was snapshotted once at attempt creation
+  // (see /api/candidate/attempts/start) — always resume with that exact order rather than
+  // the order freshly computed above, which can drift if randomization settings or the
+  // assessment's content change after the attempt started.
+  const savedBlockOrder = (activeAttempt?.progressData as { blockOrder?: string[] } | null)?.blockOrder;
+  if (Array.isArray(savedBlockOrder) && savedBlockOrder.length > 0) {
+    const byKey = new Map(blocks.map((b) => [b.key, b]));
+    const ordered: TestBlock[] = [];
+    for (const key of savedBlockOrder) {
+      const b = byKey.get(key);
+      if (b) {
+        ordered.push(b);
+        byKey.delete(key);
+      }
+    }
+    // Anything not in the saved order (e.g. content added after the attempt started) goes last.
+    for (const b of blocks) {
+      if (byKey.has(b.key)) ordered.push(b);
+    }
+    blocks = ordered;
+  }
 
   // Remaining time is always derived server-side from the immutable `startedAt` anchor,
   // never from a client-ticked snapshot that could be overwritten out of order.

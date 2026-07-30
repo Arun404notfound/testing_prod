@@ -1,5 +1,5 @@
 import type { ItemType } from "@/generated/prisma/enums";
-import { shuffleArray } from "@/lib/shuffle";
+import { seededShuffle } from "@/lib/shuffle";
 
 export type TestBlock =
   | {
@@ -38,6 +38,7 @@ export type TestBlock =
       key: string;
       groupId: string;
       section: string;
+      title: string;
       statements: { id: string; text: string }[];
     };
 
@@ -153,6 +154,7 @@ export function buildTestBlocks(assessment: any): TestBlock[] {
       key: `triad:${g.id}`,
       groupId: g.id,
       section: g.section.title,
+      title: g.title,
       statements: stmts.map((s) => ({ id: s.id, text: s.statementText })),
     });
   }
@@ -190,6 +192,7 @@ export function buildTestBlocks(assessment: any): TestBlock[] {
         key: `triad:${g.id}`,
         groupId: g.id,
         section: g.section?.title ?? row.section?.title ?? "Imported",
+        title: g.title,
         statements: stmts.map((s) => ({ id: s.id, text: s.statementText })),
       });
     }
@@ -204,14 +207,15 @@ export function buildTestBlocks(assessment: any): TestBlock[] {
   return withOrder.map((x) => x.b);
 }
 
-export function shuffleBlockOptions(blocks: TestBlock[], randomizeOptions: boolean): TestBlock[] {
+/** `seed` should be a stable per-candidate value (e.g. assignment id) so option order stays put across reloads but differs between candidates. */
+export function shuffleBlockOptions(blocks: TestBlock[], randomizeOptions: boolean, seed: string): TestBlock[] {
   if (!randomizeOptions) return blocks;
   return blocks.map((b) => {
     if (b.kind === "legacy_mcq") {
-      return { ...b, options: shuffleArray([...b.options]) };
+      return { ...b, options: seededShuffle(b.options, `${seed}:${b.key}`) };
     }
     if (b.kind === "item_mcq" || b.kind === "item_tf") {
-      return { ...b, options: shuffleArray([...b.options]) };
+      return { ...b, options: seededShuffle(b.options, `${seed}:${b.key}`) };
     }
     return b;
   });

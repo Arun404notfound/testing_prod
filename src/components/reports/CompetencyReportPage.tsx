@@ -137,31 +137,31 @@ export function CompetencyReportPage({
   }
 
   return (
-    <div className="space-y-6 px-2">
+    <div className="space-y-6">
       {showOverview && (<>
       {/* Heading */}
-      <div>
-        <h2 className="text-xl font-bold" style={{ color: theme.primary }}>
+      <div className="border-b-2 pb-2" style={{ borderColor: theme.primary }}>
+        <h2 className="text-xl font-bold uppercase tracking-wide" style={{ color: theme.primary }}>
           {heading}
         </h2>
-        <p className="mt-1 text-sm text-[#64748B]">
+        <p className="mt-1 text-xs text-[#64748B]">
           Scores are on a 1–10 scale derived from candidate responses mapped to each competency.
         </p>
       </div>
 
       {/* Score overview bar chart */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white p-5">
-        <h3 className="mb-4 text-sm font-semibold text-[#475569] uppercase tracking-wide">Score Overview</h3>
-        <div className="space-y-3">
+      <div>
+        <h3 className="mb-3 text-xs font-semibold text-[#475569] uppercase tracking-wide">Score Overview</h3>
+        <div className="space-y-2.5">
           {[...competencies]
             .sort((a, b) => b.scaledScore - a.scaledScore)
             .map((c) => {
               const colors = bandColor(c.band);
               return (
                 <div key={c.competencyId}>
-                  <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-                    <span className="text-sm font-medium text-[#0F172A]">{c.competencyName}</span>
-                    <span className="grid grid-cols-[auto_auto] items-center gap-2 whitespace-nowrap">
+                  <div className="mb-1.5 flex items-center gap-4">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#0F172A]">{c.competencyName}</span>
+                    <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                       <span className="text-sm font-bold leading-none" style={{ color: theme.primary }}>
                         {c.scaledScore.toFixed(1)}<span className="text-xs font-normal text-[#94A3B8]">/10</span>
                       </span>
@@ -177,24 +177,19 @@ export function CompetencyReportPage({
       </>)}
 
       {/* Detailed competency cards, grouped by Domain when present */}
-      <div className="space-y-6">
+      <div className="space-y-8">
         {groupByDomain(detailCompetencies).map(([domainName, group]) => (
-          <div key={domainName ?? "__ungrouped"} className="space-y-4">
+          <div key={domainName ?? "__ungrouped"} className="space-y-6">
             {domainName && (
-              <h3 className="text-sm font-bold uppercase tracking-wide text-[#94A3B8]">{domainName}</h3>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#94A3B8]">{domainName}</p>
             )}
             {group.map((c, idx) => {
               const colors = bandColor(c.band);
               return (
-                <div
-                  key={c.competencyId}
-                  className="overflow-hidden rounded-xl border bg-white"
-                  style={{ borderColor: colors.border }}
-                  data-pdf-break-inside="avoid"
-                >
-                  {/* Card header */}
+                <div key={c.competencyId} data-pdf-break-inside="avoid">
+                  {/* Full-bleed header strip */}
                   <div
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3"
+                    className="-mx-10 flex items-center justify-between gap-4 px-10 py-4"
                     style={{ backgroundColor: colors.bg }}
                   >
                     <div className="flex min-w-0 items-center gap-3">
@@ -211,47 +206,27 @@ export function CompetencyReportPage({
                   </div>
 
                   {/* Body */}
-                  <div className="px-5 py-4 space-y-4">
+                  <div className="space-y-5 pt-5">
                     {c.reportDescription && (
-                      <p className="text-sm leading-relaxed text-[#475569]">{c.reportDescription}</p>
-                    )}
-
-                    {/* Attribute subscales */}
-                    {c.attributes && c.attributes.length > 0 && (
-                      <div>
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
-                          Subscale Attributes
-                        </p>
-                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                          {c.attributes.map((a) => (
-                            <div
-                              key={a.code}
-                              className="flex items-center gap-2 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2"
-                            >
-                              <span className="font-mono text-xs font-bold text-[#2563EB]">{a.code}</span>
-                              <span className="text-xs text-[#334155]">{a.name}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      <p className="text-base leading-relaxed text-[#475569]">{c.reportDescription}</p>
                     )}
 
                     {/* Band-specific proficiency description (Job Role frameworks) */}
                     {c.bandContent ? (
-                      <div className="space-y-3">
-                        <p className="text-sm leading-relaxed text-[#475569]">{c.bandContent.proficiencyDescription}</p>
+                      <div className="space-y-4">
+                        <p className="text-base leading-relaxed text-[#475569]">{c.bandContent.proficiencyDescription}</p>
                         {c.bandContent.behaviouralImplications.length > 0 && (
                           <div>
-                            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">Behavioural Implications</p>
-                            <ul className="list-disc space-y-0.5 pl-4 text-xs text-[#334155]">
+                            <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">Behavioural Implications</p>
+                            <ul className="list-disc space-y-1 pl-5 text-sm text-[#334155]">
                               {c.bandContent.behaviouralImplications.map((b, i) => <li key={i}>{b}</li>)}
                             </ul>
                           </div>
                         )}
                         {c.bandContent.watchOuts.length > 0 && (
                           <div>
-                            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">Watch-outs</p>
-                            <ul className="list-disc space-y-0.5 pl-4 text-xs text-[#334155]">
+                            <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">Watch-outs</p>
+                            <ul className="list-disc space-y-1 pl-5 text-sm text-[#334155]">
                               {c.bandContent.watchOuts.map((w, i) => <li key={i}>{w}</li>)}
                             </ul>
                           </div>
@@ -260,7 +235,7 @@ export function CompetencyReportPage({
                     ) : (
                       /* Generic band interpretation fallback (legacy competencies) */
                       <div className="rounded-md border-l-4 pl-3 py-1" style={{ borderColor: colors.border }}>
-                        <p className="text-xs text-[#64748B]">
+                        <p className="text-sm text-[#64748B]">
                           {c.band === "Exceptional" && "Demonstrates outstanding capability. A key strength to leverage."}
                           {c.band === "Strong" && "Demonstrates solid capability. Performs effectively in this area."}
                           {c.band === "Moderate" && "Shows adequate capability with room for further development."}
@@ -275,7 +250,7 @@ export function CompetencyReportPage({
 
                     {/* Strength / development-need statement */}
                     {(c.strengthStatement || c.developmentNeedStatement) && (
-                      <p className="rounded-md bg-[#F8FAFC] px-3 py-2 text-xs text-[#334155]">
+                      <p className="rounded-md bg-[#F8FAFC] px-4 py-3 text-sm text-[#334155]">
                         {c.scaledScore > 6.5 ? c.strengthStatement : c.developmentNeedStatement}
                       </p>
                     )}
@@ -285,25 +260,25 @@ export function CompetencyReportPage({
                       c.developmentProjects &&
                       c.developmentProjects.length > 0 && (
                       <div>
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
+                        <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">
                           On-the-Job Development Projects
                         </p>
-                        <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="flex gap-3">
                           {c.developmentProjects.map((p, i) => (
-                            <div key={i} className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                              <p className="text-xs font-bold text-[#0F172A]">{p.title}</p>
-                              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">What to do</p>
-                              <p className="whitespace-pre-line text-[11px] text-[#475569]">{p.whatToDo}</p>
+                            <div key={i} className="min-w-0 flex-1 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+                              <p className="text-sm font-bold text-[#0F172A]">{p.title}</p>
+                              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">What to do</p>
+                              <p className="whitespace-pre-line text-xs text-[#475569]">{p.whatToDo}</p>
                               {p.howToDoIt && (
                                 <>
-                                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">How to do it</p>
-                                  <p className="whitespace-pre-line text-[11px] text-[#475569]">{p.howToDoIt}</p>
+                                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">How to do it</p>
+                                  <p className="whitespace-pre-line text-xs text-[#475569]">{p.howToDoIt}</p>
                                 </>
                               )}
                               {p.evidence && (
                                 <>
-                                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">How to measure</p>
-                                  <p className="whitespace-pre-line text-[11px] text-[#475569]">{p.evidence}</p>
+                                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">How to measure</p>
+                                  <p className="whitespace-pre-line text-xs text-[#475569]">{p.evidence}</p>
                                 </>
                               )}
                             </div>

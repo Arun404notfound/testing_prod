@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
   useState,
   useEffect,
@@ -175,7 +174,10 @@ function LikertQuestion({ block, answers, setAnswers }: {
   const val = answers[block.key] as number | undefined;
   return (
     <div className="space-y-5">
-      <p className="text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{block.prompt}</p>
+      <div>
+        <p className="text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{block.prompt}</p>
+        <p className="mt-1 text-sm text-[#64748B]">Rate how much you agree with the statement above.</p>
+      </div>
 
       {/* Desktop: horizontal 5-col scale */}
       <div className="hidden lg:block">
@@ -300,23 +302,23 @@ function TriadQuestion({ block, answers, setAnswers }: {
   const setLeast = (id: string) => setAnswers((a) => ({ ...a, [block.key]: { most: tv.most === id ? "" : (tv.most ?? ""), least: id } }));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
-        <p className="text-lg font-semibold text-[#0F172A] sm:text-xl">Situational Preference</p>
+        <p className="text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{block.title}</p>
         <p className="mt-1 text-sm text-[#64748B]">
-          Select one statement that is <span className="font-semibold text-emerald-600">Most like you</span> and one that is <span className="font-semibold text-rose-500">Least like you</span>.
+          Below are three ways to complete this statement. Choose the one that is <span className="font-semibold text-emerald-600">Most like you</span> and the one that is <span className="font-semibold text-rose-500">Least like you</span>.
         </p>
       </div>
 
       {/* Selection status bar */}
       <div className="flex gap-2">
-        <div className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-semibold transition-all ${
+        <div className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-1.5 text-xs font-semibold transition-all ${
           tv.most ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-dashed border-[#CBD5E1] text-[#94A3B8]"
         }`}>
           <CheckCircle2 size={13} />
           {tv.most ? `Most: ${LETTERS[block.statements.findIndex((s) => s.id === tv.most)] ?? "?"}` : "Select Most"}
         </div>
-        <div className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-semibold transition-all ${
+        <div className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-1.5 text-xs font-semibold transition-all ${
           tv.least ? "border-rose-300 bg-rose-50 text-rose-600" : "border-dashed border-[#CBD5E1] text-[#94A3B8]"
         }`}>
           <X size={13} />
@@ -325,7 +327,7 @@ function TriadQuestion({ block, answers, setAnswers }: {
       </div>
 
       {/* Statement cards */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {block.statements.map((s, idx) => {
           const isMost = tv.most === s.id;
           const isLeast = tv.least === s.id;
@@ -336,7 +338,7 @@ function TriadQuestion({ block, answers, setAnswers }: {
               : isLeast ? "border-rose-300 bg-rose-50/60"
               : "border-[#E2E8F0] bg-white"
             }`}>
-              <div className="flex items-start gap-3 px-4 py-3">
+              <div className="flex items-start gap-3 px-4 py-2.5">
                 <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                   isMost ? "bg-emerald-500 text-white" : isLeast ? "bg-rose-400 text-white" : "bg-[#F1F5F9] text-[#475569]"
                 }`}>
@@ -356,7 +358,7 @@ function TriadQuestion({ block, answers, setAnswers }: {
                   type="button"
                   onClick={() => setMost(s.id)}
                   disabled={isLeast}
-                  className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-all ${
+                  className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-xs font-semibold transition-all ${
                     isMost ? "bg-emerald-500 text-white"
                     : isLeast ? "cursor-not-allowed bg-[#F8FAFC] text-[#CBD5E1]"
                     : "bg-white text-emerald-600 hover:bg-emerald-50"
@@ -370,7 +372,7 @@ function TriadQuestion({ block, answers, setAnswers }: {
                   type="button"
                   onClick={() => setLeast(s.id)}
                   disabled={isMost}
-                  className={`flex flex-1 items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-all ${
+                  className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-xs font-semibold transition-all ${
                     isLeast ? "bg-rose-400 text-white"
                     : isMost ? "cursor-not-allowed bg-[#F8FAFC] text-[#CBD5E1]"
                     : "bg-white text-rose-500 hover:bg-rose-50"
@@ -418,8 +420,10 @@ function SubmittingOverlay({ done }: { done?: boolean }) {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
               <CheckCircle2 size={30} className="text-emerald-600" />
             </div>
-            <h2 className="text-xl font-bold text-[#0F172A]">Responses Submitted!</h2>
-            <p className="mt-2 text-sm text-[#64748B]">Your answers have been saved successfully. Taking you to your report…</p>
+            <h2 className="text-xl font-bold text-[#0F172A]">Thank You!</h2>
+            <p className="mt-2 text-sm text-[#64748B]">
+              Your responses have been submitted successfully. You may now close this window.
+            </p>
           </>
         ) : (
           <>
@@ -528,7 +532,6 @@ export function CandidateTestRunner({
   savedAnswers?: Record<string, unknown>;
   initialRemainingSeconds: number;
 }) {
-  const router = useRouter();
   const initialAnswers = (savedAnswers ?? {}) as Answers;
   const [answers, setAnswers] = useState<Answers>(initialAnswers);
   const [currentIndex, setCurrentIndex] = useState(() =>
@@ -691,12 +694,11 @@ export function CandidateTestRunner({
       }
       try { sessionStorage.removeItem("activeAttemptId"); } catch { /* ignore */ }
       setSubmitDone(true);
-      setTimeout(() => router.push(`/candidate/reports/${data.resultId}?token=${accessToken}`), 1500);
     } catch {
       setError("Your internet connection was interrupted and the submission could not be sent. Please check your connection and try again.");
       setLoading(false);
     }
-  }, [assignmentId, accessToken, answers, skipped, blocks, router]);
+  }, [assignmentId, accessToken, answers, skipped, blocks]);
 
   const handleTimesUp = useCallback(() => {
     setTimesUp(true);
@@ -817,10 +819,10 @@ export function CandidateTestRunner({
               NEVER scrolls away — it's outside this div.
             */}
             <div ref={questionScrollRef} className="flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-2xl px-4 py-5 sm:px-6 sm:py-6">
+              <div className="mx-auto w-full max-w-2xl px-4 py-4 sm:px-6 sm:py-5">
 
                 {/* Breadcrumb / meta */}
-                <div className="mb-3 flex flex-wrap items-center gap-2">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-[#E6F7F1] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#0F766E]">
                     {block.section}
                   </span>
@@ -834,7 +836,7 @@ export function CandidateTestRunner({
                 </div>
 
                 {/* Question card */}
-                <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm sm:rounded-3xl sm:p-7">
+                <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
                   {block.kind === "likert" && (
                     <LikertQuestion block={block} answers={answers} setAnswers={setAnswers} />
                   )}

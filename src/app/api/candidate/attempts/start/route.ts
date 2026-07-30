@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ASSESSMENT_INCLUDE } from "@/lib/score-and-save";
+import { buildTestBlocks, shuffleBlockOptions } from "@/lib/candidate-test-payload";
+import { seededShuffle } from "@/lib/shuffle";
 
 function accessBlocked(
   assessment: {
@@ -85,8 +88,7 @@ export async function POST(request: Request) {
     const assignment = await prisma.assessmentAssignment.findUnique({
       where: { id: rawId },
       include: {
-        candidate: true,
-        assessment: true,
+        ...ASSESSMENT_INCLUDE,
         result: { select: { id: true } },
       },
     });
@@ -184,6 +186,14 @@ export async function POST(request: Request) {
     });
     const attemptNo = (lastAttempt?.attemptNo ?? 0) + 1;
 
+    // Snapshot the question order once, at attempt creation — resumes and later admin
+    // setting changes (e.g. toggling randomization) must never reshuffle a candidate's
+    // in-progress attempt, or previously-answered questions appear scattered in the
+    // question palette instead of in the sequential order the candidate actually saw them.
+    let blocks = buildTestBlocks(assignment.assessment);
+    if (assignment.assessment.randomizeQuestions) blocks = seededShuffle(blocks, `${assignment.id}:questions`);
+    blocks = shuffleBlockOptions(blocks, assignment.assessment.randomizeOptions, assignment.id);
+
     const attempt = await prisma.assessmentAttempt.create({
       data: {
         assignmentId: assignment.id,
@@ -193,6 +203,8 @@ export async function POST(request: Request) {
         attemptNo,
         startedAt: new Date(),
         proctoringCameraGranted: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        progressData: { blockOrder: blocks.map((b) => b.key) } as any,
       },
       select: { id: true, startedAt: true },
     });

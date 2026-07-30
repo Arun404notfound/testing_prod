@@ -156,31 +156,38 @@ export default function ReportByIdClient() {
     </ReportPageShell>
   );
 
-  const renderCompetencyStack = () => {
+  const renderCompetencyStack = (pageOpts?: { startPage: number; totalPages: number; footerMeta: string; pageLabel: string }) => {
     if (report.competencyScores.length === 0) return null;
 
     const heading = report.jobRoleName ? `${report.jobRoleName} — Competency Profile` : "Competency Profile";
     return (
       <>
-        <ReportPageShell>
-          <div className="p-8">
-            <CompetencyReportPage
-              competencies={report.competencyScores}
-              detailCompetencies={[]}
-              heading={heading}
-            />
-          </div>
+        <ReportPageShell
+          pageLabel={pageOpts?.pageLabel}
+          footerMeta={pageOpts?.footerMeta}
+          pageNumber={pageOpts?.startPage}
+          totalPages={pageOpts?.totalPages}
+        >
+          <CompetencyReportPage
+            competencies={report.competencyScores}
+            detailCompetencies={[]}
+            heading={heading}
+          />
         </ReportPageShell>
         {report.competencyScores.map((competency, index) => (
-          <ReportPageShell key={competency.competencyId}>
-            <div className="p-8">
-              <CompetencyReportPage
-                competencies={report.competencyScores}
-                detailCompetencies={[competency]}
-                showOverview={false}
-                detailIndexOffset={index}
-              />
-            </div>
+          <ReportPageShell
+            key={competency.competencyId}
+            pageLabel={pageOpts?.pageLabel}
+            footerMeta={pageOpts?.footerMeta}
+            pageNumber={pageOpts ? pageOpts.startPage + 1 + index : undefined}
+            totalPages={pageOpts?.totalPages}
+          >
+            <CompetencyReportPage
+              competencies={report.competencyScores}
+              detailCompetencies={[competency]}
+              showOverview={false}
+              detailIndexOffset={index}
+            />
           </ReportPageShell>
         ))}
       </>
@@ -207,16 +214,19 @@ export default function ReportByIdClient() {
     </>
   );
 
-  const renderHybridStack = () => (
-    <>
-      <ReportPageShell>
-        <div className="p-8">
+  const renderHybridStack = () => {
+    const totalPages = 1 + 1 + report.competencyScores.length; // hybrid overview + competency overview + one per competency
+    const footerMeta = [report.candidateName, report.tenantName, completedDate].filter(Boolean).join(" · ");
+    const pageLabel = report.assessmentName;
+    return (
+      <>
+        <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages} hideHeaderLogo centerContent>
           <HybridOverviewPage report={report} />
-        </div>
-      </ReportPageShell>
-      {renderCompetencyStack()}
-    </>
-  );
+        </ReportPageShell>
+        {renderCompetencyStack({ startPage: 2, totalPages, footerMeta, pageLabel })}
+      </>
+    );
+  };
 
   const renderPlaceholderStack = () => (
     <ReportPageShell>

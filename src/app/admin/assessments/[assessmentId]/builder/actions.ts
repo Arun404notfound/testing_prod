@@ -96,6 +96,8 @@ export async function saveAssessmentDetails(assessmentId: string, formData: Form
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const duration = parseInt(String(formData.get("durationMinutes") ?? ""), 10);
+  const randomizeQuestions = formData.get("randomizeQuestions") === "on";
+  const randomizeOptions = formData.get("randomizeOptions") === "on";
   if (!title) return;
   await prisma.assessment.update({
     where: { id: assessmentId },
@@ -103,6 +105,8 @@ export async function saveAssessmentDetails(assessmentId: string, formData: Form
       title,
       ...(description && { description }),
       ...(Number.isFinite(duration) && duration > 0 && { durationMinutes: duration }),
+      randomizeQuestions,
+      randomizeOptions,
     },
   });
   revalidatePath(`/admin/assessments/${assessmentId}/builder`);

@@ -63,11 +63,14 @@ export function resolveDisclaimerText(branding: ReportTenantBranding | null): st
   return DEFAULT_REPORT_DISCLAIMER;
 }
 
+/** Platform default logo shown on reports when a tenant hasn't configured its own. */
+export const DEFAULT_REPORT_LOGO_URL = "/Logo 1.webp";
+
 export function resolveLogoUrl(branding: ReportTenantBranding | null): string | null {
   const u = branding?.logoUrl?.trim();
-  if (!u) return null;
+  if (!u) return DEFAULT_REPORT_LOGO_URL;
   if (u.startsWith("data:") || u.startsWith("/") || u.startsWith("http://") || u.startsWith("https://")) return u;
-  return null;
+  return DEFAULT_REPORT_LOGO_URL;
 }
 
 /** Prefer assessment tenant for report branding; fallback to candidate tenant. */

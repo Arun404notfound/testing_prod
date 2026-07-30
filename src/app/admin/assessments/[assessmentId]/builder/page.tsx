@@ -325,6 +325,26 @@ export default async function AssessmentBuilderPage({
               className="tg-input w-full"
             />
           </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="flex items-center gap-2 text-sm text-[#334155]">
+              <input
+                type="checkbox"
+                name="randomizeQuestions"
+                defaultChecked={assessment.randomizeQuestions}
+                className="rounded border-slate-300"
+              />
+              Randomize question order per candidate
+            </label>
+            <label className="flex items-center gap-2 text-sm text-[#334155]">
+              <input
+                type="checkbox"
+                name="randomizeOptions"
+                defaultChecked={assessment.randomizeOptions}
+                className="rounded border-slate-300"
+              />
+              Randomize answer option order per candidate
+            </label>
+          </div>
           <button type="submit" className="tg-button-primary w-fit text-sm">
             Save details
           </button>
