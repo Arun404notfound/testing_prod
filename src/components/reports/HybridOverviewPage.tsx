@@ -36,11 +36,11 @@ export function HybridOverviewPage({ report }: { report: ReportPayload }) {
           reflect knowledge domains; trait scores summarize self-report and forced-choice components.
         </p>
 
-        <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm" style={{ color: theme.secondary }}>
-          <li>Overall score: blended index across included modules.</li>
-          <li>Section table: includes knowledge and rating-based sections as labeled.</li>
-          {hasLikert ? <li>Likert-style items contributed to trait and competency scores.</li> : null}
-          {hasTriad ? <li>Triad selections contributed to trait and competency scores.</li> : null}
+        <ul className="mt-4 list-disc pl-5 text-sm" style={{ color: theme.secondary }}>
+          <li style={{ marginBottom: 6 }}>Overall score: blended index across included modules.</li>
+          <li style={{ marginBottom: 6 }}>Section table: includes knowledge and rating-based sections as labeled.</li>
+          {hasLikert ? <li style={{ marginBottom: 6 }}>Likert-style items contributed to trait and competency scores.</li> : null}
+          {hasTriad ? <li style={{ marginBottom: 6 }}>Triad selections contributed to trait and competency scores.</li> : null}
         </ul>
       </div>
     </section>

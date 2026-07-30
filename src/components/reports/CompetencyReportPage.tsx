@@ -56,14 +56,14 @@ function bandColor(band: string): { bg: string; text: string; border: string } {
   }
 }
 
+// Plain nested block (no position:absolute, no Tailwind space-y/variable utilities) —
+// html2canvas has repeatedly mis-rasterized those on this page (fine on-screen, broken in
+// the exported PDF only), so this component sticks to the most basic layout primitives.
 function ScoreBar({ score, max = 10, color }: { score: number; max?: number; color: string }) {
   const pct = Math.min(100, (score / max) * 100);
   return (
-    <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-[#E2E8F0]">
-      <div
-        className="absolute inset-y-0 left-0 rounded-full"
-        style={{ width: `${pct}%`, backgroundColor: color }}
-      />
+    <div style={{ height: 10, width: "100%", overflow: "hidden", borderRadius: 9999, backgroundColor: "#E2E8F0" }}>
+      <div style={{ height: 10, width: `${pct}%`, borderRadius: 9999, backgroundColor: color }} />
     </div>
   );
 }
@@ -137,10 +137,10 @@ export function CompetencyReportPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div>
       {showOverview && (<>
       {/* Heading */}
-      <div className="border-b-2 pb-2" style={{ borderColor: theme.primary }}>
+      <div className="border-b-2 pb-2" style={{ borderColor: theme.primary, marginBottom: 24 }}>
         <h2 className="text-xl font-bold uppercase tracking-wide" style={{ color: theme.primary }}>
           {heading}
         </h2>
@@ -150,16 +150,16 @@ export function CompetencyReportPage({
       </div>
 
       {/* Score overview bar chart */}
-      <div>
+      <div style={{ marginBottom: 24 }}>
         <h3 className="mb-3 text-xs font-semibold text-[#475569] uppercase tracking-wide">Score Overview</h3>
-        <div className="space-y-2.5">
+        <div>
           {[...competencies]
             .sort((a, b) => b.scaledScore - a.scaledScore)
             .map((c) => {
               const colors = bandColor(c.band);
               return (
-                <div key={c.competencyId}>
-                  <div className="mb-1.5 flex items-center gap-4">
+                <div key={c.competencyId} style={{ marginBottom: 10 }}>
+                  <div className="flex items-center gap-4" style={{ marginBottom: 6 }}>
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#0F172A]">{c.competencyName}</span>
                     <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                       <span className="text-sm font-bold leading-none" style={{ color: theme.primary }}>
@@ -177,16 +177,16 @@ export function CompetencyReportPage({
       </>)}
 
       {/* Detailed competency cards, grouped by Domain when present */}
-      <div className="space-y-8">
-        {groupByDomain(detailCompetencies).map(([domainName, group]) => (
-          <div key={domainName ?? "__ungrouped"} className="space-y-6">
+      <div>
+        {groupByDomain(detailCompetencies).map(([domainName, group], groupIdx, groupArr) => (
+          <div key={domainName ?? "__ungrouped"} style={{ marginBottom: groupIdx < groupArr.length - 1 ? 32 : 0 }}>
             {domainName && (
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#94A3B8]">{domainName}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#94A3B8]" style={{ marginBottom: 24 }}>{domainName}</p>
             )}
             {group.map((c, idx) => {
               const colors = bandColor(c.band);
               return (
-                <div key={c.competencyId} data-pdf-break-inside="avoid">
+                <div key={c.competencyId} data-pdf-break-inside="avoid" style={{ marginBottom: idx < group.length - 1 ? 24 : 0 }}>
                   {/* Full-bleed header strip */}
                   <div
                     className="-mx-10 flex items-center justify-between gap-4 px-10 py-4"
@@ -206,35 +206,35 @@ export function CompetencyReportPage({
                   </div>
 
                   {/* Body */}
-                  <div className="space-y-5 pt-5">
+                  <div className="pt-5">
                     {c.reportDescription && (
-                      <p className="text-base leading-relaxed text-[#475569]">{c.reportDescription}</p>
+                      <p className="text-base leading-relaxed text-[#475569]" style={{ marginBottom: 20 }}>{c.reportDescription}</p>
                     )}
 
                     {/* Band-specific proficiency description (Job Role frameworks) */}
                     {c.bandContent ? (
-                      <div className="space-y-4">
-                        <p className="text-base leading-relaxed text-[#475569]">{c.bandContent.proficiencyDescription}</p>
+                      <div style={{ marginBottom: 20 }}>
+                        <p className="text-base leading-relaxed text-[#475569]" style={{ marginBottom: 16 }}>{c.bandContent.proficiencyDescription}</p>
                         {c.bandContent.behaviouralImplications.length > 0 && (
-                          <div>
+                          <div style={{ marginBottom: 16 }}>
                             <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">Behavioural Implications</p>
-                            <ul className="list-disc space-y-1 pl-5 text-sm text-[#334155]">
-                              {c.bandContent.behaviouralImplications.map((b, i) => <li key={i}>{b}</li>)}
+                            <ul className="list-disc pl-5 text-sm text-[#334155]">
+                              {c.bandContent.behaviouralImplications.map((b, i) => <li key={i} style={{ marginBottom: 4 }}>{b}</li>)}
                             </ul>
                           </div>
                         )}
                         {c.bandContent.watchOuts.length > 0 && (
                           <div>
                             <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">Watch-outs</p>
-                            <ul className="list-disc space-y-1 pl-5 text-sm text-[#334155]">
-                              {c.bandContent.watchOuts.map((w, i) => <li key={i}>{w}</li>)}
+                            <ul className="list-disc pl-5 text-sm text-[#334155]">
+                              {c.bandContent.watchOuts.map((w, i) => <li key={i} style={{ marginBottom: 4 }}>{w}</li>)}
                             </ul>
                           </div>
                         )}
                       </div>
                     ) : (
                       /* Generic band interpretation fallback (legacy competencies) */
-                      <div className="rounded-md border-l-4 pl-3 py-1" style={{ borderColor: colors.border }}>
+                      <div className="rounded-md border-l-4 pl-3 py-1" style={{ borderColor: colors.border, marginBottom: 20 }}>
                         <p className="text-sm text-[#64748B]">
                           {c.band === "Exceptional" && "Demonstrates outstanding capability. A key strength to leverage."}
                           {c.band === "Strong" && "Demonstrates solid capability. Performs effectively in this area."}
@@ -250,7 +250,7 @@ export function CompetencyReportPage({
 
                     {/* Strength / development-need statement */}
                     {(c.strengthStatement || c.developmentNeedStatement) && (
-                      <p className="rounded-md bg-[#F8FAFC] px-4 py-3 text-sm text-[#334155]">
+                      <p className="rounded-md bg-[#F8FAFC] px-4 py-3 text-sm text-[#334155]" style={{ marginBottom: 20 }}>
                         {c.scaledScore > 6.5 ? c.strengthStatement : c.developmentNeedStatement}
                       </p>
                     )}
