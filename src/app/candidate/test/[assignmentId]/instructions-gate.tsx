@@ -38,7 +38,9 @@ function fmt(mins: number) {
 const INSTRUCTIONS = [
   { heading: "Timer", text: 'The timer starts the moment you click "Start Assessment" and cannot be paused or extended. Ensure you are in a distraction-free environment before you begin.' },
   { heading: "One-way navigation", text: "Questions are presented one at a time in a fixed order. You cannot go back to a previous question. Moving forward without an answer records it as Skipped." },
-  { heading: "Question types", text: "This assessment may include Likert Scale (rate 1–5), Forced Choice (select Most & Least like you), and Multiple Choice (one correct option) questions." },
+  { heading: "How to answer Likert Scale questions", text: "You'll see one statement with a 5-point scale from Strongly Disagree to Strongly Agree. Select the single option that best reflects how much you personally agree with the statement." },
+  { heading: "How to answer Forced Choice questions", text: "You'll see three statements labelled A, B and C. Choose exactly one that is Most like you and exactly one that is Least like you — the remaining statement is left unmarked. You cannot select the same statement for both." },
+  { heading: "How to answer Multiple Choice questions", text: "You'll see one question with four options. Select the single option you believe is correct." },
   { heading: "Answer honestly", text: "For personality and behavioural questions there are no right or wrong answers. Respond based on how you truly think and act, not what you think the assessor wants to hear." },
   { heading: "Stay on the page", text: "Do not refresh, press back, or close the browser tab during the test. Doing so may result in loss of progress. Tab switching may be flagged and recorded." },
   { heading: "Single attempt", text: "Once you submit, your responses are final and cannot be revised. This assessment can only be attempted once per assignment." },
