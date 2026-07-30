@@ -160,7 +160,7 @@ export function CompetencyReportPage({
               return (
                 <div key={c.competencyId} style={{ marginBottom: 10 }}>
                   <div className="flex items-center gap-4" style={{ marginBottom: 6 }}>
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#0F172A]">{c.competencyName}</span>
+                    <span className="min-w-0 flex-1 font-medium text-[#0F172A]" style={{ fontSize: 14, lineHeight: "20px" }}>{c.competencyName}</span>
                     <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                       <span className="text-sm font-bold leading-none" style={{ color: theme.primary }}>
                         {c.scaledScore.toFixed(1)}<span className="text-xs font-normal text-[#94A3B8]">/10</span>
