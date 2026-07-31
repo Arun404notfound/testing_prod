@@ -194,6 +194,7 @@ export default async function CandidateTestPage({
       blocks={blocks}
       assessmentTitle={assignment.assessment.title}
       candidateName={assignment.candidate.fullName}
+      customInstructions={assignment.assessment.customInstructions}
       durationMinutes={durationMinutes}
       assessmentDurationMinutes={assignment.assessment.durationMinutes}
       durationIsOverridden={durationIsOverridden}

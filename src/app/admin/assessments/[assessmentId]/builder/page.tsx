@@ -15,6 +15,7 @@ import {
   removeMcqQuestion,
   saveAssessmentDetails,
   setLifecycleStatus,
+  updateAssessmentInstructions,
   updateAssessmentJobRole,
 } from "./actions";
 import { BulkLikertPool } from "./bulk-likert-pool";
@@ -87,6 +88,7 @@ export default async function AssessmentBuilderPage({
   });
   const boundUpdateJobRole = updateAssessmentJobRole.bind(null, assessment.id);
   const boundSaveDetails = saveAssessmentDetails.bind(null, assessment.id);
+  const boundUpdateInstructions = updateAssessmentInstructions.bind(null, assessment.id);
 
   const assessmentType = assessment.assessmentType;
   const tab = resolveTab(assessmentType, sp.tab);
@@ -256,6 +258,9 @@ export default async function AssessmentBuilderPage({
       {sp.saved === "details" && (
         <AutoDismissToast message="Assessment details saved successfully." durationMs={3000} />
       )}
+      {sp.saved === "instructions" && (
+        <AutoDismissToast message="Instructions saved successfully." durationMs={3000} />
+      )}
       <ScrollToId targetId={sp.tab ? "question-pool" : null} />
       <div>
         <Link href="/admin/assessments" className="inline-flex items-center gap-1 text-xs font-medium text-[#64748B] hover:text-[#334155] transition mb-3">
@@ -362,6 +367,31 @@ export default async function AssessmentBuilderPage({
           </div>
           <button type="submit" className="tg-button-primary w-fit text-sm">
             Save details
+          </button>
+        </form>
+      </FormCard>
+
+      <FormCard title="Instructions">
+        <p className="mb-4 text-sm text-[#64748B]">
+          Every candidate always sees the standard instructions (timer, navigation, how to answer
+          each question type, honesty note, etc.) — that never changes. Anything you add below is
+          shown as an extra note underneath those, for things specific to this assessment (e.g.
+          proctoring requirements, client-specific context). Leave it blank to show only the
+          standard instructions.
+        </p>
+        <form action={boundUpdateInstructions} className="grid gap-3">
+          <label className="text-sm text-[#334155]">
+            <span className="mb-1 block font-medium">Additional instructions (optional)</span>
+            <textarea
+              name="customInstructions"
+              rows={4}
+              defaultValue={assessment.customInstructions ?? ""}
+              placeholder="e.g. This session is proctored and recorded. Please use a laptop or desktop — mobile devices are not supported."
+              className="tg-input w-full"
+            />
+          </label>
+          <button type="submit" className="tg-button-primary w-fit text-sm">
+            Save instructions
           </button>
         </form>
       </FormCard>

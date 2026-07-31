@@ -167,6 +167,12 @@ model Assessment {
   endDateTime          DateTime?
   randomizeQuestions   Boolean                    @default(false)
   randomizeOptions     Boolean                    @default(false)
+  /**
+   * Freeform note from the admin, appended after the standard candidate
+   * instructions (timer/navigation/how-to-answer/etc). Null/empty means
+   * nothing extra is shown — the system defaults are never replaced.
+   */
+  customInstructions   String?
   lifecycleStatus      AssessmentLifecycleStatus  @default(draft)
   isActive             Boolean                    @default(true)
   createdAt            DateTime                   @default(now())

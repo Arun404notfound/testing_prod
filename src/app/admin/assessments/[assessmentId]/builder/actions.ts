@@ -114,6 +114,17 @@ export async function saveAssessmentDetails(assessmentId: string, formData: Form
   redirect(`/admin/assessments/${assessmentId}/builder?saved=details`);
 }
 
+export async function updateAssessmentInstructions(assessmentId: string, formData: FormData) {
+  await assertAssessment(assessmentId);
+  const raw = String(formData.get("customInstructions") ?? "").trim();
+  await prisma.assessment.update({
+    where: { id: assessmentId },
+    data: { customInstructions: raw || null },
+  });
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  redirect(`/admin/assessments/${assessmentId}/builder?saved=instructions`);
+}
+
 export async function deleteAssessmentById(assessmentId: string) {
   await assertAssessment(assessmentId);
   await prisma.assessment.delete({ where: { id: assessmentId } });
