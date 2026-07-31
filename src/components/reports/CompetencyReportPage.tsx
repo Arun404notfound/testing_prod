@@ -214,6 +214,8 @@ export function CompetencyReportPage({
             )}
             {group.map((c, idx) => {
               const colors = bandColor(c.band);
+              const hasDevProjects =
+                developmentProjectCompetencyIds.has(c.competencyId) && Boolean(c.developmentProjects?.length);
               return (
                 <div key={c.competencyId} style={{ marginBottom: idx < group.length - 1 ? 24 : 0 }}>
                   {/*
@@ -270,24 +272,37 @@ export function CompetencyReportPage({
                       <div style={{ marginBottom: 20 }}>
                         <p className="mb-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: theme.ink }}>Score Interpretation</p>
                         <p data-pdf-break-inside="avoid" className="text-base leading-relaxed" style={{ marginBottom: 16, color: theme.body }}>{c.bandContent.proficiencyDescription}</p>
-                        {c.bandContent.behaviouralImplications.length > 0 && (
-                          <div data-pdf-break-inside="avoid" style={{ marginBottom: 16 }}>
-                            <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: theme.accent }}>
-                              <span className="h-2 w-2 shrink-0" style={{ backgroundColor: theme.accent }} />
-                              Behavioural Implications
-                            </p>
-                            <BulletList items={c.bandContent.behaviouralImplications} color={theme.body} />
-                          </div>
-                        )}
-                        {c.bandContent.watchOuts.length > 0 && (
-                          <div data-pdf-break-inside="avoid">
-                            <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: WATCH_OUT_COLOR }}>
-                              <span className="h-2 w-2 shrink-0" style={{ backgroundColor: WATCH_OUT_COLOR }} />
-                              Watch-outs
-                            </p>
-                            <BulletList items={c.bandContent.watchOuts} color={theme.body} />
-                          </div>
-                        )}
+                        {/*
+                          Side-by-side only for competencies that also carry a development-
+                          projects section below — those are the ones tight on vertical room,
+                          and stacking Behavioural Implications above Watch-outs left the whole
+                          right half of the page empty. Everyone else has room to spare, so
+                          they keep the simpler stacked layout.
+                        */}
+                        <div
+                          data-pdf-break-inside="avoid"
+                          className={hasDevProjects ? "grid grid-cols-2 gap-8" : undefined}
+                          style={{ marginBottom: hasDevProjects ? 16 : 0 }}
+                        >
+                          {c.bandContent.behaviouralImplications.length > 0 && (
+                            <div style={{ marginBottom: hasDevProjects ? 0 : 16 }}>
+                              <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: theme.accent }}>
+                                <span className="h-2 w-2 shrink-0" style={{ backgroundColor: theme.accent }} />
+                                Behavioural Implications
+                              </p>
+                              <BulletList items={c.bandContent.behaviouralImplications} color={theme.body} />
+                            </div>
+                          )}
+                          {c.bandContent.watchOuts.length > 0 && (
+                            <div>
+                              <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: WATCH_OUT_COLOR }}>
+                                <span className="h-2 w-2 shrink-0" style={{ backgroundColor: WATCH_OUT_COLOR }} />
+                                Watch-outs
+                              </p>
+                              <BulletList items={c.bandContent.watchOuts} color={theme.body} />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       /* Generic band interpretation fallback (legacy competencies) */
