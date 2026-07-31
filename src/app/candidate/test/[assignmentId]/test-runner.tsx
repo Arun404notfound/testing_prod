@@ -181,7 +181,7 @@ function LikertQuestion({ block, answers, setAnswers }: {
 
       {/* Desktop: horizontal 5-col scale */}
       <div className="hidden lg:block">
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-5 gap-3">
           {LIKERT_OPTS.map((opt) => {
             const sel = val === opt.value;
             return (
@@ -189,28 +189,16 @@ function LikertQuestion({ block, answers, setAnswers }: {
                 key={opt.value}
                 type="button"
                 onClick={() => setAnswers((a) => ({ ...a, [block.key]: opt.value }))}
-                className={`flex flex-col items-center gap-2 rounded-2xl border-2 px-2 py-4 text-center transition-all duration-150 ${
+                className={`flex items-center justify-center rounded-2xl border-2 px-3 py-5 text-center text-sm font-semibold leading-tight transition-all duration-150 ${
                   sel
-                    ? "border-[#0F766E] bg-gradient-to-b from-[#E6F7F1] to-[#D1FAE5] shadow-md"
-                    : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
+                    ? "border-[#0F766E] bg-[#0F766E] text-white shadow-md"
+                    : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#0F766E] hover:text-[#0F766E]"
                 }`}
               >
-                <span className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold transition-all ${
-                  sel ? "border-[#0F766E] bg-[#0F766E] text-white" : "border-[#CBD5E1] text-[#475569]"
-                }`}>
-                  {opt.value}
-                </span>
-                <span className={`text-[11px] font-medium leading-tight ${sel ? "text-[#0D9488]" : "text-[#64748B]"}`}>
-                  {opt.label}
-                </span>
+                {opt.label}
               </button>
             );
           })}
-        </div>
-        {/* Scale endpoints label */}
-        <div className="mt-2 flex justify-between px-1">
-          <span className="text-[10px] text-[#94A3B8]">← Least like me</span>
-          <span className="text-[10px] text-[#94A3B8]">Most like me →</span>
         </div>
       </div>
 
@@ -223,18 +211,13 @@ function LikertQuestion({ block, answers, setAnswers }: {
               key={opt.value}
               type="button"
               onClick={() => setAnswers((a) => ({ ...a, [block.key]: opt.value }))}
-              className={`flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white"
+              className={`w-full rounded-xl border-2 px-4 py-3 text-center text-sm font-semibold transition-all ${
+                sel
+                  ? "border-[#0F766E] bg-[#0F766E] text-white shadow-md"
+                  : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#0F766E] hover:text-[#0F766E]"
               }`}
             >
-              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all ${
-                sel ? "border-[#0F766E] bg-[#0F766E] text-white" : "border-[#CBD5E1] text-[#475569]"
-              }`}>
-                {opt.value}
-              </span>
-              <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>
-                {opt.label}
-              </span>
+              {opt.label}
             </button>
           );
         })}
@@ -823,12 +806,6 @@ export function CandidateTestRunner({
 
                 {/* Breadcrumb / meta */}
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#E6F7F1] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#0F766E]">
-                    {block.section}
-                  </span>
-                  <span className="text-[11px] text-[#94A3B8]">
-                    {block.kind === "triad" ? "Forced Choice" : block.kind === "likert" ? "Likert Scale" : "Multiple Choice"}
-                  </span>
                   <span className="ml-auto flex items-center gap-1 text-[11px] text-[#94A3B8]">
                     {isCurrentAnswered && <CheckCircle2 size={12} className="text-emerald-500" />}
                     {currentIndex + 1} / {total}

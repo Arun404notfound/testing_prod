@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { CheckCircle2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { seededShuffle } from "@/lib/shuffle";
 import { buildTestBlocks, shuffleBlockOptions, type TestBlock } from "@/lib/candidate-test-payload";
@@ -81,12 +82,18 @@ export default async function CandidateTestPage({
   );
   if (assignment.status === "completed" || hasExistingResult) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F1F5F9] p-6">
-        <div className="max-w-md rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
-          <p className="text-lg font-semibold text-emerald-900">Thank You!</p>
-          <p className="mt-2 text-sm text-emerald-800">
-            You have already completed this assessment. Your responses have been submitted successfully.
+      <div className="flex flex-1 items-center justify-center bg-[#F8FAFC] p-6">
+        <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50">
+            <CheckCircle2 className="h-7 w-7 text-emerald-500" strokeWidth={2} />
+          </div>
+          <p className="text-xl font-semibold text-[#0F172A]">Thank You!</p>
+          <p className="mt-2 text-sm leading-relaxed text-[#64748B]">
+            You&apos;ve already completed{" "}
+            <span className="font-medium text-[#0F172A]">{assignment.assessment.title}</span>. Your responses
+            have been submitted successfully.
           </p>
+          <p className="mt-6 text-xs text-[#94A3B8]">You may now close this window.</p>
         </div>
       </div>
     );
