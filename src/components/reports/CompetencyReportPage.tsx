@@ -32,6 +32,11 @@ type Props = {
 /** Warning tone for "Watch-outs" — distinct from the accent used for Behavioural Implications. */
 const WATCH_OUT_COLOR = "#B45309"; // amber-700
 
+/** Score-based colors: green for ≥ 6.5, red for < 6.5 */
+function scoreColor(score: number): string {
+  return score >= 6.5 ? "#059669" : "#DC2626"; // emerald-600 / red-600
+}
+
 /** Solid, saturated band colors — no pastel washes. White text sits directly on these. */
 function bandColor(band: string): { solid: string } {
   switch (band) {
@@ -177,7 +182,7 @@ export function CompetencyReportPage({
           {[...competencies]
             .sort((a, b) => b.scaledScore - a.scaledScore)
             .map((c) => {
-              const colors = bandColor(c.band);
+              const scoreColorValue = scoreColor(c.scaledScore);
               return (
                 <div key={c.competencyId} style={{ marginBottom: 14 }}>
                   <div className="flex items-center gap-4" style={{ marginBottom: 6 }}>
@@ -188,13 +193,13 @@ export function CompetencyReportPage({
                       </span>
                       <span
                         className="rounded-sm px-2 py-0.5 text-xs font-bold"
-                        style={{ backgroundColor: colors.solid, color: theme.accentContrastText }}
+                        style={{ backgroundColor: scoreColorValue, color: theme.accentContrastText }}
                       >
                         {c.band}
                       </span>
                     </span>
                   </div>
-                  <SegmentedScoreBar score={c.scaledScore} color={theme.accent} trackColor={theme.trackBackground} />
+                  <SegmentedScoreBar score={c.scaledScore} color={scoreColorValue} trackColor={theme.trackBackground} />
                 </div>
               );
             })}
@@ -213,6 +218,7 @@ export function CompetencyReportPage({
               </div>
             )}
             {group.map((c, idx) => {
+              const scoreColorValue = scoreColor(c.scaledScore);
               const colors = bandColor(c.band);
               return (
                 <div key={c.competencyId} style={{ marginBottom: idx < group.length - 1 ? 24 : 0 }}>
@@ -226,10 +232,10 @@ export function CompetencyReportPage({
                   <div
                     data-pdf-break-after="avoid"
                     className="-mx-10 flex items-center justify-between gap-4 px-10 py-4"
-                    style={{ backgroundColor: colors.solid }}
+                    style={{ backgroundColor: scoreColorValue }}
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <CompetencyNumberBadge number={detailIndexOffset + idx + 1} color={colors.solid} />
+                      <CompetencyNumberBadge number={detailIndexOffset + idx + 1} color={scoreColorValue} />
                       <h3 className="min-w-0 font-bold leading-tight" style={{ color: theme.accentContrastText }}>{c.competencyName}</h3>
                     </div>
                     <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
@@ -249,7 +255,7 @@ export function CompetencyReportPage({
                   {/* Body */}
                   <div className="pt-5">
                     <div style={{ marginBottom: 20 }}>
-                      <SegmentedScoreBar score={c.scaledScore} color={colors.solid} trackColor={theme.trackBackground} />
+                      <SegmentedScoreBar score={c.scaledScore} color={scoreColorValue} trackColor={theme.trackBackground} />
                     </div>
 
                     {c.reportDescription && (
