@@ -11,11 +11,16 @@ import {
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
+  ChevronsDown,
+  ChevronsUp,
+  ChevronUp,
   Clock,
   Flag,
   Grid3X3,
   Loader2,
+  Minus,
   SendHorizonal,
   X,
 } from "lucide-react";
@@ -159,11 +164,11 @@ function QuestionNavigator({ blocks, answers, currentIndex }: {
 // ─── Likert (horizontal scale, compact) ──────────────────────────────────────
 
 const LIKERT_OPTS = [
-  { value: 1, label: "Strongly Disagree" },
-  { value: 2, label: "Disagree" },
-  { value: 3, label: "Neutral" },
-  { value: 4, label: "Agree" },
-  { value: 5, label: "Strongly Agree" },
+  { value: 1, label: "Strongly Disagree", icon: ChevronsDown },
+  { value: 2, label: "Disagree", icon: ChevronDown },
+  { value: 3, label: "Neutral", icon: Minus },
+  { value: 4, label: "Agree", icon: ChevronUp },
+  { value: 5, label: "Strongly Agree", icon: ChevronsUp },
 ];
 
 function LikertQuestion({ block, answers, setAnswers }: {
@@ -189,12 +194,13 @@ function LikertQuestion({ block, answers, setAnswers }: {
                 key={opt.value}
                 type="button"
                 onClick={() => setAnswers((a) => ({ ...a, [block.key]: opt.value }))}
-                className={`flex items-center justify-center rounded-2xl border-2 px-3 py-5 text-center text-sm font-semibold leading-tight transition-all duration-150 ${
+                className={`flex flex-col items-center justify-center gap-2 rounded-2xl border-2 px-3 py-5 text-center text-sm font-semibold leading-tight transition-all duration-150 ${
                   sel
                     ? "border-[#0F766E] bg-[#0F766E] text-white shadow-md"
                     : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#0F766E] hover:text-[#0F766E]"
                 }`}
               >
+                <opt.icon size={22} strokeWidth={2.5} />
                 {opt.label}
               </button>
             );
@@ -211,12 +217,13 @@ function LikertQuestion({ block, answers, setAnswers }: {
               key={opt.value}
               type="button"
               onClick={() => setAnswers((a) => ({ ...a, [block.key]: opt.value }))}
-              className={`w-full rounded-xl border-2 px-4 py-3 text-center text-sm font-semibold transition-all ${
+              className={`flex w-full items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 text-center text-sm font-semibold transition-all ${
                 sel
                   ? "border-[#0F766E] bg-[#0F766E] text-white shadow-md"
                   : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#0F766E] hover:text-[#0F766E]"
               }`}
             >
+              <opt.icon size={18} strokeWidth={2.5} />
               {opt.label}
             </button>
           );
