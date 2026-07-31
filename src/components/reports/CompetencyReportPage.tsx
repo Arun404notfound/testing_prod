@@ -32,9 +32,9 @@ type Props = {
 /** Warning tone for "Watch-outs" — distinct from the accent used for Behavioural Implications. */
 const WATCH_OUT_COLOR = "#B45309"; // amber-700
 
-/** Score-based colors: green for ≥ 6.5, red for < 6.5 */
+/** Score-based colors: green for ≥ 6.5, blue for < 6.5 */
 function scoreColor(score: number): string {
-  return score >= 6.5 ? "#059669" : "#DC2626"; // emerald-600 / red-600
+  return score >= 6.5 ? "#059669" : "#1D4ED8"; // emerald-600 / blue-700
 }
 
 /** Solid, saturated band colors — no pastel washes. White text sits directly on these. */
