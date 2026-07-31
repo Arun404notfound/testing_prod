@@ -191,7 +191,10 @@ export function CompetencyReportPage({
         {groupByDomain(detailCompetencies).map(([domainName, group], groupIdx, groupArr) => (
           <div key={domainName ?? "__ungrouped"} style={{ marginBottom: groupIdx < groupArr.length - 1 ? 32 : 0 }}>
             {domainName && (
-              <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ marginBottom: 24, color: theme.body }}>{domainName}</p>
+              <div style={{ marginBottom: 20 }}>
+                <p className="text-base font-extrabold uppercase tracking-[0.15em]" style={{ color: theme.accent }}>{domainName}</p>
+                <span className="mt-1.5 block h-1" style={{ width: 48, backgroundColor: theme.accent }} />
+              </div>
             )}
             {group.map((c, idx) => {
               const colors = bandColor(c.band);
