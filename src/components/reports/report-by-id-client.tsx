@@ -1,22 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import type { ReportPayload } from "@/lib/report-data";
 import { normalizeReportPayload } from "@/lib/normalize-report-payload";
-import { resolveReportLayout } from "@/lib/report-layout";
-import { ReportPageShell } from "@/components/reports/ReportPageShell";
+import { formatReportCompletedDate } from "@/lib/report-date";
+import { pdfFileName } from "@/lib/pdf-filename";
 import { reportTheme } from "@/components/reports/report-theme";
-import { ReportThemeProvider } from "@/components/reports/report-theme-context";
-import { CoverPage } from "@/components/reports/CoverPage";
-import { FactorScoresPage } from "@/components/reports/FactorScoresPage";
-import { PsychometricGlancePage } from "@/components/reports/PsychometricGlancePage";
-import { CompetencyReportPage } from "@/components/reports/CompetencyReportPage";
-import { HybridOverviewPage } from "@/components/reports/HybridOverviewPage";
-import { ReportTemplatePlaceholderPage } from "@/components/reports/ReportTemplatePlaceholderPage";
+import { ReportDocument } from "@/components/reports/ReportDocument";
 
 
 const SUBMISSION_META: Record<string, { label: string; detail: string; color: string; bg: string; border: string }> = {
@@ -43,16 +35,6 @@ function SubmissionTypeBanner({ submissionType }: { submissionType: string }) {
   );
 }
 
-function pdfFileName(assessmentName: string) {
-  const slug = assessmentName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  return `${slug || "assessment"}-report.pdf`;
-}
-
-
 export default function ReportByIdClient() {
   const { resultId } = useParams<{ resultId: string }>();
   const pathname = usePathname();
@@ -63,7 +45,6 @@ export default function ReportByIdClient() {
   const backLabel = "Back to reports";
 
   const hasResultId = Boolean(resultId);
-  const pagesRef = useRef<HTMLDivElement>(null);
   const [report, setReport] = useState<ReportPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -81,46 +62,27 @@ export default function ReportByIdClient() {
     })();
   }, [hasResultId, resultId, token]);
 
-  const completedDate = useMemo(() => {
-    if (!report) return "-";
-    const d = new Date(report.completedAt);
-    if (Number.isNaN(d.getTime())) return "-";
-    return d.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-  }, [report]);
+  const completedDate = useMemo(() => (report ? formatReportCompletedDate(report.completedAt) : "-"), [report]);
 
+  // The PDF is generated server-side by loading the same report in headless
+  // Chrome and printing it — the actual browser renders it, so the exported
+  // PDF always matches this on-screen preview pixel-for-pixel.
   async function downloadPdf() {
-    if (!pagesRef.current || !report) return;
+    if (!report) return;
     setDownloading(true);
     try {
-      const pageNodes = Array.from(pagesRef.current.querySelectorAll<HTMLElement>(".report-page"));
-      if (pageNodes.length === 0) return;
-
-      // html2canvas can capture a page before the custom web font (Geist) has finished
-      // loading, silently falling back to a different font with different line-height
-      // metrics — this clips/misaligns text in the exported PDF even though the same
-      // page renders correctly on screen. Waiting here avoids that race entirely.
-      await document.fonts.ready;
-
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      for (let i = 0; i < pageNodes.length; i += 1) {
-        const node = pageNodes[i];
-        const canvas = await html2canvas(node, {
-          scale: Math.max(2, window.devicePixelRatio || 1),
-          backgroundColor: "#ffffff",
-          useCORS: true,
-        });
-
-        if (i > 0) pdf.addPage();
-        pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, pageWidth, pageHeight, undefined, "FAST");
-      }
-
-      pdf.save(pdfFileName(report.assessmentName));
+      const url = token
+        ? `/api/reports/${resultId}/pdf?token=${encodeURIComponent(token)}`
+        : `/api/reports/${resultId}/pdf`;
+      const response = await fetch(url);
+      if (!response.ok) return;
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = pdfFileName(report.assessmentName);
+      link.click();
+      URL.revokeObjectURL(objectUrl);
     } finally {
       setDownloading(false);
     }
@@ -149,125 +111,6 @@ export default function ReportByIdClient() {
       </main>
     );
   }
-
-  // Running header/footer are the same across every page of every layout —
-  // matches the reference report's consistent per-page chrome.
-  const footerMeta = [report.candidateName, report.tenantName, completedDate].filter(Boolean).join(" · ");
-  const pageLabel = report.assessmentName;
-
-  // Cover is unnumbered (no pageLabel/footerMeta/pageNumber props), matching the
-  // reference report's distinct, chrome-free cover page. It's still page 1 of the
-  // exported PDF; body pages restart their own "Page X of N" count after it.
-  const renderCover = () => (
-    <ReportPageShell hideHeaderLogo>
-      <CoverPage report={report} completedDate={completedDate} />
-    </ReportPageShell>
-  );
-
-  const renderCompetencyStack = (pageOpts?: { startPage: number; totalPages: number }) => {
-    if (report.competencyScores.length === 0) return null;
-
-    const heading = report.jobRoleName ? `${report.jobRoleName} — Competency Profile` : "Competency Profile";
-    return (
-      <>
-        <ReportPageShell
-          pageLabel={pageLabel}
-          footerMeta={footerMeta}
-          pageNumber={pageOpts?.startPage}
-          totalPages={pageOpts?.totalPages}
-        >
-          <CompetencyReportPage
-            competencies={report.competencyScores}
-            detailCompetencies={[]}
-            heading={heading}
-          />
-        </ReportPageShell>
-        {report.competencyScores.map((competency, index) => (
-          <ReportPageShell
-            key={competency.competencyId}
-            pageLabel={pageLabel}
-            footerMeta={footerMeta}
-            pageNumber={pageOpts ? pageOpts.startPage + 1 + index : undefined}
-            totalPages={pageOpts?.totalPages}
-          >
-            <CompetencyReportPage
-              competencies={report.competencyScores}
-              detailCompetencies={[competency]}
-              showOverview={false}
-              detailIndexOffset={index}
-            />
-          </ReportPageShell>
-        ))}
-      </>
-    );
-  };
-
-  const renderMcqStack = () => (
-    <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={1}>
-      <FactorScoresPage report={report} />
-    </ReportPageShell>
-  );
-
-  const renderLikertStack = () => {
-    const totalPages = 1 + 1 + report.competencyScores.length; // glance page + competency overview + one per competency
-    return (
-      <>
-        <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages}>
-          <PsychometricGlancePage report={report} />
-        </ReportPageShell>
-        {renderCompetencyStack({ startPage: 2, totalPages })}
-      </>
-    );
-  };
-
-  const renderTriadStack = () => {
-    const totalPages = 1 + 1 + report.competencyScores.length; // factor scores + competency overview + one per competency
-    return (
-      <>
-        <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages}>
-          <FactorScoresPage report={report} />
-        </ReportPageShell>
-        {renderCompetencyStack({ startPage: 2, totalPages })}
-      </>
-    );
-  };
-
-  const renderHybridStack = () => {
-    const totalPages = 1 + 1 + report.competencyScores.length; // hybrid overview + competency overview + one per competency
-    return (
-      <>
-        <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages}>
-          <HybridOverviewPage report={report} />
-        </ReportPageShell>
-        {renderCompetencyStack({ startPage: 2, totalPages })}
-      </>
-    );
-  };
-
-  const renderPlaceholderStack = () => (
-    <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta}>
-      <div className="p-8">
-        <ReportTemplatePlaceholderPage reportTemplateType={report.reportTemplateType} />
-      </div>
-    </ReportPageShell>
-  );
-
-  const layoutKind = resolveReportLayout(report.reportTemplateType, report.assessmentType);
-  const renderStack = () => {
-    switch (layoutKind) {
-      case "psychometric_trait":
-        return renderLikertStack();
-      case "triad_forced_choice":
-        return renderTriadStack();
-      case "hybrid":
-        return renderHybridStack();
-      case "placeholder":
-        return renderPlaceholderStack();
-      case "technical_skills":
-      default:
-        return renderMcqStack();
-    }
-  };
 
   return (
     <div
@@ -319,13 +162,8 @@ export default function ReportByIdClient() {
       {/* Scrollable document viewport — the "pages" scroll up within the fixed backdrop */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-8 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <div ref={pagesRef} className="space-y-6 overflow-x-auto">
-            {report ? (
-              <ReportThemeProvider branding={report.tenantBranding}>
-                {renderCover()}
-                {renderStack()}
-              </ReportThemeProvider>
-            ) : null}
+          <div className="space-y-6 overflow-x-auto">
+            <ReportDocument report={report} completedDate={completedDate} />
           </div>
         </div>
       </div>
