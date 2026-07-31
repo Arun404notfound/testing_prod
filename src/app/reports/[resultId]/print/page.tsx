@@ -19,11 +19,10 @@ export default async function ReportPrintPage({
   searchParams,
 }: {
   params: Promise<{ resultId: string }>;
-  searchParams: Promise<{ token?: string; section?: string }>;
+  searchParams: Promise<{ token?: string }>;
 }) {
   const { resultId } = await params;
-  const { token, section: rawSection } = await searchParams;
-  const section = rawSection === "cover" || rawSection === "body" ? rawSection : "all";
+  const { token } = await searchParams;
   const session = await getSession();
 
   if (!(await canAccessReport(resultId, { session, token }))) {
@@ -68,17 +67,30 @@ export default async function ReportPrintPage({
           break-after: auto;
         }
         /*
-         * The running header/footer is now a native Puppeteer header/footer
-         * template (see [resultId]/pdf/route.ts) printed by Chrome itself at a
-         * fixed position on every physical page, decoupled from document flow —
-         * so it lands at the true bottom edge even when a competency's content
-         * spills across two pages, which an in-flow footer element fundamentally
-         * cannot do. The in-flow versions ReportPageShell still renders (for the
-         * on-screen preview) are hidden here to avoid a duplicate.
+         * Reserve room so the body's own content never runs under the footer below.
+         * Scoped to :has(.report-page-footer) — the cover page renders no footer at
+         * all, and reserving space it doesn't need pushed its content past 297mm,
+         * spilling one line onto an otherwise-empty second page.
          */
-        .report-page-header,
+        .report-page:has(.report-page-footer) {
+          padding-bottom: 26mm;
+        }
+        /*
+         * The footer itself is pinned with position: absolute rather than flex's
+         * margin-top: auto trick, precisely because absolute positioning is a plain,
+         * unambiguous box placement Chrome's fragmentation engine resolves correctly —
+         * unlike flex-grow, it never needs to renegotiate sizing across a page break.
+         * For a short page (the common case) this places it flush with the true 297mm
+         * bottom edge, matching the on-screen preview. For a competency whose content
+         * genuinely overflows onto a second physical page, the footer lands at the
+         * bottom of that (now taller) box rather than a specific physical page's edge —
+         * an acceptable trade absent Chrome's (unsupported) CSS Paged Media counters.
+         */
         .report-page-footer {
-          display: none !important;
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
         }
         [data-pdf-break-inside="avoid"] {
           break-inside: avoid;
@@ -87,7 +99,7 @@ export default async function ReportPrintPage({
           break-after: avoid;
         }
       `}</style>
-      <ReportDocument report={report} completedDate={completedDate} section={section} />
+      <ReportDocument report={report} completedDate={completedDate} />
     </>
   );
 }
