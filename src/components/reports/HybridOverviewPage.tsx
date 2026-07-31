@@ -3,10 +3,8 @@
 import type { ReportPayload } from "@/lib/report-data";
 import { useReportTheme } from "./report-theme-context";
 
-// Manual bullet rows, not <ul>/list-disc — html2canvas mis-rasterizes native list
-// markers (renders as a tiny raised tick instead of a centered dot), even though
-// they look correct on screen. Same reasoning as the no-space-y/no-absolute rules
-// elsewhere on this page.
+// Manual bullet rows, not <ul>/list-disc — leftover from the old html2canvas PDF
+// pipeline (see CompetencyReportPage.tsx); no longer required but renders correctly.
 function BulletList({ items, color }: { items: string[]; color: string }) {
   return (
     <div className="mt-4 max-w-2xl">

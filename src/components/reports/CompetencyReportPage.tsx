@@ -61,8 +61,9 @@ function bandColor(band: string): { solid: string } {
 }
 
 // Plain nested block (no position:absolute, no Tailwind space-y/variable utilities) —
-// html2canvas has repeatedly mis-rasterized those on this page (fine on-screen, broken in
-// the exported PDF only), so this component sticks to the most basic layout primitives.
+// kept as basic layout primitives from an earlier html2canvas-based PDF pipeline;
+// the export now prints the real DOM in headless Chrome, so this is no longer required
+// but is left as-is since it renders correctly.
 function SegmentedScoreBar({
   score,
   max = 10,
@@ -93,9 +94,8 @@ function SegmentedScoreBar({
   );
 }
 
-// Manual bullet rows, not <ul>/list-disc — html2canvas mis-rasterizes native list
-// markers (renders as a tiny raised tick instead of a centered dot) even though
-// they look correct on screen, same reasoning as the SegmentedScoreBar note above.
+// Manual bullet rows, not <ul>/list-disc — same leftover-from-html2canvas reasoning
+// as the SegmentedScoreBar note above; no longer required but renders correctly.
 function BulletList({ items, color }: { items: string[]; color: string }) {
   return (
     <div>

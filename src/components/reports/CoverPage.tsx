@@ -27,8 +27,8 @@ export function CoverPage({
   return (
     // Fixed minHeight (not h-full/flex-1 on a percentage basis) so the disclaimer
     // reliably lands near the bottom — percentage heights need a definite ancestor
-    // height, which a flex-grown parent doesn't reliably provide once html2canvas
-    // clones the DOM. margin-top: auto on the disclaimer does the actual push.
+    // height, which a flex-grown parent doesn't reliably provide. margin-top: auto
+    // on the disclaimer does the actual push.
     <div className="flex flex-col" style={{ minHeight: "265mm" }}>
       <div>
         {logoUrl ? (

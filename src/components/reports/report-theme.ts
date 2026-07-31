@@ -1,8 +1,9 @@
 import type { CSSProperties } from "react";
 
 /**
- * Premium report theme — hex only, PDF-safe (html2canvas rasterizes these
- * verbatim, so no CSS variables / oklch / gradients here).
+ * Premium report theme — hex only (a leftover constraint from the old
+ * html2canvas PDF pipeline; no longer required now that the PDF is printed
+ * from the real DOM in headless Chrome, but left as-is since it renders correctly).
  *
  * The printed page is always pure white with bold ink typography and one
  * strong solid accent color — no grey card washes, no boxed borders around

@@ -26,7 +26,7 @@ function bandColor(band: string | null): string {
 }
 
 // Plain nested block (no position:absolute, no Tailwind space-y) — see the same note
-// in CompetencyReportPage.tsx; html2canvas mis-rasterizes those patterns.
+// in CompetencyReportPage.tsx (leftover from the old html2canvas PDF pipeline).
 function SegmentedBar({
   score,
   max = 10,
