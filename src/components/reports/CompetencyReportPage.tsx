@@ -95,14 +95,14 @@ function SegmentedScoreBar({
 
 function CompetencyNumberBadge({ number, color }: { number: number; color: string }) {
   return (
-    <svg className="h-10 w-10 shrink-0" viewBox="0 0 32 32" aria-label={`Competency ${number}`}>
+    <svg className="h-8 w-8 shrink-0" viewBox="0 0 32 32" aria-label={`Competency ${number}`}>
       <circle cx="16" cy="16" r="16" fill="#ffffff" />
       <text
         x="16"
         y="16"
         fill={color}
         fontFamily="Arial, sans-serif"
-        fontSize="15"
+        fontSize="14"
         fontWeight="700"
         textAnchor="middle"
         dominantBaseline="central"
@@ -204,7 +204,7 @@ export function CompetencyReportPage({
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <CompetencyNumberBadge number={detailIndexOffset + idx + 1} color={colors.solid} />
-                      <h3 className="min-w-0 text-2xl font-extrabold leading-tight" style={{ color: theme.accentContrastText }}>{c.competencyName}</h3>
+                      <h3 className="min-w-0 font-bold leading-tight" style={{ color: theme.accentContrastText }}>{c.competencyName}</h3>
                     </div>
                     <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
                       <span className="text-2xl font-bold leading-none" style={{ color: theme.accentContrastText }}>
