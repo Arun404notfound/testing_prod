@@ -29,41 +29,63 @@ type Props = {
   detailIndexOffset?: number;
 };
 
-function bandColor(band: string): { bg: string; text: string; border: string } {
+/** Solid, saturated band colors — no pastel washes. White text sits directly on these. */
+function bandColor(band: string): { solid: string } {
   switch (band) {
     // Legacy 5-band scale (GENERIC_5)
     case "Exceptional":
-      return { bg: "#ECFDF5", text: "#065F46", border: "#6EE7B7" };
+      return { solid: "#047857" }; // emerald-700
     case "Strong":
-      return { bg: "#EFF6FF", text: "#1D4EDB", border: "#6EE7B7" };
+      return { solid: "#1D4ED8" }; // blue-700
     case "Moderate":
-      return { bg: "#FFFBEB", text: "#92400E", border: "#FCD34D" };
+      return { solid: "#B45309" }; // amber-700
     case "Low":
-      return { bg: "#FFF1F2", text: "#9F1239", border: "#FDA4AF" };
+      return { solid: "#B91C1C" }; // red-700
 
     // Job-role maturity scale (MATURITY_4)
     case "Expert":
-      return { bg: "#F5F3FF", text: "#5B21B6", border: "#C4B5FD" };
+      return { solid: "#6D28D9" }; // violet-700
     case "Proficient":
-      return { bg: "#ECFDF5", text: "#065F46", border: "#6EE7B7" };
+      return { solid: "#047857" }; // emerald-700
     case "Intermediate":
-      return { bg: "#EFF6FF", text: "#1D4EDB", border: "#93C5FD" };
+      return { solid: "#1D4ED8" }; // blue-700
     case "Developing":
-      return { bg: "#FFF7ED", text: "#9A3412", border: "#FDBA74" };
+      return { solid: "#C2410C" }; // orange-700
 
     default:
-      return { bg: "#F8FAFC", text: "#475569", border: "#CBD5E1" };
+      return { solid: "#334155" }; // slate-700
   }
 }
 
 // Plain nested block (no position:absolute, no Tailwind space-y/variable utilities) —
 // html2canvas has repeatedly mis-rasterized those on this page (fine on-screen, broken in
 // the exported PDF only), so this component sticks to the most basic layout primitives.
-function ScoreBar({ score, max = 10, color }: { score: number; max?: number; color: string }) {
-  const pct = Math.min(100, (score / max) * 100);
+function SegmentedScoreBar({
+  score,
+  max = 10,
+  segments = 5,
+  color,
+  trackColor,
+}: {
+  score: number;
+  max?: number;
+  segments?: number;
+  color: string;
+  trackColor: string;
+}) {
+  const segMax = max / segments;
   return (
-    <div style={{ height: 10, width: "100%", overflow: "hidden", borderRadius: 9999, backgroundColor: "#E2E8F0" }}>
-      <div style={{ height: 10, width: `${pct}%`, borderRadius: 9999, backgroundColor: color }} />
+    <div className="flex items-center" style={{ gap: 4, height: 14 }}>
+      {Array.from({ length: segments }).map((_, i) => {
+        const segStart = i * segMax;
+        const filled = Math.max(0, Math.min(segMax, score - segStart));
+        const pct = Math.round((filled / segMax) * 100);
+        return (
+          <div key={i} style={{ flex: 1, height: 14, overflow: "hidden", backgroundColor: trackColor, borderRadius: 2 }}>
+            <div style={{ height: 14, width: `${pct}%`, backgroundColor: color, borderRadius: 2 }} />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -71,11 +93,11 @@ function ScoreBar({ score, max = 10, color }: { score: number; max?: number; col
 function CompetencyNumberBadge({ number, color }: { number: number; color: string }) {
   return (
     <svg className="h-8 w-8 shrink-0" viewBox="0 0 32 32" aria-label={`Competency ${number}`}>
-      <circle cx="16" cy="16" r="16" fill={color} />
+      <circle cx="16" cy="16" r="16" fill="#ffffff" />
       <text
         x="16"
         y="16"
-        fill="#ffffff"
+        fill={color}
         fontFamily="Arial, sans-serif"
         fontSize="14"
         fontWeight="700"
@@ -83,26 +105,6 @@ function CompetencyNumberBadge({ number, color }: { number: number; color: strin
         dominantBaseline="central"
       >
         {number}
-      </text>
-    </svg>
-  );
-}
-
-function BandBadge({ band, colors }: { band: string; colors: ReturnType<typeof bandColor> }) {
-  return (
-    <svg className="h-7 w-24 shrink-0" viewBox="0 0 96 28" aria-label={band}>
-      <rect x="0.5" y="0.5" width="95" height="27" rx="13.5" fill={colors.bg} stroke={colors.border} />
-      <text
-        x="48"
-        y="14"
-        fill={colors.text}
-        fontFamily="Arial, sans-serif"
-        fontSize="12"
-        fontWeight="600"
-        textAnchor="middle"
-        dominantBaseline="central"
-      >
-        {band}
       </text>
     </svg>
   );
@@ -131,7 +133,7 @@ export function CompetencyReportPage({
   if (competencies.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-[#94A3B8]">No competency scores available for this assessment.</p>
+        <p className="text-sm" style={{ color: theme.body }}>No competency scores available for this assessment.</p>
       </div>
     );
   }
@@ -140,35 +142,40 @@ export function CompetencyReportPage({
     <div>
       {showOverview && (<>
       {/* Heading */}
-      <div className="border-b-2 pb-2" style={{ borderColor: theme.primary, marginBottom: 24 }}>
-        <h2 className="text-xl font-bold uppercase tracking-wide" style={{ color: theme.primary }}>
+      <div className="border-b-2 pb-2" style={{ borderColor: theme.ink, marginBottom: 24 }}>
+        <h2 className="text-xl font-bold" style={{ color: theme.ink }}>
           {heading}
         </h2>
-        <p className="mt-1 text-xs text-[#64748B]">
+        <p className="mt-1 text-xs" style={{ color: theme.body }}>
           Scores are on a 1–10 scale derived from candidate responses mapped to each competency.
         </p>
       </div>
 
       {/* Score overview bar chart */}
       <div style={{ marginBottom: 24 }}>
-        <h3 className="mb-3 text-xs font-semibold text-[#475569] uppercase tracking-wide">Score Overview</h3>
+        <h3 className="mb-3 text-xs font-bold uppercase tracking-wide" style={{ color: theme.ink }}>Score Overview</h3>
         <div>
           {[...competencies]
             .sort((a, b) => b.scaledScore - a.scaledScore)
             .map((c) => {
               const colors = bandColor(c.band);
               return (
-                <div key={c.competencyId} style={{ marginBottom: 10 }}>
+                <div key={c.competencyId} style={{ marginBottom: 14 }}>
                   <div className="flex items-center gap-4" style={{ marginBottom: 6 }}>
-                    <span className="min-w-0 flex-1 font-medium text-[#0F172A]" style={{ fontSize: 14, lineHeight: "20px" }}>{c.competencyName}</span>
+                    <span className="min-w-0 flex-1 font-medium" style={{ fontSize: 14, lineHeight: "20px", color: theme.ink }}>{c.competencyName}</span>
                     <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-                      <span className="text-sm font-bold leading-none" style={{ color: theme.primary }}>
-                        {c.scaledScore.toFixed(1)}<span className="text-xs font-normal text-[#94A3B8]">/10</span>
+                      <span className="text-sm font-bold leading-none" style={{ color: theme.ink }}>
+                        {c.scaledScore.toFixed(1)}<span className="text-xs font-normal" style={{ color: theme.body }}>/10</span>
                       </span>
-                      <BandBadge band={c.band} colors={colors} />
+                      <span
+                        className="rounded-sm px-2 py-0.5 text-xs font-bold"
+                        style={{ backgroundColor: colors.solid, color: theme.accentContrastText }}
+                      >
+                        {c.band}
+                      </span>
                     </span>
                   </div>
-                  <ScoreBar score={c.scaledScore} color={theme.primary} />
+                  <SegmentedScoreBar score={c.scaledScore} color={theme.accent} trackColor={theme.trackBackground} />
                 </div>
               );
             })}
@@ -181,52 +188,61 @@ export function CompetencyReportPage({
         {groupByDomain(detailCompetencies).map(([domainName, group], groupIdx, groupArr) => (
           <div key={domainName ?? "__ungrouped"} style={{ marginBottom: groupIdx < groupArr.length - 1 ? 32 : 0 }}>
             {domainName && (
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#94A3B8]" style={{ marginBottom: 24 }}>{domainName}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ marginBottom: 24, color: theme.body }}>{domainName}</p>
             )}
             {group.map((c, idx) => {
               const colors = bandColor(c.band);
               return (
                 <div key={c.competencyId} data-pdf-break-inside="avoid" style={{ marginBottom: idx < group.length - 1 ? 24 : 0 }}>
-                  {/* Full-bleed header strip */}
+                  {/* Full-bleed solid-color header strip */}
                   <div
                     className="-mx-10 flex items-center justify-between gap-4 px-10 py-4"
-                    style={{ backgroundColor: colors.bg }}
+                    style={{ backgroundColor: colors.solid }}
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <CompetencyNumberBadge number={detailIndexOffset + idx + 1} color={theme.primary} />
-                      <h3 className="min-w-0 font-semibold leading-tight text-[#0F172A]">{c.competencyName}</h3>
+                      <CompetencyNumberBadge number={detailIndexOffset + idx + 1} color={colors.solid} />
+                      <h3 className="min-w-0 font-bold leading-tight" style={{ color: theme.accentContrastText }}>{c.competencyName}</h3>
                     </div>
                     <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-                      <span className="text-2xl font-bold leading-none" style={{ color: theme.primary }}>
+                      <span className="text-2xl font-bold leading-none" style={{ color: theme.accentContrastText }}>
                         {c.scaledScore.toFixed(1)}
                       </span>
-                      <span className="text-sm text-[#94A3B8]">/ 10</span>
-                      <BandBadge band={c.band} colors={colors} />
+                      <span className="text-sm" style={{ color: theme.accentContrastText, opacity: 0.85 }}>/ 10</span>
+                      <span
+                        className="rounded-sm px-2 py-0.5 text-xs font-bold"
+                        style={{ backgroundColor: "rgba(255,255,255,0.22)", color: theme.accentContrastText }}
+                      >
+                        {c.band}
+                      </span>
                     </div>
                   </div>
 
                   {/* Body */}
                   <div className="pt-5">
                     {c.reportDescription && (
-                      <p className="text-base leading-relaxed text-[#475569]" style={{ marginBottom: 20 }}>{c.reportDescription}</p>
+                      <div style={{ marginBottom: 20 }}>
+                        <p className="mb-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: theme.ink }}>Description</p>
+                        <p className="text-base leading-relaxed" style={{ color: theme.body }}>{c.reportDescription}</p>
+                      </div>
                     )}
 
                     {/* Band-specific proficiency description (Job Role frameworks) */}
                     {c.bandContent ? (
                       <div style={{ marginBottom: 20 }}>
-                        <p className="text-base leading-relaxed text-[#475569]" style={{ marginBottom: 16 }}>{c.bandContent.proficiencyDescription}</p>
+                        <p className="mb-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: theme.ink }}>Score Interpretation</p>
+                        <p className="text-base leading-relaxed" style={{ marginBottom: 16, color: theme.body }}>{c.bandContent.proficiencyDescription}</p>
                         {c.bandContent.behaviouralImplications.length > 0 && (
                           <div style={{ marginBottom: 16 }}>
-                            <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">Behavioural Implications</p>
-                            <ul className="list-disc pl-5 text-sm text-[#334155]">
+                            <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide" style={{ color: theme.body }}>Behavioural Implications</p>
+                            <ul className="list-disc pl-5 text-sm" style={{ color: theme.body }}>
                               {c.bandContent.behaviouralImplications.map((b, i) => <li key={i} style={{ marginBottom: 4 }}>{b}</li>)}
                             </ul>
                           </div>
                         )}
                         {c.bandContent.watchOuts.length > 0 && (
                           <div>
-                            <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">Watch-outs</p>
-                            <ul className="list-disc pl-5 text-sm text-[#334155]">
+                            <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide" style={{ color: theme.body }}>Watch-outs</p>
+                            <ul className="list-disc pl-5 text-sm" style={{ color: theme.body }}>
                               {c.bandContent.watchOuts.map((w, i) => <li key={i} style={{ marginBottom: 4 }}>{w}</li>)}
                             </ul>
                           </div>
@@ -234,8 +250,8 @@ export function CompetencyReportPage({
                       </div>
                     ) : (
                       /* Generic band interpretation fallback (legacy competencies) */
-                      <div className="rounded-md border-l-4 pl-3 py-1" style={{ borderColor: colors.border, marginBottom: 20 }}>
-                        <p className="text-sm text-[#64748B]">
+                      <div className="pl-3" style={{ borderLeft: `4px solid ${colors.solid}`, marginBottom: 20 }}>
+                        <p className="text-sm" style={{ color: theme.body }}>
                           {c.band === "Exceptional" && "Demonstrates outstanding capability. A key strength to leverage."}
                           {c.band === "Strong" && "Demonstrates solid capability. Performs effectively in this area."}
                           {c.band === "Moderate" && "Shows adequate capability with room for further development."}
@@ -250,7 +266,7 @@ export function CompetencyReportPage({
 
                     {/* Strength / development-need statement */}
                     {(c.strengthStatement || c.developmentNeedStatement) && (
-                      <p className="rounded-md bg-[#F8FAFC] px-4 py-3 text-sm text-[#334155]" style={{ marginBottom: 20 }}>
+                      <p className="pl-4 text-sm" style={{ borderLeft: `4px solid ${theme.accent}`, marginBottom: 20, color: theme.ink, fontWeight: 600 }}>
                         {c.scaledScore > 6.5 ? c.strengthStatement : c.developmentNeedStatement}
                       </p>
                     )}
@@ -260,25 +276,25 @@ export function CompetencyReportPage({
                       c.developmentProjects &&
                       c.developmentProjects.length > 0 && (
                       <div>
-                        <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#94A3B8]">
+                        <p className="mb-2 text-sm font-semibold uppercase tracking-wide" style={{ color: theme.body }}>
                           On-the-Job Development Projects
                         </p>
                         <div className="flex gap-3">
                           {c.developmentProjects.map((p, i) => (
-                            <div key={i} className="min-w-0 flex-1 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] p-3">
-                              <p className="text-sm font-bold text-[#0F172A]">{p.title}</p>
-                              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">What to do</p>
-                              <p className="whitespace-pre-line text-xs text-[#475569]">{p.whatToDo}</p>
+                            <div key={i} className="min-w-0 flex-1 p-3" style={{ border: `1px solid ${theme.hairline}` }}>
+                              <p className="text-sm font-bold" style={{ color: theme.ink }}>{p.title}</p>
+                              <p className="mt-1 text-xs font-semibold uppercase tracking-wide" style={{ color: theme.body }}>What to do</p>
+                              <p className="whitespace-pre-line text-xs" style={{ color: theme.body }}>{p.whatToDo}</p>
                               {p.howToDoIt && (
                                 <>
-                                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">How to do it</p>
-                                  <p className="whitespace-pre-line text-xs text-[#475569]">{p.howToDoIt}</p>
+                                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide" style={{ color: theme.body }}>How to do it</p>
+                                  <p className="whitespace-pre-line text-xs" style={{ color: theme.body }}>{p.howToDoIt}</p>
                                 </>
                               )}
                               {p.evidence && (
                                 <>
-                                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">How to measure</p>
-                                  <p className="whitespace-pre-line text-xs text-[#475569]">{p.evidence}</p>
+                                  <p className="mt-2 text-xs font-semibold uppercase tracking-wide" style={{ color: theme.body }}>How to measure</p>
+                                  <p className="whitespace-pre-line text-xs" style={{ color: theme.body }}>{p.evidence}</p>
                                 </>
                               )}
                             </div>

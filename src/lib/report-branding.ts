@@ -48,11 +48,17 @@ function pickColor(value: string | null | undefined, fallback: string): string {
 export function mergeReportTheme(branding: ReportTenantBranding | null): ReportThemePalette {
   const accent = pickColor(branding?.accentColor ?? null, reportTheme.accent);
   const accentLight = blendHex(accent, "#ffffff", 0.12) ?? reportTheme.accentLight;
+  const ink = pickColor(branding?.primaryColor ?? null, reportTheme.ink);
+  const body = pickColor(branding?.secondaryColor ?? null, reportTheme.body);
   return {
     ...reportTheme,
-    primary: pickColor(branding?.primaryColor ?? null, reportTheme.primary),
-    secondary: pickColor(branding?.secondaryColor ?? null, reportTheme.secondary),
+    ink,
+    body,
     accent,
+    // Legacy aliases stay in sync with the tenant override too, in case a
+    // not-currently-rendered component reads them.
+    primary: ink,
+    secondary: body,
     accentLight,
   } as ReportThemePalette;
 }

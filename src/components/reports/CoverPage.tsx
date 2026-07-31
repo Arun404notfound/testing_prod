@@ -1,67 +1,73 @@
 "use client";
 
 import type { ReportPayload } from "@/lib/report-data";
+import { REPORT_TEMPLATE_LABELS } from "@/lib/report-layout";
 import { useReportTheme } from "./report-theme-context";
 
-function Info({ label, value, mutedColor }: { label: string; value: string; mutedColor: string }) {
+function InfoRow({ label, value, inkColor, bodyColor }: { label: string; value: string; inkColor: string; bodyColor: string }) {
   return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: mutedColor }}>
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-medium">{value}</p>
-    </div>
+    <p className="text-sm">
+      <span className="font-bold" style={{ color: inkColor }}>{label}: </span>
+      <span style={{ color: bodyColor }}>{value}</span>
+    </p>
   );
 }
 
-type CoverVariant = "mcq" | "psychometric" | "triad" | "hybrid";
-
-const subtitle: Record<CoverVariant, string> = {
-  mcq: "Skill Assessment Report",
-  psychometric: "Psychometric Assessment Report",
-  triad: "Forced-Choice Assessment Report",
-  hybrid: "Hybrid Assessment Report",
-};
-
+/** Universal cover page — the actual page 1 for every report layout kind. */
 export function CoverPage({
   report,
   completedDate,
-  variant,
 }: {
   report: ReportPayload;
   completedDate: string;
-  variant: CoverVariant;
 }) {
-  const { theme, logoUrl } = useReportTheme();
-  const clientLabel = report.tenantName ?? "Demo Client";
+  const { theme, logoUrl, disclaimerText } = useReportTheme();
+  const reportTypeLabel = REPORT_TEMPLATE_LABELS[report.reportTemplateType];
+
   return (
-    <section
-      className="rounded-md border p-6"
-      style={{ borderColor: theme.border, backgroundColor: theme.subtleBackground }}
-    >
-      {logoUrl ? (
-        <div className="mb-4 flex justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+    <div className="flex h-full flex-col">
+      <div className="flex-1">
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={logoUrl}
             alt=""
-            className="max-h-16 max-w-[200px] object-contain"
+            className="mb-16 h-10 max-w-[180px] object-contain"
             onError={(e) => {
               e.currentTarget.style.display = "none";
             }}
           />
+        ) : null}
+
+        <span className="mb-6 block h-10 w-10" style={{ backgroundColor: theme.accent }} />
+
+        <h1 className="text-4xl font-extrabold leading-tight" style={{ color: theme.ink }}>
+          {report.assessmentName}
+        </h1>
+        <p className="mt-2 text-lg font-bold" style={{ color: theme.ink }}>
+          {reportTypeLabel}
+        </p>
+
+        <span className="mt-6 block h-1.5 w-full" style={{ backgroundColor: theme.accent }} />
+
+        <div className="mt-8 flex flex-col gap-1.5">
+          <InfoRow label="Report for" value={report.candidateName} inkColor={theme.ink} bodyColor={theme.body} />
+          <InfoRow label="Report Type" value={reportTypeLabel} inkColor={theme.ink} bodyColor={theme.body} />
+          <InfoRow label="Date" value={completedDate} inkColor={theme.ink} bodyColor={theme.body} />
+          {report.candidateRole && (
+            <InfoRow label="Role" value={report.candidateRole} inkColor={theme.ink} bodyColor={theme.body} />
+          )}
+          {report.tenantName && (
+            <InfoRow label="Client" value={report.tenantName} inkColor={theme.ink} bodyColor={theme.body} />
+          )}
         </div>
-      ) : null}
-      <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.muted }}>
-        {subtitle[variant]}
-      </p>
-      <h2 className="mt-3 text-3xl font-semibold leading-tight">{report.assessmentName}</h2>
-      <div className="mt-6 grid gap-4 text-sm md:grid-cols-2">
-        <Info label="Candidate Name" value={report.candidateName} mutedColor={theme.muted} />
-        <Info label="Role" value={report.candidateRole || "—"} mutedColor={theme.muted} />
-        <Info label="Client / Tenant" value={clientLabel} mutedColor={theme.muted} />
-        <Info label="Assessment Date" value={completedDate} mutedColor={theme.muted} />
       </div>
-    </section>
+
+      {disclaimerText && (
+        <p className="text-center text-[11px]" style={{ color: theme.body }}>
+          {disclaimerText}
+        </p>
+      )}
+    </div>
   );
 }

@@ -5,7 +5,7 @@ import { useReportTheme } from "./report-theme-context";
 
 type Props = {
   children: ReactNode;
-  /** Small-caps running header label, top-left (e.g. report/section name). Omit to render the page exactly as before. */
+  /** Running header label, top-left (e.g. report/section name). Omit to render the page exactly as before. */
   pageLabel?: string;
   /** Running footer line, bottom-left (e.g. "Candidate · Tenant · Date"). */
   footerMeta?: string;
@@ -22,8 +22,7 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
   const { theme, logoUrl } = useReportTheme();
   const style: CSSProperties = {
     backgroundColor: theme.cardBackground,
-    color: theme.primary,
-    borderColor: theme.border,
+    color: theme.ink,
     minHeight: "297mm",
   };
   const hasRunningHeader = Boolean(pageLabel || pageNumber);
@@ -31,13 +30,13 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
 
   return (
     <div
-      className="report-page mx-auto flex w-[210mm] flex-col rounded-sm border shadow-sm"
+      className="report-page mx-auto flex w-[210mm] flex-col"
       style={style}
     >
       {hasRunningHeader && (
         <div
           className="flex shrink-0 items-center justify-between border-b px-10 pt-7 pb-4"
-          style={{ borderColor: theme.border }}
+          style={{ borderColor: theme.hairline }}
         >
           <div className="flex items-center gap-3">
             {logoUrl && !hideHeaderLogo ? (
@@ -45,18 +44,23 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
               <img
                 src={logoUrl}
                 alt=""
-                className="h-9 max-w-[160px] object-contain"
+                className="h-8 max-w-[140px] object-contain"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                 }}
               />
             ) : null}
-            <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: theme.muted }}>
-              {pageLabel}
-            </span>
+            {pageLabel && (
+              <div className="flex items-center gap-2">
+                <span className="h-3.5 w-3.5 shrink-0" style={{ backgroundColor: theme.accent }} />
+                <span className="text-sm font-medium" style={{ color: theme.ink }}>
+                  {pageLabel}
+                </span>
+              </div>
+            )}
           </div>
           {pageNumber && (
-            <span className="text-xs font-medium" style={{ color: theme.muted }}>
+            <span className="text-xs font-semibold" style={{ color: theme.body }}>
               Page {pageNumber}
               {totalPages ? ` of ${totalPages}` : ""}
             </span>
@@ -69,7 +73,7 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
       {hasRunningFooter && (
         <div
           className="flex shrink-0 items-baseline justify-between border-t px-10 pt-4 pb-7 text-xs"
-          style={{ borderColor: theme.border, color: theme.muted }}
+          style={{ borderColor: theme.hairline, color: theme.body }}
         >
           <span>{footerMeta}</span>
           {pageNumber && <span>{pageNumber}{totalPages ? ` / ${totalPages}` : ""}</span>}

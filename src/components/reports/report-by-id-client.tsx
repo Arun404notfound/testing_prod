@@ -11,7 +11,8 @@ import { resolveReportLayout } from "@/lib/report-layout";
 import { ReportPageShell } from "@/components/reports/ReportPageShell";
 import { reportTheme } from "@/components/reports/report-theme";
 import { ReportThemeProvider } from "@/components/reports/report-theme-context";
-import { AttributeScoresTable } from "@/components/reports/AttributeScoresTable";
+import { CoverPage } from "@/components/reports/CoverPage";
+import { FactorScoresPage } from "@/components/reports/FactorScoresPage";
 import { PsychometricGlancePage } from "@/components/reports/PsychometricGlancePage";
 import { CompetencyReportPage } from "@/components/reports/CompetencyReportPage";
 import { HybridOverviewPage } from "@/components/reports/HybridOverviewPage";
@@ -149,28 +150,29 @@ export default function ReportByIdClient() {
     );
   }
 
-  const renderAttributeScoresStack = () => (
-    <ReportPageShell>
-      <div className="space-y-6 p-8">
-        <div>
-          <h2 className="text-xl font-bold text-[#0F172A]">Attribute Scores</h2>
-          <p className="mt-1 text-sm text-[#64748B]">Raw score range: 5 – 17</p>
-          <p className="text-xs text-[#94A3B8] font-mono mt-0.5">1 + (raw − 5) × 9 / 12</p>
-        </div>
-        <AttributeScoresTable report={report} />
-      </div>
+  // Running header/footer are the same across every page of every layout —
+  // matches the reference report's consistent per-page chrome.
+  const footerMeta = [report.candidateName, report.tenantName, completedDate].filter(Boolean).join(" · ");
+  const pageLabel = report.assessmentName;
+
+  // Cover is unnumbered (no pageLabel/footerMeta/pageNumber props), matching the
+  // reference report's distinct, chrome-free cover page. It's still page 1 of the
+  // exported PDF; body pages restart their own "Page X of N" count after it.
+  const renderCover = () => (
+    <ReportPageShell hideHeaderLogo>
+      <CoverPage report={report} completedDate={completedDate} />
     </ReportPageShell>
   );
 
-  const renderCompetencyStack = (pageOpts?: { startPage: number; totalPages: number; footerMeta: string; pageLabel: string }) => {
+  const renderCompetencyStack = (pageOpts?: { startPage: number; totalPages: number }) => {
     if (report.competencyScores.length === 0) return null;
 
     const heading = report.jobRoleName ? `${report.jobRoleName} — Competency Profile` : "Competency Profile";
     return (
       <>
         <ReportPageShell
-          pageLabel={pageOpts?.pageLabel}
-          footerMeta={pageOpts?.footerMeta}
+          pageLabel={pageLabel}
+          footerMeta={footerMeta}
           pageNumber={pageOpts?.startPage}
           totalPages={pageOpts?.totalPages}
         >
@@ -183,8 +185,8 @@ export default function ReportByIdClient() {
         {report.competencyScores.map((competency, index) => (
           <ReportPageShell
             key={competency.competencyId}
-            pageLabel={pageOpts?.pageLabel}
-            footerMeta={pageOpts?.footerMeta}
+            pageLabel={pageLabel}
+            footerMeta={footerMeta}
             pageNumber={pageOpts ? pageOpts.startPage + 1 + index : undefined}
             totalPages={pageOpts?.totalPages}
           >
@@ -200,42 +202,50 @@ export default function ReportByIdClient() {
     );
   };
 
-  const renderMcqStack = renderAttributeScoresStack;
-
-  const renderLikertStack = () => (
-    <>
-      <ReportPageShell>
-        <div className="p-8">
-          <PsychometricGlancePage report={report} completedDate={completedDate} />
-        </div>
-      </ReportPageShell>
-      {renderCompetencyStack()}
-    </>
+  const renderMcqStack = () => (
+    <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={1}>
+      <FactorScoresPage report={report} />
+    </ReportPageShell>
   );
 
-  const renderTriadStack = () => (
-    <>
-      {renderAttributeScoresStack()}
-      {renderCompetencyStack()}
-    </>
-  );
+  const renderLikertStack = () => {
+    const totalPages = 1 + 1 + report.competencyScores.length; // glance page + competency overview + one per competency
+    return (
+      <>
+        <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages}>
+          <PsychometricGlancePage report={report} />
+        </ReportPageShell>
+        {renderCompetencyStack({ startPage: 2, totalPages })}
+      </>
+    );
+  };
+
+  const renderTriadStack = () => {
+    const totalPages = 1 + 1 + report.competencyScores.length; // factor scores + competency overview + one per competency
+    return (
+      <>
+        <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages}>
+          <FactorScoresPage report={report} />
+        </ReportPageShell>
+        {renderCompetencyStack({ startPage: 2, totalPages })}
+      </>
+    );
+  };
 
   const renderHybridStack = () => {
     const totalPages = 1 + 1 + report.competencyScores.length; // hybrid overview + competency overview + one per competency
-    const footerMeta = [report.candidateName, report.tenantName, completedDate].filter(Boolean).join(" · ");
-    const pageLabel = report.assessmentName;
     return (
       <>
-        <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages} hideHeaderLogo centerContent>
+        <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages}>
           <HybridOverviewPage report={report} />
         </ReportPageShell>
-        {renderCompetencyStack({ startPage: 2, totalPages, footerMeta, pageLabel })}
+        {renderCompetencyStack({ startPage: 2, totalPages })}
       </>
     );
   };
 
   const renderPlaceholderStack = () => (
-    <ReportPageShell>
+    <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta}>
       <div className="p-8">
         <ReportTemplatePlaceholderPage reportTemplateType={report.reportTemplateType} />
       </div>
@@ -312,6 +322,7 @@ export default function ReportByIdClient() {
           <div ref={pagesRef} className="space-y-6 overflow-x-auto">
             {report ? (
               <ReportThemeProvider branding={report.tenantBranding}>
+                {renderCover()}
                 {renderStack()}
               </ReportThemeProvider>
             ) : null}
