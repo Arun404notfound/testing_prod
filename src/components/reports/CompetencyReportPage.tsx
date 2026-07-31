@@ -207,7 +207,7 @@ export function CompetencyReportPage({
         {groupByDomain(detailCompetencies).map(([domainName, group], groupIdx, groupArr) => (
           <div key={domainName ?? "__ungrouped"} style={{ marginBottom: groupIdx < groupArr.length - 1 ? 32 : 0 }}>
             {domainName && (
-              <div style={{ marginBottom: 20 }}>
+              <div data-pdf-break-after="avoid" style={{ marginBottom: 20 }}>
                 <p className="text-base font-extrabold uppercase tracking-[0.15em]" style={{ color: theme.accent }}>{domainName}</p>
                 <span className="mt-1.5 block h-1" style={{ width: 48, backgroundColor: theme.accent }} />
               </div>
@@ -215,9 +215,16 @@ export function CompetencyReportPage({
             {group.map((c, idx) => {
               const colors = bandColor(c.band);
               return (
-                <div key={c.competencyId} data-pdf-break-inside="avoid" style={{ marginBottom: idx < group.length - 1 ? 24 : 0 }}>
-                  {/* Full-bleed solid-color header strip */}
+                <div key={c.competencyId} style={{ marginBottom: idx < group.length - 1 ? 24 : 0 }}>
+                  {/*
+                    Full-bleed solid-color header strip. break-after (not break-inside on the
+                    whole card): this card easily runs taller than one A4 page, and marking a
+                    block that tall as break-inside: avoid backfires — Chrome can't honor it, so
+                    it defers the entire card to a fresh page and leaves the previous page's tail
+                    blank. Only the header needs to stay glued to what follows it.
+                  */}
                   <div
+                    data-pdf-break-after="avoid"
                     className="-mx-10 flex items-center justify-between gap-4 px-10 py-4"
                     style={{ backgroundColor: colors.solid }}
                   >
@@ -246,19 +253,25 @@ export function CompetencyReportPage({
                     </div>
 
                     {c.reportDescription && (
-                      <div style={{ marginBottom: 20 }}>
+                      <div data-pdf-break-inside="avoid" style={{ marginBottom: 20 }}>
                         <p className="mb-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: theme.ink }}>Description</p>
                         <p className="text-base leading-relaxed" style={{ color: theme.body }}>{c.reportDescription}</p>
                       </div>
                     )}
 
-                    {/* Band-specific proficiency description (Job Role frameworks) */}
+                    {/*
+                      Band-specific proficiency description (Job Role frameworks). Each
+                      sub-block gets its own break-inside: avoid instead of one for the whole
+                      section — the section as a whole can run long enough to exceed a page,
+                      and (as with the card-level wrapper above) marking an over-long block
+                      atomic backfires by deferring it whole to a blank-looking fresh page.
+                    */}
                     {c.bandContent ? (
                       <div style={{ marginBottom: 20 }}>
                         <p className="mb-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: theme.ink }}>Score Interpretation</p>
-                        <p className="text-base leading-relaxed" style={{ marginBottom: 16, color: theme.body }}>{c.bandContent.proficiencyDescription}</p>
+                        <p data-pdf-break-inside="avoid" className="text-base leading-relaxed" style={{ marginBottom: 16, color: theme.body }}>{c.bandContent.proficiencyDescription}</p>
                         {c.bandContent.behaviouralImplications.length > 0 && (
-                          <div style={{ marginBottom: 16 }}>
+                          <div data-pdf-break-inside="avoid" style={{ marginBottom: 16 }}>
                             <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: theme.accent }}>
                               <span className="h-2 w-2 shrink-0" style={{ backgroundColor: theme.accent }} />
                               Behavioural Implications
@@ -267,7 +280,7 @@ export function CompetencyReportPage({
                           </div>
                         )}
                         {c.bandContent.watchOuts.length > 0 && (
-                          <div>
+                          <div data-pdf-break-inside="avoid">
                             <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: WATCH_OUT_COLOR }}>
                               <span className="h-2 w-2 shrink-0" style={{ backgroundColor: WATCH_OUT_COLOR }} />
                               Watch-outs
@@ -278,7 +291,7 @@ export function CompetencyReportPage({
                       </div>
                     ) : (
                       /* Generic band interpretation fallback (legacy competencies) */
-                      <div className="pl-3" style={{ borderLeft: `4px solid ${colors.solid}`, marginBottom: 20 }}>
+                      <div data-pdf-break-inside="avoid" className="pl-3" style={{ borderLeft: `4px solid ${colors.solid}`, marginBottom: 20 }}>
                         <p className="text-sm" style={{ color: theme.body }}>
                           {c.band === "Exceptional" && "Demonstrates outstanding capability. A key strength to leverage."}
                           {c.band === "Strong" && "Demonstrates solid capability. Performs effectively in this area."}
@@ -294,17 +307,22 @@ export function CompetencyReportPage({
 
                     {/* Strength / development-need statement */}
                     {(c.strengthStatement || c.developmentNeedStatement) && (
-                      <p className="pl-4 text-sm" style={{ borderLeft: `4px solid ${theme.accent}`, marginBottom: 20, color: theme.ink, fontWeight: 600 }}>
+                      <p data-pdf-break-inside="avoid" className="pl-4 text-sm" style={{ borderLeft: `4px solid ${theme.accent}`, marginBottom: 20, color: theme.ink, fontWeight: 600 }}>
                         {c.scaledScore > 6.5 ? c.strengthStatement : c.developmentNeedStatement}
                       </p>
                     )}
 
-                    {/* On-the-job development projects */}
+                    {/*
+                      On-the-job development projects. Deliberately NOT break-inside: avoid —
+                      that forced the whole three-card grid onto a fresh page even when the
+                      current page had clearly enough room left, leaving a large blank gap
+                      above it. Letting it flow uses that leftover space instead.
+                    */}
                     {developmentProjectCompetencyIds.has(c.competencyId) &&
                       c.developmentProjects &&
                       c.developmentProjects.length > 0 && (
                       <div>
-                        <p className="mb-2 text-sm font-semibold uppercase tracking-wide" style={{ color: theme.body }}>
+                        <p data-pdf-break-after="avoid" className="mb-2 text-sm font-semibold uppercase tracking-wide" style={{ color: theme.body }}>
                           On-the-Job Development Projects
                         </p>
                         <div className="flex gap-3">

@@ -35,7 +35,7 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
     >
       {hasRunningHeader && (
         <div
-          className="flex shrink-0 items-center justify-between border-b px-10 pt-7 pb-4"
+          className="report-page-header flex shrink-0 items-center justify-between border-b px-10 pt-7 pb-4"
           style={{ borderColor: theme.hairline }}
         >
           <div className="flex items-center gap-3">
@@ -68,12 +68,12 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
         </div>
       )}
 
-      <div className={`flex flex-1 flex-col px-10 py-10 ${centerContent ? "justify-center" : ""}`}>{children}</div>
+      <div className={`report-page-body flex flex-1 flex-col px-10 py-10 ${centerContent ? "justify-center" : ""}`}>{children}</div>
 
       {hasRunningFooter && (
         <div
-          className="flex shrink-0 items-baseline justify-between border-t px-10 pt-4 pb-7 text-xs"
-          style={{ borderColor: theme.hairline, color: theme.body }}
+          className="report-page-footer flex shrink-0 items-baseline justify-between border-t px-10 pt-4 pb-7 text-xs"
+          style={{ borderColor: theme.hairline, color: theme.body, backgroundColor: theme.cardBackground }}
         >
           <span>{footerMeta}</span>
           {pageNumber && <span>{pageNumber}{totalPages ? ` / ${totalPages}` : ""}</span>}

@@ -15,7 +15,21 @@ import { ReportTemplatePlaceholderPage } from "@/components/reports/ReportTempla
  * inside a scrollable viewport) and the print-only route that headless
  * Chrome converts straight to PDF, so both always show the same document.
  */
-export function ReportDocument({ report, completedDate }: { report: ReportPayload; completedDate: string }) {
+export function ReportDocument({
+  report,
+  completedDate,
+  section = "all",
+}: {
+  report: ReportPayload;
+  completedDate: string;
+  /**
+   * The PDF route prints the cover and the body as two separate Puppeteer
+   * passes (see [resultId]/pdf/route.ts) so the cover can stay chrome-free
+   * while every other page gets a native, always-at-the-bottom running
+   * footer. "all" (the default) is what the on-screen preview uses.
+   */
+  section?: "all" | "cover" | "body";
+}) {
   // Running header/footer are the same across every page of every layout —
   // matches the reference report's consistent per-page chrome.
   const footerMeta = [report.candidateName, report.tenantName, completedDate].filter(Boolean).join(" · ");
@@ -137,8 +151,8 @@ export function ReportDocument({ report, completedDate }: { report: ReportPayloa
 
   return (
     <ReportThemeProvider branding={report.tenantBranding}>
-      {renderCover()}
-      {renderStack()}
+      {section !== "body" && renderCover()}
+      {section !== "cover" && renderStack()}
     </ReportThemeProvider>
   );
 }
