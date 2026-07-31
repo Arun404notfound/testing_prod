@@ -25,8 +25,12 @@ export function CoverPage({
   const reportTypeLabel = REPORT_TEMPLATE_LABELS[report.reportTemplateType];
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1">
+    // Fixed minHeight (not h-full/flex-1 on a percentage basis) so the disclaimer
+    // reliably lands near the bottom — percentage heights need a definite ancestor
+    // height, which a flex-grown parent doesn't reliably provide once html2canvas
+    // clones the DOM. margin-top: auto on the disclaimer does the actual push.
+    <div className="flex flex-col" style={{ minHeight: "265mm" }}>
+      <div>
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -64,7 +68,7 @@ export function CoverPage({
       </div>
 
       {disclaimerText && (
-        <p className="text-center text-[11px]" style={{ color: theme.body }}>
+        <p className="text-center text-[11px]" style={{ color: theme.body, marginTop: "auto" }}>
           {disclaimerText}
         </p>
       )}

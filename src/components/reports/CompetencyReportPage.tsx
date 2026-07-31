@@ -93,6 +93,22 @@ function SegmentedScoreBar({
   );
 }
 
+// Manual bullet rows, not <ul>/list-disc — html2canvas mis-rasterizes native list
+// markers (renders as a tiny raised tick instead of a centered dot) even though
+// they look correct on screen, same reasoning as the SegmentedScoreBar note above.
+function BulletList({ items, color }: { items: string[]; color: string }) {
+  return (
+    <div>
+      {items.map((item, i) => (
+        <div key={i} className="flex items-start gap-2" style={{ marginBottom: 4 }}>
+          <span style={{ marginTop: 7, height: 5, width: 5, borderRadius: 9999, backgroundColor: color, flexShrink: 0 }} />
+          <span className="text-sm" style={{ color }}>{item}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CompetencyNumberBadge({ number, color }: { number: number; color: string }) {
   return (
     <svg className="h-8 w-8 shrink-0" viewBox="0 0 32 32" aria-label={`Competency ${number}`}>
@@ -247,9 +263,7 @@ export function CompetencyReportPage({
                               <span className="h-2 w-2 shrink-0" style={{ backgroundColor: theme.accent }} />
                               Behavioural Implications
                             </p>
-                            <ul className="list-disc pl-5 text-sm" style={{ color: theme.body }}>
-                              {c.bandContent.behaviouralImplications.map((b, i) => <li key={i} style={{ marginBottom: 4 }}>{b}</li>)}
-                            </ul>
+                            <BulletList items={c.bandContent.behaviouralImplications} color={theme.body} />
                           </div>
                         )}
                         {c.bandContent.watchOuts.length > 0 && (
@@ -258,9 +272,7 @@ export function CompetencyReportPage({
                               <span className="h-2 w-2 shrink-0" style={{ backgroundColor: WATCH_OUT_COLOR }} />
                               Watch-outs
                             </p>
-                            <ul className="list-disc pl-5 text-sm" style={{ color: theme.body }}>
-                              {c.bandContent.watchOuts.map((w, i) => <li key={i} style={{ marginBottom: 4 }}>{w}</li>)}
-                            </ul>
+                            <BulletList items={c.bandContent.watchOuts} color={theme.body} />
                           </div>
                         )}
                       </div>
