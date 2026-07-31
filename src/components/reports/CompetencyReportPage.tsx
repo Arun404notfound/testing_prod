@@ -29,6 +29,9 @@ type Props = {
   detailIndexOffset?: number;
 };
 
+/** Warning tone for "Watch-outs" — distinct from the accent used for Behavioural Implications. */
+const WATCH_OUT_COLOR = "#B45309"; // amber-700
+
 /** Solid, saturated band colors — no pastel washes. White text sits directly on these. */
 function bandColor(band: string): { solid: string } {
   switch (band) {
@@ -219,6 +222,10 @@ export function CompetencyReportPage({
 
                   {/* Body */}
                   <div className="pt-5">
+                    <div style={{ marginBottom: 20 }}>
+                      <SegmentedScoreBar score={c.scaledScore} color={colors.solid} trackColor={theme.trackBackground} />
+                    </div>
+
                     {c.reportDescription && (
                       <div style={{ marginBottom: 20 }}>
                         <p className="mb-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: theme.ink }}>Description</p>
@@ -233,7 +240,10 @@ export function CompetencyReportPage({
                         <p className="text-base leading-relaxed" style={{ marginBottom: 16, color: theme.body }}>{c.bandContent.proficiencyDescription}</p>
                         {c.bandContent.behaviouralImplications.length > 0 && (
                           <div style={{ marginBottom: 16 }}>
-                            <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide" style={{ color: theme.body }}>Behavioural Implications</p>
+                            <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: theme.accent }}>
+                              <span className="h-2 w-2 shrink-0" style={{ backgroundColor: theme.accent }} />
+                              Behavioural Implications
+                            </p>
                             <ul className="list-disc pl-5 text-sm" style={{ color: theme.body }}>
                               {c.bandContent.behaviouralImplications.map((b, i) => <li key={i} style={{ marginBottom: 4 }}>{b}</li>)}
                             </ul>
@@ -241,7 +251,10 @@ export function CompetencyReportPage({
                         )}
                         {c.bandContent.watchOuts.length > 0 && (
                           <div>
-                            <p className="mb-1.5 text-sm font-semibold uppercase tracking-wide" style={{ color: theme.body }}>Watch-outs</p>
+                            <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: WATCH_OUT_COLOR }}>
+                              <span className="h-2 w-2 shrink-0" style={{ backgroundColor: WATCH_OUT_COLOR }} />
+                              Watch-outs
+                            </p>
                             <ul className="list-disc pl-5 text-sm" style={{ color: theme.body }}>
                               {c.bandContent.watchOuts.map((w, i) => <li key={i} style={{ marginBottom: 4 }}>{w}</li>)}
                             </ul>
