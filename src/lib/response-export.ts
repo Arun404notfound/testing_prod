@@ -2,11 +2,11 @@ import * as XLSX from "xlsx";
 import type { SubmissionsData } from "@/lib/get-submissions";
 
 const LIKERT_LABELS: Record<number, string> = {
-  1: "Strongly Disagree",
-  2: "Disagree",
-  3: "Neutral",
-  4: "Agree",
-  5: "Strongly Agree",
+  1: "Not like me",
+  2: "Less like me",
+  3: "Somewhat like me",
+  4: "Almost like me",
+  5: "Just like me",
 };
 
 const NOT_APPLICABLE = "Not applicable";

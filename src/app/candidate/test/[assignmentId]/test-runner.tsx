@@ -55,8 +55,20 @@ function useCountdownTimer(initialSeconds: number, totalDurationSeconds: number,
   const [remaining, setRemaining] = useState(Math.max(0, initialSeconds));
   const expiredRef = useRef(false);
   const cbRef = useRef(onExpire);
-  cbRef.current = onExpire;
   const hasTimer = totalDurationSeconds > 0;
+  const endTimeRef = useRef<number | null>(null);
+
+  // keep callback ref up‑to‑date without rendering
+  useEffect(() => {
+    cbRef.current = onExpire;
+  }, [onExpire]);
+
+  // initialise / reset end time when initialSeconds changes (e.g. on resume)
+  useEffect(() => {
+    if (hasTimer && initialSeconds > 0) {
+      endTimeRef.current = Date.now() + initialSeconds * 1000;
+    }
+  }, [hasTimer, initialSeconds]);
 
   useEffect(() => {
     if (!hasTimer) return; // untimed assessment — never expire
@@ -71,20 +83,20 @@ function useCountdownTimer(initialSeconds: number, totalDurationSeconds: number,
     }
 
     const id = setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(id);
-          if (!expiredRef.current) {
-            expiredRef.current = true;
-            setTimeout(() => cbRef.current(), 0);
-          }
-          return 0;
+      const now = Date.now();
+      const end = endTimeRef.current ?? now;
+      const secs = Math.max(0, Math.ceil((end - now) / 1000));
+      setRemaining(secs);
+      if (secs <= 0) {
+        clearInterval(id);
+        if (!expiredRef.current) {
+          expiredRef.current = true;
+          setTimeout(() => cbRef.current(), 0);
         }
-        return prev - 1;
-      });
-    }, 1000);
+      }
+    }, 250);
     return () => clearInterval(id);
-  }, [hasTimer]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hasTimer, initialSeconds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
   const ss = String(remaining % 60).padStart(2, "0");
@@ -159,11 +171,11 @@ function QuestionNavigator({ blocks, answers, currentIndex }: {
 // ─── Likert (horizontal scale, compact) ──────────────────────────────────────
 
 const LIKERT_OPTS = [
-  { value: 1, label: "Strongly Disagree" },
-  { value: 2, label: "Disagree" },
-  { value: 3, label: "Neutral" },
-  { value: 4, label: "Agree" },
-  { value: 5, label: "Strongly Agree" },
+  { value: 1, label: "Not like me" },
+  { value: 2, label: "Less like me" },
+  { value: 3, label: "Somewhat like me" },
+  { value: 4, label: "Almost like me" },
+  { value: 5, label: "Just like me" },
 ];
 
 function LikertQuestion({ block, answers, setAnswers }: {
@@ -176,7 +188,7 @@ function LikertQuestion({ block, answers, setAnswers }: {
     <div className="space-y-5">
       <div>
         <p className="text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{block.prompt}</p>
-        <p className="mt-1 text-sm text-[#64748B]">Rate how much you agree with the statement above.</p>
+        <p className="mt-1 text-sm text-[#64748B]">Rate how much the statement above describes you.</p>
       </div>
 
       {/* Desktop: horizontal 5-col scale */}
@@ -553,7 +565,9 @@ export function CandidateTestRunner({
 
   // Keep answers in a ref so event listeners always see the latest value
   const answersRef = useRef(answers);
-  answersRef.current = answers;
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
 
   // Debounced auto-save (1.5s after each answer change)
   useEffect(() => {
@@ -693,7 +707,9 @@ export function CandidateTestRunner({
   // anchor (see candidate/test/[assignmentId]/page.tsx and /api/candidate/attempts/start) —
   // never from a client-ticked snapshot, so it can only ever count down, never jump back up.
   const { mm, ss, isWarning, isCritical, remaining } = useCountdownTimer(initialRemainingSeconds, effectiveDuration * 60, handleTimesUp);
-  remainingRef.current = remaining;
+  useEffect(() => {
+    remainingRef.current = remaining;
+  }, [remaining]);
 
   // Timer warnings: 1 min (only for tests > 5 min total) and 10 sec
   useEffect(() => {

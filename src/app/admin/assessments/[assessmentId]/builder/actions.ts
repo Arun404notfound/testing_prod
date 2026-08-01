@@ -9,6 +9,8 @@ import {
   allowsMcqPool,
   allowsTriadPool,
 } from "@/lib/assessment-pools";
+import { DEFAULT_INSTRUCTIONS } from "@/lib/default-instructions";
+import { serializeCustomInstructions } from "@/lib/custom-instructions";
 async function assertAssessment(assessmentId: string) {
   const assessment = await prisma.assessment.findFirst({
     where: { id: assessmentId },
@@ -114,12 +116,38 @@ export async function saveAssessmentDetails(assessmentId: string, formData: Form
   redirect(`/admin/assessments/${assessmentId}/builder?saved=details`);
 }
 
+function parseJsonArray(raw: string): unknown[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function updateAssessmentInstructions(assessmentId: string, formData: FormData) {
   await assertAssessment(assessmentId);
-  const raw = String(formData.get("customInstructions") ?? "").trim();
+
+  const validKeys = new Set(DEFAULT_INSTRUCTIONS.map((d) => d.key));
+  const defaultsConfig = parseJsonArray(String(formData.get("defaultsConfig") ?? "[]"))
+    .filter((item): item is { key: string; enabled: boolean } => {
+      const o = item as Record<string, unknown>;
+      return typeof o?.key === "string" && validKeys.has(o.key);
+    });
+  const defaultOrder = defaultsConfig.map((d) => d.key);
+  const disabledDefaults = defaultsConfig.filter((d) => d.enabled === false).map((d) => d.key);
+
+  const customPoints = parseJsonArray(String(formData.get("customPointsConfig") ?? "[]"))
+    .map((item) => {
+      const o = item as Record<string, unknown>;
+      const text = typeof o?.text === "string" ? o.text.trim() : "";
+      return text ? { text, enabled: o.enabled !== false } : null;
+    })
+    .filter((p): p is { text: string; enabled: boolean } => p !== null);
+
   await prisma.assessment.update({
     where: { id: assessmentId },
-    data: { customInstructions: raw || null },
+    data: { customInstructions: serializeCustomInstructions({ defaultOrder, disabledDefaults, customPoints }) },
   });
   revalidatePath(`/admin/assessments/${assessmentId}/builder`);
   redirect(`/admin/assessments/${assessmentId}/builder?saved=instructions`);

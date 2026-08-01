@@ -22,6 +22,9 @@ import { BulkLikertPool } from "./bulk-likert-pool";
 import { BulkTriadPool } from "./bulk-triad-pool";
 import { BulkMcqPool } from "./bulk-mcq-pool";
 import { BuilderHeaderActions } from "./builder-header-actions";
+import { CustomInstructionsEditor } from "./custom-instructions-editor";
+import { DefaultInstructionsEditor } from "./default-instructions-editor";
+import { parseCustomInstructions } from "@/lib/custom-instructions";
 import { AutoDismissToast } from "@/components/ui/auto-dismiss-toast";
 import { ScrollToId } from "@/components/ui/scroll-to-id";
 import { SelectedContentList, type SelectedRow } from "./selected-content-list";
@@ -89,6 +92,7 @@ export default async function AssessmentBuilderPage({
   const boundUpdateJobRole = updateAssessmentJobRole.bind(null, assessment.id);
   const boundSaveDetails = saveAssessmentDetails.bind(null, assessment.id);
   const boundUpdateInstructions = updateAssessmentInstructions.bind(null, assessment.id);
+  const parsedInstructions = parseCustomInstructions(assessment.customInstructions);
 
   const assessmentType = assessment.assessmentType;
   const tab = resolveTab(assessmentType, sp.tab);
@@ -373,23 +377,25 @@ export default async function AssessmentBuilderPage({
 
       <FormCard title="Instructions">
         <p className="mb-4 text-sm text-[#64748B]">
-          Every candidate always sees the standard instructions (timer, navigation, how to answer
-          each question type, honesty note, etc.) — that never changes. Anything you add below is
-          shown as an extra note underneath those, for things specific to this assessment (e.g.
-          proctoring requirements, client-specific context). Leave it blank to show only the
-          standard instructions.
+          Candidates see the standard instructions below, plus any points you add underneath. Both
+          are specific to this assessment — uncheck or drag to reorder any that don&apos;t fit here,
+          and a new assessment always starts with all of them checked, in the default order, and no
+          extra points.
         </p>
-        <form action={boundUpdateInstructions} className="grid gap-3">
-          <label className="text-sm text-[#334155]">
-            <span className="mb-1 block font-medium">Additional instructions (optional)</span>
-            <textarea
-              name="customInstructions"
-              rows={4}
-              defaultValue={assessment.customInstructions ?? ""}
-              placeholder="e.g. This session is proctored and recorded. Please use a laptop or desktop — mobile devices are not supported."
-              className="tg-input w-full"
+        <form action={boundUpdateInstructions} className="grid gap-5">
+          <div>
+            <span className="mb-2 block text-sm font-medium text-[#334155]">Standard instructions</span>
+            <DefaultInstructionsEditor
+              initialOrder={parsedInstructions.defaultOrder}
+              initialDisabled={parsedInstructions.disabledDefaults}
             />
-          </label>
+          </div>
+
+          <div>
+            <span className="mb-2 block text-sm font-medium text-[#334155]">Additional instructions (optional)</span>
+            <CustomInstructionsEditor initial={parsedInstructions.customPoints} />
+          </div>
+
           <button type="submit" className="tg-button-primary w-fit text-sm">
             Save instructions
           </button>

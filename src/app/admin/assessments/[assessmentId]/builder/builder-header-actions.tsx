@@ -13,37 +13,16 @@ export function BuilderHeaderActions({
 }) {
   const [delConfirm, setDelConfirm] = useState(false);
   const [delPending, setDelPending] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   async function handleDelete() {
     setDelPending(true);
     await deleteAssessmentById(assessmentId);
   }
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  }
-
   const assignHref = `/admin/assignments?assessmentId=${encodeURIComponent(assessmentId)}&assessmentTitle=${encodeURIComponent(assessmentTitle)}`;
 
   return (
     <>
-      {/* Save toast */}
-      {saved && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-800 shadow-lg transition-all">
-          ✓ Your changes are saved
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={handleSave}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition"
-      >
-        Save
-      </button>
-
       <Link
         href={assignHref}
         className="inline-flex items-center gap-1.5 rounded-lg border border-[#2563EB] bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1d4edb] transition"

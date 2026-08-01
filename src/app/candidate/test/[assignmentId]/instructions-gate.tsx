@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { CandidateTestRunner } from "./test-runner";
 import type { TestBlock } from "@/lib/candidate-test-payload";
+import { DEFAULT_INSTRUCTIONS, type BlockKind } from "@/lib/default-instructions";
+import { parseCustomInstructions } from "@/lib/custom-instructions";
 
 interface Props {
   assignmentId: string;
@@ -36,40 +38,17 @@ function fmt(mins: number) {
   return m === 0 ? `${h} hour${h !== 1 ? "s" : ""}` : `${h}h ${m}m`;
 }
 
-type BlockKind = TestBlock["kind"];
-
-const INSTRUCTIONS: { heading: string; text: string; when?: (kinds: Set<BlockKind>) => boolean }[] = [
-  { heading: "Timer", text: 'The timer starts the moment you click "Start Assessment" and cannot be paused or extended. Ensure you are in a distraction-free environment before you begin.' },
-  { heading: "One-way navigation", text: "Questions are presented one at a time in a fixed order. You cannot go back to a previous question. Moving forward without an answer records it as Skipped." },
-  {
-    heading: "How to answer Likert Scale questions",
-    text: "You'll see one statement with a 5-point scale from Strongly Disagree to Strongly Agree. Select the single option that best reflects how much you personally agree with the statement.",
-    when: (kinds) => kinds.has("likert"),
-  },
-  {
-    heading: "How to answer Forced Choice questions",
-    text: "You'll see three statements labelled A, B and C. Choose exactly one that is Most like you and exactly one that is Least like you — the remaining statement is left unmarked. You cannot select the same statement for both.",
-    when: (kinds) => kinds.has("triad"),
-  },
-  {
-    heading: "How to answer Multiple Choice questions",
-    text: "You'll see one question with four options. Select the single option you believe is correct.",
-    when: (kinds) => kinds.has("item_mcq") || kinds.has("item_tf") || kinds.has("legacy_mcq"),
-  },
-  {
-    heading: "Answer honestly",
-    text: "For personality and behavioural questions there are no right or wrong answers. Respond based on how you truly think and act, not what you think the assessor wants to hear.",
-    when: (kinds) => kinds.has("likert") || kinds.has("triad"),
-  },
-  { heading: "Stay on the page", text: "Do not refresh, press back, or close the browser tab during the test. Doing so may result in loss of progress. Tab switching may be flagged and recorded." },
-  { heading: "Single attempt", text: "Once you submit, your responses are final and cannot be revised. This assessment can only be attempted once per assignment." },
-];
-
 type SessionState = "checking" | "duplicate" | "fresh";
 
 export function InstructionsGate({ assignmentId, accessToken, blocks, assessmentTitle, candidateName, customInstructions, durationMinutes, assessmentDurationMinutes, durationIsOverridden, activeAttemptId, activeProgressData, activeRemainingSeconds }: Props) {
-  const blockKinds = new Set(blocks.map((b) => b.kind));
-  const visibleInstructions = INSTRUCTIONS.filter((i) => !i.when || i.when(blockKinds));
+  const blockKinds = new Set<BlockKind>(blocks.map((b) => b.kind));
+  const { defaultOrder, disabledDefaults, customPoints } = parseCustomInstructions(customInstructions);
+  const instructionByKey = new Map(DEFAULT_INSTRUCTIONS.map((i) => [i.key, i]));
+  const visibleInstructions = defaultOrder
+    .map((key) => instructionByKey.get(key))
+    .filter((i) => i !== undefined)
+    .filter((i) => (!i.when || i.when(blockKinds)) && !disabledDefaults.includes(i.key));
+  const customInstructionPoints = customPoints.filter((p) => p.enabled).map((p) => p.text);
   const [accepted, setAccepted] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -265,8 +244,8 @@ export function InstructionsGate({ assignmentId, accessToken, blocks, assessment
               <h2 className="text-sm font-bold text-[#0F172A]">Before You Begin</h2>
             </div>
             <ol className="divide-y divide-[#F1F5F9] lg:max-h-[360px] lg:overflow-y-auto">
-              {visibleInstructions.map(({ heading, text }, i) => (
-                <li key={heading} className="flex gap-4 px-6 py-4">
+              {visibleInstructions.map(({ key, heading, text }, i) => (
+                <li key={key} className="flex gap-4 px-6 py-4">
                   <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#2563EB] text-[11px] font-bold text-white">
                     {i + 1}
                   </span>
@@ -277,12 +256,18 @@ export function InstructionsGate({ assignmentId, accessToken, blocks, assessment
                 </li>
               ))}
             </ol>
-            {customInstructions && (
+            {customInstructionPoints.length > 0 && (
               <div className="mx-6 mb-6 mt-2 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-600" />
-                <div>
+                <div className="flex-1">
                   <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Note from your test administrator</p>
-                  <p className="mt-1 text-sm leading-relaxed text-amber-900 whitespace-pre-wrap">{customInstructions}</p>
+                  <ul className="mt-1 space-y-1">
+                    {customInstructionPoints.map((point, i) => (
+                      <li key={i} className="text-sm leading-relaxed text-amber-900">
+                        • {point}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             )}
