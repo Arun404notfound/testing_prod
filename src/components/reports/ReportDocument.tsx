@@ -102,7 +102,7 @@ export function ReportDocument({ report, completedDate }: { report: ReportPayloa
     const totalPages = 1 + 1 + report.competencyScores.length; // hybrid overview + competency overview + one per competency
     return (
       <>
-        <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages}>
+        <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages} centerContent>
           <HybridOverviewPage report={report} />
         </ReportPageShell>
         {renderCompetencyStack({ startPage: 2, totalPages })}
