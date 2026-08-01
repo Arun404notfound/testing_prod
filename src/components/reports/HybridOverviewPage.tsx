@@ -65,6 +65,7 @@ export function HybridOverviewPage({ report }: { report: ReportPayload }) {
           <span className="block">This</span>
           <span className="block">Report</span>
         </h2>
+        <div className="mt-4 mb-6 h-px w-24" style={{ backgroundColor: theme.hairline }} />
         <p className="mt-4 max-w-2xl text-base leading-relaxed" style={{ color: theme.ink }}>
           This report combines knowledge checks with psychometric-style signals where applicable. Section scores
           reflect knowledge domains; trait scores summarize self-report and forced-choice components.
