@@ -44,5 +44,10 @@ next-env.d.ts
 
 /src/generated/prisma
 dev.db
+dev.db.bak-*
 Archive.zip
 Untitled
+
+# scratch/tooling working directories — never meant to be committed
+/.codex-work
+/tmp
