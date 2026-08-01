@@ -24,6 +24,7 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
     backgroundColor: theme.cardBackground,
     color: theme.ink,
     minHeight: "297mm",
+    fontFamily: theme.fontFamily,
   };
   const hasRunningHeader = Boolean(pageLabel || pageNumber);
   const hasRunningFooter = Boolean(footerMeta || pageNumber);

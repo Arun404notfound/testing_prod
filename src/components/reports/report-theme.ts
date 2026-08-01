@@ -22,6 +22,8 @@ export const reportTheme = {
   hairline: "#D8DBDF",
   correct: "#10b981",
   incorrect: "#ef4444",
+  /** Base font for the report pages. */
+  fontFamily: "'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
 
   // Legacy aliases — kept only so older, currently-unrendered report
   // components (TraitScoresPage, SummaryPage, etc.) still type-check.
@@ -44,4 +46,5 @@ export const pageStyle: CSSProperties = {
   borderColor: reportTheme.hairline,
   width: "210mm",
   minHeight: "297mm",
+  fontFamily: reportTheme.fontFamily,
 };
