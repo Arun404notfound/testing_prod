@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
+import { ArrowLeft, Download, Loader2, ListChecks, FileWarning, FileX2 } from "lucide-react";
 import type { ReportPayload } from "@/lib/report-data";
 import { normalizeReportPayload } from "@/lib/normalize-report-payload";
 import { formatReportCompletedDate } from "@/lib/report-date";
@@ -90,24 +91,45 @@ export default function ReportByIdClient() {
 
   if (loading) {
     return (
-      <main className="fixed inset-0 z-40 p-8" style={{ backgroundColor: reportTheme.pageBackground, color: reportTheme.secondary }}>
-        Loading...
+      <main
+        className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-3"
+        style={{ backgroundColor: reportTheme.pageBackground }}
+      >
+        <Loader2 size={28} className="animate-spin text-[#2563EB]" />
+        <p className="text-sm font-medium text-[#64748B]">Loading report…</p>
       </main>
     );
   }
 
-  if (!hasResultId) {
+  if (!hasResultId || !report) {
+    const Icon = hasResultId ? FileX2 : FileWarning;
     return (
-      <main className="fixed inset-0 z-40 p-8" style={{ backgroundColor: reportTheme.pageBackground, color: reportTheme.incorrect }}>
-        Report id missing.
-      </main>
-    );
-  }
-
-  if (!report) {
-    return (
-      <main className="fixed inset-0 z-40 p-8" style={{ backgroundColor: reportTheme.pageBackground, color: reportTheme.incorrect }}>
-        Report not found.
+      <main
+        className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-4 p-6"
+        style={{ backgroundColor: reportTheme.pageBackground }}
+      >
+        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-[#E2E8F0] bg-white px-8 py-10 text-center shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50">
+            <Icon size={22} className="text-rose-500" />
+          </div>
+          <p className="text-base font-semibold text-[#0F172A]">
+            {hasResultId ? "Report not found" : "Report id missing"}
+          </p>
+          <p className="text-sm text-[#64748B]">
+            {hasResultId
+              ? "This report may have been removed, or the link is no longer valid."
+              : "No report id was provided in the URL."}
+          </p>
+          {!isCandidate && (
+            <Link
+              href={backHref}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-[#2563EB] px-4 py-2 text-sm font-medium text-[#2563EB] transition hover:bg-[#EFF6FF]"
+            >
+              <ArrowLeft size={14} />
+              {backLabel}
+            </Link>
+          )}
+        </div>
       </main>
     );
   }
@@ -118,36 +140,40 @@ export default function ReportByIdClient() {
       style={{ backgroundColor: reportTheme.pageBackground }}
     >
       {/* Fixed header — stays in place; only the document viewport below scrolls */}
-      <div
-        className="shrink-0 border-b px-4 py-4 md:px-10"
-        style={{ borderColor: reportTheme.border, backgroundColor: reportTheme.cardBackground }}
-      >
+      <div className="shrink-0 border-b border-[#E2E8F0] bg-white px-4 py-4 shadow-sm md:px-10">
         <div className="mx-auto max-w-6xl space-y-3">
           {!isCandidate && (
-            <Link href={backHref} className="inline-flex items-center gap-1 text-sm font-medium hover:underline" style={{ color: reportTheme.accent }}>
-              ← {backLabel}
+            <Link
+              href={backHref}
+              className="group inline-flex w-fit items-center gap-1.5 rounded-lg px-2 py-1 -mx-2 text-sm font-medium text-[#2563EB] transition hover:bg-[#EFF6FF]"
+            >
+              <ArrowLeft size={14} className="transition-transform duration-200 group-hover:-translate-x-0.5" />
+              {backLabel}
             </Link>
           )}
-          <div className="flex items-center justify-between gap-3">
-            <h1 className="text-xl font-semibold" style={{ color: reportTheme.primary }}>
-              Report Preview
-            </h1>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-[#0F172A]">Report Preview</h1>
+              <p className="mt-0.5 truncate text-sm text-[#64748B]">
+                {[report.candidateName, report.assessmentName].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
               {isCandidate && (
                 <Link
                   href={`/candidate/reports/${resultId}/submissions${token ? `?token=${encodeURIComponent(token)}` : ""}`}
-                  className="rounded-lg border px-3 py-2 text-xs font-semibold transition hover:opacity-80"
-                  style={{ borderColor: reportTheme.primary, color: reportTheme.primary }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#CBD5E1] bg-white px-3.5 py-2 text-xs font-semibold text-[#334155] transition hover:border-[#2563EB] hover:text-[#2563EB]"
                 >
+                  <ListChecks size={14} />
                   View Submission
                 </Link>
               )}
               <button
                 onClick={downloadPdf}
                 disabled={downloading}
-                className="rounded-lg px-3 py-2 text-xs font-semibold text-white transition disabled:opacity-70"
-                style={{ backgroundColor: reportTheme.primary }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#2563EB] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-70"
               >
+                {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                 {downloading ? "Generating…" : "Download PDF"}
               </button>
             </div>
@@ -160,9 +186,9 @@ export default function ReportByIdClient() {
       </div>
 
       {/* Scrollable document viewport — the "pages" scroll up within the fixed backdrop */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-8 md:px-10">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-10 md:px-10">
         <div className="mx-auto max-w-6xl">
-          <div className="space-y-6 overflow-x-auto">
+          <div className="space-y-10 overflow-x-auto [&_.report-page]:overflow-hidden [&_.report-page]:rounded-xl [&_.report-page]:shadow-[0_20px_45px_-18px_rgba(15,23,42,0.35)] [&_.report-page]:ring-1 [&_.report-page]:ring-black/5">
             <ReportDocument report={report} completedDate={completedDate} />
           </div>
         </div>
