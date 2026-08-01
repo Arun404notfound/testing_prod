@@ -53,7 +53,6 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
             ) : null}
             {pageLabel && (
               <div className="flex items-center gap-2">
-                <span className="h-3.5 w-3.5 shrink-0" style={{ backgroundColor: theme.accent }} />
                 <span className="text-sm font-medium" style={{ color: theme.ink }}>
                   {pageLabel}
                 </span>

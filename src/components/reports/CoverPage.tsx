@@ -52,8 +52,6 @@ export function CoverPage({
           {reportTypeLabel}
         </p>
 
-        <span className="mt-6 block h-1.5 w-full" style={{ backgroundColor: theme.accent }} />
-
         <div className="mt-8 flex flex-col gap-1.5">
           <InfoRow label="Report for" value={report.candidateName} inkColor={theme.ink} bodyColor={theme.body} />
           <InfoRow label="Report Type" value={reportTypeLabel} inkColor={theme.ink} bodyColor={theme.body} />

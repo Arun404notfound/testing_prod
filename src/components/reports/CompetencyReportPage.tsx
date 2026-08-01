@@ -213,8 +213,7 @@ export function CompetencyReportPage({
           <div key={domainName ?? "__ungrouped"} style={{ marginBottom: groupIdx < groupArr.length - 1 ? 32 : 0 }}>
             {domainName && (
               <div data-pdf-break-after="avoid" style={{ marginBottom: 20 }}>
-                <p className="text-base font-extrabold uppercase tracking-[0.15em]" style={{ color: theme.accent }}>{domainName}</p>
-                <span className="mt-1.5 block h-1" style={{ width: 48, backgroundColor: theme.accent }} />
+                <p className="text-base font-extrabold uppercase tracking-[0.15em]" style={{ color: theme.ink }}>{domainName}</p>
               </div>
             )}
             {group.map((c, idx) => {
@@ -276,47 +275,43 @@ export function CompetencyReportPage({
                        <div style={{ marginBottom: 20 }}>
                          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide" style={{ color: theme.ink }}>Score Interpretation</p>
                          <p data-pdf-break-inside="avoid" className="text-base leading-relaxed" style={{ marginBottom: 16, color: theme.body }}>{c.bandContent.proficiencyDescription}</p>
-                         {developmentProjectCompetencyIds.has(c.competencyId) ? (
-                           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-                             {c.bandContent.behaviouralImplications.length > 0 && (
-                               <div style={{ flex: 1, minWidth: 200 }}>
-                                 <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: theme.accent }}>
-                                   <span className="h-2 w-2 shrink-0" style={{ backgroundColor: theme.accent }} />
-                                   Behavioural Implications
-                                 </p>
-                                 <BulletList items={c.bandContent.behaviouralImplications} color={theme.body} />
-                               </div>
-                             )}
-                             {c.bandContent.watchOuts.length > 0 && (
-                               <div style={{ flex: 1, minWidth: 200 }}>
-                                 <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: WATCH_OUT_COLOR }}>
-                                   <span className="h-2 w-2 shrink-0" style={{ backgroundColor: WATCH_OUT_COLOR }} />
-                                   Watch-outs
-                                 </p>
-                                 <BulletList items={c.bandContent.watchOuts} color={theme.body} />
-                               </div>
-                             )}
-                           </div>
-                         ) : (
+{developmentProjectCompetencyIds.has(c.competencyId) ? (
+                            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                              {c.bandContent.behaviouralImplications.length > 0 && (
+                                <div style={{ flex: 1, minWidth: 200 }}>
+                                  <p className="mb-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: theme.ink }}>
+                                    Behavioural Implications
+                                  </p>
+                                  <BulletList items={c.bandContent.behaviouralImplications} color={theme.body} />
+                                </div>
+                              )}
+                              {c.bandContent.watchOuts.length > 0 && (
+                                <div style={{ flex: 1, minWidth: 200 }}>
+                                  <p className="mb-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: theme.ink }}>
+                                    Watch-outs
+                                  </p>
+                                  <BulletList items={c.bandContent.watchOuts} color={theme.body} />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
                            <>
-                             {c.bandContent.behaviouralImplications.length > 0 && (
-                               <div data-pdf-break-inside="avoid" style={{ marginBottom: 16 }}>
-                                 <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: theme.accent }}>
-                                   <span className="h-2 w-2 shrink-0" style={{ backgroundColor: theme.accent }} />
-                                   Behavioural Implications
-                                 </p>
-                                 <BulletList items={c.bandContent.behaviouralImplications} color={theme.body} />
-                               </div>
-                             )}
-                             {c.bandContent.watchOuts.length > 0 && (
-                               <div data-pdf-break-inside="avoid">
-                                 <p className="mb-1.5 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: WATCH_OUT_COLOR }}>
-                                   <span className="h-2 w-2 shrink-0" style={{ backgroundColor: WATCH_OUT_COLOR }} />
-                                   Watch-outs
-                                 </p>
-                                 <BulletList items={c.bandContent.watchOuts} color={theme.body} />
-                               </div>
-                             )}
+{c.bandContent.behaviouralImplications.length > 0 && (
+                                <div data-pdf-break-inside="avoid" style={{ marginBottom: 16 }}>
+                                  <p className="mb-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: theme.ink }}>
+                                    Behavioural Implications
+                                  </p>
+                                  <BulletList items={c.bandContent.behaviouralImplications} color={theme.body} />
+                                </div>
+                              )}
+                              {c.bandContent.watchOuts.length > 0 && (
+                                <div data-pdf-break-inside="avoid">
+                                  <p className="mb-1.5 text-sm font-bold uppercase tracking-wide" style={{ color: theme.ink }}>
+                                    Watch-outs
+                                  </p>
+                                  <BulletList items={c.bandContent.watchOuts} color={theme.body} />
+                                </div>
+                              )}
                            </>
                          )}
                        </div>
@@ -338,7 +333,7 @@ export function CompetencyReportPage({
 
                     {/* Strength / development-need statement */}
                     {(c.strengthStatement || c.developmentNeedStatement) && (
-                      <p data-pdf-break-inside="avoid" className="pl-4 text-sm" style={{ borderLeft: `4px solid ${theme.accent}`, marginBottom: 20, color: theme.ink, fontWeight: 600 }}>
+                      <p data-pdf-break-inside="avoid" className="pl-4 text-sm" style={{ borderLeft: `4px solid ${theme.hairline}`, marginBottom: 20, color: theme.ink, fontWeight: 600 }}>
                         {c.scaledScore > 6.5 ? c.strengthStatement : c.developmentNeedStatement}
                       </p>
                     )}

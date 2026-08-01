@@ -7,12 +7,10 @@ import { useReportTheme } from "./report-theme-context";
 // pipeline (see CompetencyReportPage.tsx); no longer required but renders correctly.
 function BulletList({
   items,
-  accent,
   ink,
   body,
 }: {
   items: { label: string; description: string }[];
-  accent: string;
   ink: string;
   body: string;
 }) {
@@ -20,9 +18,6 @@ function BulletList({
     <div className="mt-8 max-w-2xl">
       {items.map((item, i) => (
         <div key={i} className="flex items-start gap-3" style={{ marginBottom: 16 }}>
-          <span
-            style={{ marginTop: 6, height: 8, width: 8, borderRadius: 9999, backgroundColor: accent, flexShrink: 0 }}
-          />
           <p className="text-sm leading-relaxed">
             <span className="font-bold" style={{ color: ink }}>
               {item.label}:{" "}
@@ -70,13 +65,12 @@ export function HybridOverviewPage({ report }: { report: ReportPayload }) {
           <span className="block">This</span>
           <span className="block">Report</span>
         </h2>
-        <span className="mt-6 mb-8 block h-1.5 w-24" style={{ backgroundColor: theme.accent }} />
-        <p className="max-w-2xl text-base leading-relaxed" style={{ color: theme.ink }}>
+        <p className="mt-4 max-w-2xl text-base leading-relaxed" style={{ color: theme.ink }}>
           This report combines knowledge checks with psychometric-style signals where applicable. Section scores
           reflect knowledge domains; trait scores summarize self-report and forced-choice components.
         </p>
 
-        <BulletList items={items} accent={theme.accent} ink={theme.ink} body={theme.body} />
+        <BulletList items={items} ink={theme.ink} body={theme.body} />
       </section>
     </div>
   );
