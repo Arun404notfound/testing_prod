@@ -3,6 +3,7 @@
 import type { ReportPayload, ReportFactorAggregate } from "@/lib/report-data";
 import type { ReportThemePalette } from "./report-theme";
 import { useReportTheme } from "./report-theme-context";
+import { reportTypography } from "./report-typography";
 
 /** Solid, saturated band colors — matches CompetencyReportPage's palette. */
 function bandColor(band: string | null): string {
@@ -64,22 +65,27 @@ function FactorRow({ factor, theme }: { factor: ReportFactorAggregate; theme: Re
 
   return (
     <div style={{ marginBottom: 20 }}>
-      <div className="flex items-center gap-4" style={{ marginBottom: 6 }}>
-        <span className="min-w-0 flex-1 text-base font-bold" style={{ color: theme.ink }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: 6 }}>
+        <span style={{ ...reportTypography.body, flex: 1, minWidth: 0, fontWeight: 700, color: theme.ink }}>
           {factor.displayName ?? factor.factor}
         </span>
-        <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+        <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, whiteSpace: "nowrap" }}>
           {hasScaled ? (
-            <span className="text-sm font-bold" style={{ color: theme.ink }}>
-              {(factor.scaledScore as number).toFixed(1)}<span className="text-xs font-normal" style={{ color: theme.body }}>/10</span>
+            <span style={{ ...reportTypography.dataSmall, color: theme.ink }}>
+              {(factor.scaledScore as number).toFixed(1)}<span style={{ ...reportTypography.bodyXSmall, fontWeight: 400, color: theme.body }}> / 10</span>
             </span>
           ) : (
-            <span className="text-sm font-bold" style={{ color: theme.ink }}>{factor.percent}%</span>
+            <span style={{ ...reportTypography.dataSmall, color: theme.ink }}>{factor.percent}%</span>
           )}
           {factor.band && (
             <span
-              className="rounded-sm px-2 py-0.5 text-xs font-bold"
-              style={{ backgroundColor: color, color: theme.accentContrastText }}
+              style={{
+                ...reportTypography.badge,
+                borderRadius: "9999px",
+                padding: "0.25rem 0.75rem",
+                backgroundColor: color,
+                color: theme.accentContrastText,
+              }}
             >
               {factor.band}
             </span>
@@ -104,17 +110,17 @@ export function FactorScoresPage({ report }: { report: ReportPayload }) {
   );
 
   if (factors.length === 0) {
-    return <p className="text-sm italic" style={{ color: theme.body }}>No trait scores available.</p>;
+    return <p style={{ ...reportTypography.bodySmall, color: theme.body }}>No trait scores available.</p>;
   }
 
   return (
     <div>
-      <div className="border-b-2 pb-2" style={{ borderColor: theme.ink, marginBottom: 24 }}>
-        <h2 className="text-xl font-bold" style={{ color: theme.ink }}>Trait Scores</h2>
-        <p className="mt-1 text-xs" style={{ color: theme.body }}>
-          Factor-level scores derived from candidate responses.
-        </p>
+      <div style={{ ...reportTypography.h2, borderBottom: `2px solid ${theme.ink}`, paddingBottom: "0.5rem", marginBottom: "1.5rem", color: theme.ink }}>
+        Trait Scores
       </div>
+      <p style={{ ...reportTypography.bodyXSmall, color: theme.body, marginBottom: "1.5rem" }}>
+        Factor-level scores derived from candidate responses.
+      </p>
       {factors.map((f) => (
         <FactorRow key={f.factor} factor={f} theme={theme} />
       ))}

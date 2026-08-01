@@ -2,6 +2,7 @@
 
 import type { ReportPayload, ReportFactorAggregate, ReportCompetencyScore } from "@/lib/report-data";
 import { useReportTheme } from "./report-theme-context";
+import { reportTypography } from "./report-typography";
 
 // --- helpers ----------------------------------------------------------------
 
@@ -11,20 +12,41 @@ function competencyLabel(band: string): string {
   return "Development Area";
 }
 
+/** Badge color per snapshot category — mirrors the band palette used on the competency detail pages. */
+function categoryColor(label: string): string {
+  if (label === "Key Strength") return "#047857"; // emerald-700
+  if (label === "Strong Capability") return "#B45309"; // amber-700
+  return "#B91C1C"; // red-700
+}
+
 function factorScore(f: ReportFactorAggregate): number {
   return f.scaledScore != null ? Math.round(f.scaledScore * 100) / 10 : (f.maxScore > 0 ? Math.round((f.score / f.maxScore) * 100) / 10 : 0);
 }
 
 // --- sub-components ---------------------------------------------------------
 
-function CompetencySnapshotRow({ competency, hairline, ink, body }: { competency: ReportCompetencyScore; hairline: string; ink: string; body: string }) {
+function CompetencySnapshotRow({ competency, hairline, ink }: { competency: ReportCompetencyScore; hairline: string; ink: string }) {
   const label = competencyLabel(competency.band);
   const score = competency.scaledScore.toFixed(1);
+  const color = categoryColor(label);
   return (
-    <tr className="border-t" style={{ borderColor: hairline }}>
-      <td className="py-2.5 pr-4 text-sm font-medium" style={{ color: ink }}>{competency.competencyName}</td>
-      <td className="py-2.5 pr-4 text-sm font-bold" style={{ color: ink }}>{score} / 10</td>
-      <td className="py-2.5 text-sm" style={{ color: body }}>{label}</td>
+    <tr style={{ borderTop: `1px solid ${hairline}` }}>
+      <td style={{ ...reportTypography.tableCell, padding: "0.625rem 1rem 0.625rem 0", fontWeight: 500, color: ink }}>{competency.competencyName}</td>
+      <td style={{ ...reportTypography.tableCellBold, padding: "0.625rem 1rem 0.625rem 0", color: ink }}>{score} / 10</td>
+      <td style={{ padding: "0.625rem 0" }}>
+        <span
+          style={{
+            ...reportTypography.badge,
+            display: "inline-block",
+            borderRadius: "9999px",
+            padding: "0.25rem 0.75rem",
+            backgroundColor: `${color}1A`,
+            color,
+          }}
+        >
+          {label}
+        </span>
+      </td>
     </tr>
   );
 }
@@ -46,12 +68,12 @@ function BigFiveBar({
 }) {
   const pct = Math.min(100, (score / max) * 100);
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-44 shrink-0 text-sm" style={{ color: inkColor }}>{factor}</span>
+    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+      <span style={{ ...reportTypography.bodySmall, width: "11rem", flexShrink: 0, color: inkColor }}>{factor}</span>
       <div style={{ height: 10, flex: 1, overflow: "hidden", borderRadius: 9999, backgroundColor: trackColor }}>
         <div style={{ height: 10, width: `${pct}%`, borderRadius: 9999, backgroundColor: accentColor }} />
       </div>
-      <span className="w-10 text-right text-sm font-bold" style={{ color: inkColor }}>{score.toFixed(1)}</span>
+      <span style={{ ...reportTypography.dataSmall, width: "2.5rem", textAlign: "right", color: inkColor }}>{score.toFixed(1)}</span>
     </div>
   );
 }
@@ -87,42 +109,42 @@ export function PsychometricGlancePage({
 
   return (
     <section>
-      <h2 className="text-2xl font-bold" style={{ color: theme.ink }}>
+      <div style={{ ...reportTypography.h2, borderBottom: `2px solid ${theme.ink}`, paddingBottom: "0.5rem", marginBottom: "1.5rem", color: theme.ink }}>
         Your Personality at a Glance
-      </h2>
+      </div>
 
       {/* Competency Snapshot */}
-      <div className="mt-8">
-        <h3 className="mb-3 text-sm font-bold uppercase tracking-wide" style={{ color: theme.ink }}>
+      <div style={{ marginTop: "2rem" }}>
+        <h3 style={{ ...reportTypography.h3, marginBottom: "0.75rem", color: theme.ink }}>
           Competency Snapshot
         </h3>
         {competencies.length > 0 ? (
-          <table className="w-full">
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th className="py-1 pr-4 text-left text-xs font-semibold uppercase" style={{ color: theme.body }}>Competency</th>
-                <th className="py-1 pr-4 text-left text-xs font-semibold uppercase" style={{ color: theme.body }}>Score</th>
-                <th className="py-1 text-left text-xs font-semibold uppercase" style={{ color: theme.body }}>Category</th>
+                <th style={{ ...reportTypography.tableHeader, padding: "0.25rem 1rem 0.25rem 0", textAlign: "left", color: theme.body }}>Competency</th>
+                <th style={{ ...reportTypography.tableHeader, padding: "0.25rem 1rem 0.25rem 0", textAlign: "left", color: theme.body }}>Score</th>
+                <th style={{ ...reportTypography.tableHeader, padding: "0.25rem 0", textAlign: "left", color: theme.body }}>Category</th>
               </tr>
             </thead>
             <tbody>
               {competencies.map((c) => (
-                <CompetencySnapshotRow key={c.competencyId} competency={c} hairline={theme.hairline} ink={theme.ink} body={theme.body} />
+                <CompetencySnapshotRow key={c.competencyId} competency={c} hairline={theme.hairline} ink={theme.ink} />
               ))}
             </tbody>
           </table>
         ) : (
-          <p className="text-sm" style={{ color: theme.body }}>No competency data available.</p>
+          <p style={{ ...reportTypography.bodySmall, color: theme.body }}>No competency data available.</p>
         )}
       </div>
 
       {/* Big Five Personality Profile */}
-      <div className="mt-8">
-        <h3 className="mb-4 text-sm font-bold uppercase tracking-wide" style={{ color: theme.ink }}>
+      <div style={{ marginTop: "2rem" }}>
+        <h3 style={{ ...reportTypography.h3, marginBottom: "1rem", color: theme.ink }}>
           Big Five Personality Profile
         </h3>
         {sortedFactors.length > 0 ? (
-          <div className="flex flex-col gap-3">
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             {sortedFactors.map((f) => (
               <BigFiveBar
                 key={f.factor}
@@ -135,22 +157,32 @@ export function PsychometricGlancePage({
             ))}
           </div>
         ) : (
-          <p className="text-sm" style={{ color: theme.body }}>No Big Five factor data available.</p>
+          <p style={{ ...reportTypography.bodySmall, color: theme.body }}>No Big Five factor data available.</p>
         )}
       </div>
 
       {/* Personality Archetype — placeholder */}
-      <div className="mt-8 border-l-4 pl-4" style={{ borderColor: theme.accent }}>
-        <p className="mb-1 text-xs font-bold uppercase tracking-wide" style={{ color: theme.accent }}>
+      <div
+        style={{
+          marginTop: "2rem",
+          backgroundColor: `${theme.accent}0D`,
+          border: `1px solid ${theme.accent}33`,
+          borderLeft: `4px solid ${theme.accent}`,
+          borderRadius: 8,
+          padding: "1rem 1.25rem",
+          boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
+        }}
+      >
+        <p style={{ ...reportTypography.h4, color: theme.accent, marginBottom: "0.25rem" }}>
           Personality Archetype
         </p>
-        <p className="text-base font-bold" style={{ color: theme.ink }}>The Influential Connector</p>
-        <p className="mt-2 text-sm leading-relaxed" style={{ color: theme.body }}>
+        <p style={{ ...reportTypography.dataMedium, color: theme.ink }}>The Influential Connector</p>
+        <p style={{ ...reportTypography.body, marginTop: "0.5rem", color: theme.body }}>
           You naturally build relationships, engage others, and create positive interactions. You tend to be energetic,
           expressive, and comfortable in social environments. Your profile suggests strong communication capabilities
           and emotional balance, while greater structure and planning may further enhance performance.
         </p>
-        <p className="mt-2 text-xs italic" style={{ color: theme.body }}>
+        <p style={{ ...reportTypography.bodyXSmall, marginTop: "0.5rem", fontStyle: "italic", color: theme.body }}>
           * Archetype description is a placeholder and will be populated via API.
         </p>
       </div>
