@@ -43,8 +43,6 @@ export function CoverPage({
           />
         ) : null}
 
-        <span className="mb-6 block h-10 w-10" style={{ backgroundColor: theme.accent }} />
-
         <h1 className="text-4xl font-extrabold leading-tight" style={{ color: theme.ink }}>
           {report.assessmentName}
         </h1>
