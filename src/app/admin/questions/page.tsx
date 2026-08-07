@@ -331,11 +331,6 @@ export default async function QuestionsPage({
       <PageHeader
         title="Question Bank"
         subtitle="Add, edit, and link all psychometric questions to attributes."
-        right={
-          <Link href="/admin/competencies" className="tg-button-primary text-sm">
-            Manage Attributes & Competencies →
-          </Link>
-        }
       />
 
       {/* Status banners */}
@@ -456,7 +451,6 @@ export default async function QuestionsPage({
             </div>
             <div className="divide-y divide-[#F1F5F9]">
               {likertItems.map((item, idx) => {
-                const competencyLinks = item.attribute?.competencyMaps ?? [];
                 return (
                   <div key={item.id} className="px-5 py-4 sm:flex sm:items-start sm:gap-4">
                     <span className="hidden sm:flex h-6 w-6 shrink-0 mt-0.5 items-center justify-center rounded-full bg-[#F1F5F9] text-[11px] font-bold text-[#64748B]">
@@ -469,13 +463,7 @@ export default async function QuestionsPage({
                         {item.polarity && (
                           <span className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${POLARITY_COLORS[item.polarity] ?? ""}`}>{item.polarity}</span>
                         )}
-                        {item.factor && <span className="text-[10px] text-[#94A3B8]">Big 5: {item.factor}</span>}
-                        {item.trait && <span className="text-[10px] text-[#94A3B8]">· Attribute: {item.trait}</span>}
-                        {competencyLinks.length > 0 && (
-                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-                            → {competencyLinks.map((m) => m.competency.name).join(", ")}
-                          </span>
-                        )}
+                        {item.trait && <span className="text-[10px] text-[#94A3B8]">Attribute: {item.trait}</span>}
                       </div>
                     </div>
                     <div className="mt-3 flex items-center gap-2 sm:mt-0 sm:shrink-0 sm:w-56">
@@ -591,7 +579,6 @@ export default async function QuestionsPage({
               <div className="divide-y divide-[#F8FAFC]">
                 {group.statements.map((stmt, si) => {
                   const letter = ["A", "B", "C"][si] ?? String(si + 1);
-                  const competencyLinks = stmt.attribute?.competencyMaps ?? [];
                   return (
                     <div key={stmt.id} className="px-5 py-3.5 sm:flex sm:items-start sm:gap-4">
                       <span className="hidden sm:flex h-6 w-6 shrink-0 mt-0.5 items-center justify-center rounded-lg bg-purple-50 text-[11px] font-bold text-purple-600">{letter}</span>
@@ -599,12 +586,7 @@ export default async function QuestionsPage({
                         <p className="text-sm text-[#0F172A] leading-snug">{stmt.statementText}</p>
                         <div className="mt-1.5 flex flex-wrap items-center gap-2">
                           {stmt.polarity && <span className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${POLARITY_COLORS[stmt.polarity] ?? ""}`}>{stmt.polarity}</span>}
-                          <span className="text-[10px] text-[#94A3B8]">Big 5: {stmt.factor} · Attribute: {stmt.trait}</span>
-                          {competencyLinks.length > 0 && (
-                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-                              → {competencyLinks.map((m) => m.competency.name).join(", ")}
-                            </span>
-                          )}
+                          <span className="text-[10px] text-[#94A3B8]">Attribute: {stmt.trait}</span>
                         </div>
                       </div>
                       <form key={stmt.attributeId ?? "none"} action={updateStatementAttribute} className="mt-3 flex items-center gap-2 sm:mt-0 sm:shrink-0 sm:w-56">
@@ -695,7 +677,6 @@ export default async function QuestionsPage({
             <div className="divide-y divide-[#F1F5F9]">
               {mcqQuestions.map((q, idx) => {
                 const options = [q.option1, q.option2, q.option3, q.option4];
-                const competencyLinks = q.attribute?.competencyMaps ?? [];
                 return (
                   <div key={q.id} className="px-5 py-4 sm:flex sm:items-start sm:gap-4">
                     <span className="hidden sm:flex h-6 w-6 shrink-0 mt-0.5 items-center justify-center rounded-full bg-[#F1F5F9] text-[11px] font-bold text-[#64748B]">
@@ -707,11 +688,6 @@ export default async function QuestionsPage({
                         {q.attribute && (
                           <span className="rounded-full border border-[#D1FAE5] bg-[#EFF6FF] px-2 py-0.5 text-[10px] font-semibold text-[#2563EB]">
                             [{q.attribute.code}] {q.attribute.name}
-                          </span>
-                        )}
-                        {competencyLinks.length > 0 && (
-                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-                            → {competencyLinks.map((m) => m.competency.name).join(", ")}
                           </span>
                         )}
                       </div>

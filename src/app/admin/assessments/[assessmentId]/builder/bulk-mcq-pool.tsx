@@ -105,9 +105,6 @@ export function BulkMcqPool({
                         <span className="inline-flex items-center gap-1 rounded border border-[#D1FAE5] bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-semibold text-[#2563EB]">
                           [{attrInfo.code}] {q.attribute.name}
                         </span>
-                        {attrInfo.competencies.map((c) => (
-                          <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">{c}</span>
-                        ))}
                       </>
                     ) : (
                       <span className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">

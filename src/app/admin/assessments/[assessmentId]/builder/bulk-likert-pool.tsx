@@ -91,7 +91,6 @@ export function BulkLikertPool({
               />
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex items-center gap-2">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{item.factor}</p>
                   {item.polarity === "POSITIVE" && (
                     <span className="rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">POSITIVE</span>
                   )}
@@ -109,9 +108,6 @@ export function BulkLikertPool({
                       <span className="inline-flex items-center gap-1 rounded border border-[#D1FAE5] bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-semibold text-[#2563EB]">
                         [{attrInfo.code}] {item.trait}
                       </span>
-                      {attrInfo.competencies.map((c) => (
-                        <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">{c}</span>
-                      ))}
                     </>
                   ) : item.trait ? (
                     <span className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700">

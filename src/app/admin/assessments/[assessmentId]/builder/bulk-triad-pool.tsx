@@ -81,12 +81,6 @@ export function BulkTriadPool({
         {groups.map((g) => {
           const isAdded = selectedIds.has(g.id);
           const isChecked = checked.has(g.id);
-          const groupComps: string[] = [];
-          for (const s of g.statements) {
-            const info = s.trait ? attrByName.get(s.trait.toLowerCase()) : undefined;
-            if (info) for (const c of info.competencies) if (!groupComps.includes(c)) groupComps.push(c);
-          }
-
           const groupPolarity = g.statements[0]?.polarity ?? null;
 
           return (
@@ -114,14 +108,6 @@ export function BulkTriadPool({
                     <span className="rounded border border-slate-300 bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">✓ Added</span>
                   )}
                 </div>
-                {groupComps.length > 0 && (
-                  <div className="mt-1 mb-2 flex flex-wrap items-center gap-1">
-                    <span className="text-[10px] font-medium text-slate-400 mr-0.5">Competencies:</span>
-                    {groupComps.map((c) => (
-                      <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700">{c}</span>
-                    ))}
-                  </div>
-                )}
                 <div className="space-y-2">
                   {g.statements.map((s, si) => {
                     const label = ["A", "B", "C"][si] ?? String(si + 1);
@@ -137,9 +123,6 @@ export function BulkTriadPool({
                                 <span className="inline-flex items-center gap-1 rounded border border-[#D1FAE5] bg-[#EFF6FF] px-1.5 py-0.5 text-[10px] font-semibold text-[#2563EB]">
                                   [{sAttrInfo.code}] {s.trait}
                                 </span>
-                                {sAttrInfo.competencies.map((c) => (
-                                  <span key={c} className="inline-flex items-center rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">{c}</span>
-                                ))}
                               </>
                             ) : s.trait ? (
                               <span className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700">
