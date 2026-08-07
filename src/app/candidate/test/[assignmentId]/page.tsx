@@ -3,6 +3,7 @@ import { CheckCircle2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { seededShuffle } from "@/lib/shuffle";
 import { buildTestBlocks, shuffleBlockOptions, type TestBlock } from "@/lib/candidate-test-payload";
+import { logAudit } from "@/lib/audit-log";
 import { InstructionsGate } from "./instructions-gate";
 
 function testAccessBlocked(
@@ -70,6 +71,18 @@ export default async function CandidateTestPage({
   if (!assignment || assignment.accessToken !== token) {
     notFound();
   }
+
+  // Evidence trail: every valid access to the candidate's test link, so a dispute
+  // over whether the candidate reached the assessment can be checked against this log.
+  await logAudit({
+    tenantId: assignment.assessment.tenantId,
+    actorType: "CANDIDATE",
+    actorId: assignment.candidateId,
+    action: "LOGIN",
+    entityType: "AssessmentAssignment",
+    entityId: assignment.id,
+    message: `${assignment.candidate.fullName} accessed the test link for "${assignment.assessment.title}"`,
+  });
 
   // Once an assignment is completed (or a result already exists — covers stale-status edge
   // cases like a concurrent tab or cached page), the candidate never sees their own report.

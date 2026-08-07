@@ -12,6 +12,7 @@ import {
   type CompetencyMap,
 } from "@/lib/scoring/competencyEngine";
 import { getDefaultTenantId } from "@/lib/tenant";
+import { logAudit } from "@/lib/audit-log";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildScoringContext(assessment: any, blocks: TestBlock[], answers: AnswerMap): ScoringContext {
@@ -261,6 +262,16 @@ export async function scoreAndSave(assignment: any, rawAnswers: AnswerMap, exist
       });
 
       return result;
+    });
+
+    await logAudit({
+      tenantId,
+      actorType: "CANDIDATE",
+      actorId: assignment.candidateId,
+      action: "TEST_SUBMIT",
+      entityType: "AssessmentResult",
+      entityId: createdResult.id,
+      message: `Submitted "${assignment.assessment.title}" (${submissionType ?? "NORMAL"}), score ${overallScore}%`,
     });
 
     return { ok: true, resultId: createdResult.id };

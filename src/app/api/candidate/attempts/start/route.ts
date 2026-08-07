@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ASSESSMENT_INCLUDE } from "@/lib/score-and-save";
 import { buildTestBlocks, shuffleBlockOptions } from "@/lib/candidate-test-payload";
 import { seededShuffle } from "@/lib/shuffle";
+import { logAudit } from "@/lib/audit-log";
 
 function accessBlocked(
   assessment: {
@@ -172,6 +173,15 @@ export async function POST(request: Request) {
       select: { id: true, progressData: true, startedAt: true },
     });
     if (existing) {
+      await logAudit({
+        tenantId: assignment.assessment.tenantId,
+        actorType: "CANDIDATE",
+        actorId: assignment.candidateId,
+        action: "TEST_RESUME",
+        entityType: "AssessmentAttempt",
+        entityId: existing.id,
+        message: `Resumed "${assignment.assessment.title}"`,
+      });
       return NextResponse.json({
         attemptId: existing.id,
         progressData: existing.progressData ?? null,
@@ -207,6 +217,16 @@ export async function POST(request: Request) {
         progressData: { blockOrder: blocks.map((b) => b.key) } as any,
       },
       select: { id: true, startedAt: true },
+    });
+
+    await logAudit({
+      tenantId: assignment.assessment.tenantId,
+      actorType: "CANDIDATE",
+      actorId: assignment.candidateId,
+      action: "TEST_START",
+      entityType: "AssessmentAttempt",
+      entityId: attempt.id,
+      message: `Attempt #${attemptNo} started for "${assignment.assessment.title}"`,
     });
 
     return NextResponse.json({

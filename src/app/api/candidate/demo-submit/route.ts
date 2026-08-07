@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
+import { logAudit } from "@/lib/audit-log";
 import { buildTestBlocks, type TestBlock } from "@/lib/candidate-test-payload";
 import { scoreAssessment, type AnswerMap, type ScoringContext } from "@/lib/scoring/scoringEngine";
 import {
@@ -461,6 +462,16 @@ export async function POST(req: Request) {
       resultId: createdResult.id,
       candidateId: assignment.candidateId,
       overallScore,
+    });
+
+    await logAudit({
+      tenantId,
+      actorType: "CANDIDATE",
+      actorId: assignment.candidateId,
+      action: "TEST_SUBMIT",
+      entityType: "AssessmentResult",
+      entityId: createdResult.id,
+      message: `Submitted "${assignment.assessment.title}" (${submissionType}), score ${overallScore}%`,
     });
 
     revalidatePath("/candidate");
