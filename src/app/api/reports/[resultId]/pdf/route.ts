@@ -56,6 +56,15 @@ export async function GET(
     await page.goto(printUrl, { waitUntil: "networkidle0" });
     await page.evaluateHandle("document.fonts.ready");
 
+    // Competency pages measure their own content and shrink-to-fit if it would
+    // otherwise overflow one physical page (see AutoFitPageBody) — that
+    // measurement runs client-side after fonts load, so wait for every such
+    // page to report done before snapshotting, or the PDF can capture a page
+    // mid-measurement (pre-shrink) and spill onto a second sheet.
+    await page
+      .waitForFunction(() => document.querySelectorAll('[data-fit="pending"]').length === 0, { timeout: 8000 })
+      .catch(() => {});
+
     const pdfBuffer = await page.pdf({
       format: "a4",
       printBackground: true,

@@ -55,6 +55,7 @@ export function ReportDocument({ report, completedDate }: { report: ReportPayloa
             footerMeta={footerMeta}
             pageNumber={pageOpts ? pageOpts.startPage + 1 + index : undefined}
             totalPages={pageOpts?.totalPages}
+            autoFit
           >
             <CompetencyReportPage
               competencies={report.competencyScores}

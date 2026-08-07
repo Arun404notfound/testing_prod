@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { useReportTheme } from "./report-theme-context";
+import { AutoFitPageBody } from "./AutoFitPageBody";
 
 type Props = {
   children: ReactNode;
@@ -16,9 +17,17 @@ type Props = {
   hideHeaderLogo?: boolean;
   /** Vertically center children within the page body — for cover-style pages. */
   centerContent?: boolean;
+  /**
+   * Guarantee children fit on this one physical page by shrinking them if
+   * needed, regardless of how long the underlying content is. Reserved for
+   * pages meant to be exactly one page each (per-competency detail cards) —
+   * pages that are allowed to legitimately run long (score overview lists,
+   * trait tables) should leave this off.
+   */
+  autoFit?: boolean;
 };
 
-export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, totalPages, hideHeaderLogo, centerContent }: Props) {
+export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, totalPages, hideHeaderLogo, centerContent, autoFit }: Props) {
   const { theme, logoUrl } = useReportTheme();
   const style: CSSProperties = {
     backgroundColor: theme.cardBackground,
@@ -68,7 +77,9 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
         </div>
       )}
 
-      <div className={`report-page-body flex flex-1 flex-col px-10 py-10 ${centerContent ? "justify-center" : ""}`}>{children}</div>
+      <div className={`report-page-body flex flex-1 flex-col px-10 py-10 ${centerContent ? "justify-center" : ""}`}>
+        {autoFit ? <AutoFitPageBody>{children}</AutoFitPageBody> : children}
+      </div>
 
       {hasRunningFooter && (
         <div
