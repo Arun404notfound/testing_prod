@@ -1,5 +1,5 @@
 export const reportTypography = {
-  fontFamily: "'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+  fontFamily: "var(--font-inter), system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
 
   // Heading scale - consistent across all report pages
   h1: { fontSize: "1.875rem", lineHeight: "1.1", fontWeight: 800 },     // 30px - Main page title

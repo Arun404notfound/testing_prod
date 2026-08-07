@@ -149,7 +149,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 Open port 80 in the security group, and the app is now at `http://<EC2-PUBLIC-IP>`.
 Update `NEXT_PUBLIC_APP_URL` in `.env` to drop `:3000` if you do this, then
-`pm2 restart assessment-demo`.
+`pm2 restart timespro`.
 
 ## 8. Later: adding a domain + SSL
 
@@ -171,7 +171,7 @@ npm ci
 npx prisma generate
 npx prisma migrate deploy
 npm run build
-pm2 restart assessment-demo
+pm2 restart timespro
 ```
 
 ## Notes / limitations

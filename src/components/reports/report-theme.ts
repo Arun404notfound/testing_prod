@@ -22,8 +22,11 @@ export const reportTheme = {
   hairline: "#D8DBDF",
   correct: "#10b981",
   incorrect: "#ef4444",
-  /** Base font for the report pages. */
-  fontFamily: "'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+  /** Base font for the report pages — must resolve to the self-hosted Inter
+   *  loaded in layout.tsx (--font-inter), not a bare "Inter" name, or a
+   *  browser/headless-Chromium without Inter installed as a system font
+   *  silently substitutes something else instead of failing loudly. */
+  fontFamily: "var(--font-inter), system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
 
   // Legacy aliases — kept only so older, currently-unrendered report
   // components (TraitScoresPage, SummaryPage, etc.) still type-check.

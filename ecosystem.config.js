@@ -5,7 +5,7 @@
 module.exports = {
   apps: [
     {
-      name: "assessment-demo",
+      name: "timespro",
       cwd: __dirname,
       script: "npm",
       args: "start",
