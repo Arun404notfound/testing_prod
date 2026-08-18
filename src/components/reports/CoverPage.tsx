@@ -9,23 +9,32 @@ function InfoRow({
   label,
   value,
   inkColor,
-  bodyColor,
+  accentColor,
   borderColor,
   isFirst,
 }: {
   label: string;
   value: string;
   inkColor: string;
-  bodyColor: string;
+  accentColor: string;
   borderColor: string;
   isFirst: boolean;
 }) {
   return (
     <tr style={{ borderTop: isFirst ? "none" : `1px solid ${borderColor}` }}>
-      <td style={{ ...reportTypography.tableCell, width: "10rem", padding: "0.625rem 1.5rem 0.625rem 0", textAlign: "left", fontWeight: 700, color: inkColor }}>
+      <td
+        style={{
+          ...reportTypography.h4,
+          width: "9.5rem",
+          padding: "0.7rem 1.5rem 0.7rem 0",
+          textAlign: "left",
+          color: accentColor,
+          letterSpacing: "0.06em",
+        }}
+      >
         {label}
       </td>
-      <td style={{ ...reportTypography.tableCell, padding: "0.625rem 0", textAlign: "left", color: bodyColor }}>
+      <td style={{ ...reportTypography.bodySmall, padding: "0.7rem 0", textAlign: "left", fontWeight: 600, color: inkColor }}>
         {value}
       </td>
     </tr>
@@ -42,14 +51,68 @@ export function CoverPage({
 }) {
   const { theme, logoUrl, disclaimerText } = useReportTheme();
   const reportTypeLabel = REPORT_TEMPLATE_LABELS[report.reportTemplateType];
+  const hasJobRole = Boolean(report.jobRoleName);
 
   return (
     // Fixed minHeight (not h-full/flex-1 on a percentage basis) so the disclaimer
     // reliably lands near the bottom — percentage heights need a definite ancestor
     // height, which a flex-grown parent doesn't reliably provide. margin-top: auto
     // on the disclaimer does the actual push.
-    <div className="flex flex-col" style={{ minHeight: "265mm" }}>
-      <div className="flex flex-1 flex-col items-start justify-center text-left">
+    <div className="relative flex flex-col" style={{ minHeight: "265mm" }}>
+      {/*
+        Decorative background — bleeds past ReportPageShell's own px-10/py-10
+        padding via matching negative insets (same -mx-10 full-bleed trick used
+        by the competency header strips) so it reaches the true page edges
+        instead of stopping at the content box. Two large, softly blurred,
+        slightly rotated squares in the tenant's accent color at very low
+        opacity — calmer than a repeating pattern (a dot/line grid read as
+        busy and mechanical), closer to an ambient wash of color. Pure CSS,
+        so it prints identically to the on-screen preview.
+      */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: "-2.5rem",
+          left: "-2.5rem",
+          right: "-2.5rem",
+          bottom: "-2.5rem",
+          overflow: "hidden",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: "-16%",
+            right: "-12%",
+            width: "48%",
+            aspectRatio: "1 / 1",
+            backgroundColor: theme.accent,
+            opacity: 0.07,
+            borderRadius: "22%",
+            transform: "rotate(16deg)",
+            filter: "blur(60px)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-18%",
+            left: "-10%",
+            width: "34%",
+            aspectRatio: "1 / 1",
+            backgroundColor: theme.accent,
+            opacity: 0.06,
+            borderRadius: "24%",
+            transform: "rotate(-12deg)",
+            filter: "blur(48px)",
+          }}
+        />
+      </div>
+
+      <div className="relative flex flex-1 flex-col items-start justify-center text-left" style={{ zIndex: 1 }}>
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -65,25 +128,24 @@ export function CoverPage({
         <h1 style={{ ...reportTypography.h1, color: theme.ink }}>
           {report.assessmentName}
         </h1>
-        <p style={{ ...reportTypography.h2, color: theme.ink, marginTop: "0.75rem" }}>
-          {reportTypeLabel}
-        </p>
+        <div style={{ height: 4, width: 56, borderRadius: 2, backgroundColor: theme.accent, marginTop: "0.75rem" }} />
 
         <div
           style={{
             marginTop: "2rem",
-            backgroundColor: "#F8FAFC",
-            border: `1px solid ${theme.hairline}`,
-            borderRadius: 8,
-            padding: "1.25rem 1.5rem",
-            boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
+            background: `linear-gradient(135deg, ${theme.accent}14, ${theme.cardBackground} 60%)`,
+            border: `1px solid ${theme.accent}2E`,
+            borderLeft: `4px solid ${theme.accent}`,
+            borderRadius: 12,
+            padding: "1.375rem 1.75rem",
+            boxShadow: "0 12px 28px -16px rgba(15, 23, 42, 0.22)",
           }}
         >
-          <table style={{ ...reportTypography.tableCell, width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <tbody>
               {[
                 { label: "Report for", value: report.candidateName },
-                { label: "Report Type", value: reportTypeLabel },
+                hasJobRole ? { label: "Job Role", value: report.jobRoleName as string } : { label: "Report Type", value: reportTypeLabel },
                 { label: "Date", value: completedDate },
                 ...(report.candidateRole ? [{ label: "Role", value: report.candidateRole }] : []),
                 ...(report.tenantName ? [{ label: "Client", value: report.tenantName }] : []),
@@ -93,8 +155,8 @@ export function CoverPage({
                   label={row.label}
                   value={row.value}
                   inkColor={theme.ink}
-                  bodyColor={theme.body}
-                  borderColor={theme.hairline}
+                  accentColor={theme.accent}
+                  borderColor={`${theme.accent}1F`}
                   isFirst={i === 0}
                 />
               ))}
@@ -104,7 +166,7 @@ export function CoverPage({
       </div>
 
       {disclaimerText && (
-        <p className="text-center text-[11px]" style={{ color: theme.body, marginTop: "auto" }}>
+        <p className="relative text-center text-[11px]" style={{ color: theme.body, marginTop: "auto", zIndex: 1 }}>
           {disclaimerText}
         </p>
       )}

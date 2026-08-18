@@ -73,7 +73,44 @@ export type ReportCompetencyScore = {
     watchOuts: string[];
   } | null;
   developmentProjects: Array<{ title: string; whatToDo: string; howToDoIt: string; evidence: string }>;
+  /** Median scaled score (1–10) across other completed attempts on the same assessment. Null when the cohort is too small to be meaningful. */
+  medianScaledScore: number | null;
+  /** Number of other completed attempts the median was computed from (0 when medianScaledScore is null). */
+  cohortSize: number;
 };
+
+/** Below this, a "median" is more noise than signal — the radar chart falls back to candidate-only. */
+const MIN_COHORT_SIZE_FOR_MEDIAN = 3;
+
+/** Median (not average) scaled competency score across every other completed attempt on the same assessment. */
+async function getCohortMedianCompetencyScores(
+  assessmentId: string,
+  excludeAttemptId: string,
+): Promise<Map<string, { median: number; cohortSize: number }>> {
+  const rows = await prisma.competencyScore.findMany({
+    where: {
+      attempt: { assessmentId, status: "SCORED", id: { not: excludeAttemptId } },
+    },
+    select: { competencyId: true, scaledScore: true },
+  });
+
+  const byCompetency = new Map<string, number[]>();
+  for (const r of rows) {
+    const arr = byCompetency.get(r.competencyId) ?? [];
+    arr.push(r.scaledScore);
+    byCompetency.set(r.competencyId, arr);
+  }
+
+  const result = new Map<string, { median: number; cohortSize: number }>();
+  for (const [competencyId, scores] of byCompetency) {
+    if (scores.length < MIN_COHORT_SIZE_FOR_MEDIAN) continue;
+    const sorted = [...scores].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    result.set(competencyId, { median, cohortSize: scores.length });
+  }
+  return result;
+}
 
 export type ReportPayload = {
   id: string;
@@ -416,10 +453,17 @@ export async function getReportPayload(
 
   const factorAggregates = aggregateFactors(traitScores, factorConfigs, attributeScoresForFactors);
 
+  // Cohort median (other candidates on the same assessment) for the report's radar chart.
+  const cohortMedianByCompetency =
+    attempt && result.assessmentId
+      ? await getCohortMedianCompetencyScores(result.assessmentId, attempt.id)
+      : new Map<string, { median: number; cohortSize: number }>();
+
   // Build competency scores
   const competencyScores: ReportCompetencyScore[] = (attempt?.competencyScores ?? []).map((cs) => {
     const band = cs.band ?? "Moderate";
     const bandContentRow = cs.competency.bandContents.find((b) => b.band === band) ?? null;
+    const cohort = cohortMedianByCompetency.get(cs.competencyId) ?? null;
     return {
       competencyId: cs.competencyId,
       competencyName: cs.competency.name,
@@ -445,6 +489,8 @@ export async function getReportPayload(
         howToDoIt: p.howToDoIt,
         evidence: p.evidence,
       })),
+      medianScaledScore: cohort?.median ?? null,
+      cohortSize: cohort?.cohortSize ?? 0,
     };
   });
 

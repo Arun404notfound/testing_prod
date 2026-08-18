@@ -65,9 +65,18 @@ export async function GET(
       .waitForFunction(() => document.querySelectorAll('[data-fit="pending"]').length === 0, { timeout: 8000 })
       .catch(() => {});
 
+    // A plain timer, not requestAnimationFrame — an rAF-gated wait inside
+    // page.evaluate can simply never resolve on a headless page that isn't
+    // actively compositing frames, which silently hung this exact wait
+    // before and made every fit decision below time out unused. One more
+    // settle pass here catches any font/reflow timing this fresh, uncached
+    // browser is still behind on right after `data-fit` flips to "done".
+    await page.evaluate(() => new Promise<void>((resolve) => setTimeout(resolve, 300)));
+
     const pdfBuffer = await page.pdf({
       format: "a4",
       printBackground: true,
+      preferCSSPageSize: true,
       margin: { top: 0, bottom: 0, left: 0, right: 0 },
     });
 

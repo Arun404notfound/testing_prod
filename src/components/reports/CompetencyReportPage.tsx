@@ -2,6 +2,7 @@
 
 import { useReportTheme } from "@/components/reports/report-theme-context";
 import { reportTypography } from "./report-typography";
+import { CompetencyRadarChart } from "./CompetencyRadarChart";
 
 export type CompetencyScoreData = {
   competencyId: string;
@@ -20,13 +21,20 @@ export type CompetencyScoreData = {
     watchOuts: string[];
   } | null;
   developmentProjects?: Array<{ title: string; whatToDo: string; howToDoIt: string; evidence: string }>;
+  /** Median scaled score (1–10) across other completed attempts on the same assessment. Null when the cohort is too small. */
+  medianScaledScore?: number | null;
 };
 
 type Props = {
   competencies: CompetencyScoreData[];
   heading?: string;
   detailCompetencies?: CompetencyScoreData[];
-  showOverview?: boolean;
+  /** Render the page heading + candidate-vs-cohort radar chart. */
+  showRadar?: boolean;
+  /** Render the ranked score-overview list (its own page heading when shown alone). */
+  showScoreOverview?: boolean;
+  /** Radar chart height in px — shrunk when the chart shares a page with other content. */
+  radarHeight?: number;
   detailIndexOffset?: number;
 };
 
@@ -40,12 +48,12 @@ const WATCH_OUT_BG = "#FFFBEB"; // amber-50
 const WATCH_OUT_BORDER = "#FDE68A"; // amber-200
 
 /** Score-based colors: green for > 6.5, blue for ≤ 6.5 */
-function scoreColor(score: number): string {
+export function scoreColor(score: number): string {
   return score > 6.5 ? "#059669" : "#1D4ED8"; // emerald-600 / blue-700
 }
 
 /** Solid, saturated band colors — no pastel washes. White text sits directly on these. */
-function bandColor(band: string): { solid: string } {
+export function bandColor(band: string): { solid: string } {
   switch (band) {
     // Legacy 5-band scale (GENERIC_5)
     case "Exceptional":
@@ -181,7 +189,9 @@ export function CompetencyReportPage({
   competencies,
   heading = "Competency Profile",
   detailCompetencies = competencies,
-  showOverview = true,
+  showRadar = true,
+  showScoreOverview = true,
+  radarHeight = 340,
   detailIndexOffset = 0,
 }: Props) {
   const { theme } = useReportTheme();
@@ -207,7 +217,7 @@ export function CompetencyReportPage({
 
 return (
     <div>
-      {showOverview && (<>
+      {showRadar && (<>
       {/* Heading */}
       <div style={{ ...reportTypography.h2, borderBottom: `2px solid ${theme.ink}`, paddingBottom: "0.5rem", marginBottom: "1.5rem", color: theme.ink }}>
         {heading}
@@ -216,9 +226,32 @@ return (
         Scores are on a 1–10 scale derived from candidate responses mapped to each competency.
       </p>
 
+      {/* Candidate vs. cohort median — spider/radar comparison */}
+      <div style={{ marginTop: "1.5rem" }}>
+        <h3 style={{ ...reportTypography.h3, marginBottom: "0.5rem", color: theme.ink }}>Candidate vs. Cohort Median</h3>
+        <CompetencyRadarChart
+          height={radarHeight}
+          competencies={competencies.map((c) => ({
+            competencyId: c.competencyId,
+            competencyName: c.competencyName,
+            scaledScore: c.scaledScore,
+            medianScaledScore: c.medianScaledScore ?? null,
+          }))}
+        />
+      </div>
+      </>)}
+
+      {showScoreOverview && (<>
+      {/* Page heading — standalone when the radar page precedes it on its own sheet */}
+      <div style={{ ...reportTypography.h2, borderBottom: `2px solid ${theme.ink}`, paddingBottom: "0.5rem", marginBottom: "1.5rem", color: theme.ink }}>
+        Score Overview
+      </div>
+      <p style={{ ...reportTypography.bodyXSmall, color: theme.body, marginTop: "-1rem", marginBottom: "1.5rem" }}>
+        Every competency scored in this assessment, ranked highest to lowest.
+      </p>
+
       {/* Score overview bar chart */}
       <div style={{ marginBottom: "1.5rem" }}>
-        <h3 style={{ ...reportTypography.h3, marginBottom: "0.75rem", color: theme.ink }}>Score Overview</h3>
         <div>
           {[...competencies]
             .sort((a, b) => b.scaledScore - a.scaledScore)
@@ -425,14 +458,25 @@ return (
                         <p data-pdf-break-after="avoid" style={{ ...reportTypography.h3, marginBottom: 4, color: theme.ink }}>
                           On-the-Job Development Projects
                         </p>
-                        <div style={{ display: "flex", alignItems: "stretch", gap: 12 }}>
-                          {c.developmentProjects.map((p, i) => (
+                        {/*
+                          Floated columns, not flex/grid — Chrome's print engine doesn't split
+                          an overflowing flex row across pages: it defers the *entire* row whole
+                          to a fresh page, leaving a large blank gap behind. Floats fragment
+                          properly instead — but only as long as this wrapper stays a plain
+                          block. `overflow: hidden` is the usual float-clearfix, but it (like
+                          `flex`/`grid`) establishes a new block-formatting context, and Chrome
+                          treats *those* as atomic for pagination too — same bug, different
+                          trigger. A trailing `clear: both` div clears the floats without turning
+                          the wrapper into a BFC, so it stays plain, fragmentable block flow.
+                        */}
+                        <div>
+                          {c.developmentProjects.map((p, i, projects) => (
                             <div
                               key={i}
                               style={{
-                                minWidth: 0,
-                                flex: 1,
-                                alignSelf: "stretch",
+                                float: "left",
+                                width: "calc((100% - 24px) / 3)",
+                                marginRight: i < projects.length - 1 ? 12 : 0,
                                 backgroundColor: "#F8FAFC",
                                 border: `1px solid ${theme.hairline}`,
                                 borderTop: `2px solid ${theme.accent}`,
@@ -458,6 +502,7 @@ return (
                               )}
                             </div>
                           ))}
+                          <div style={{ clear: "both" }} />
                         </div>
                       </div>
                     )}
