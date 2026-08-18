@@ -52,6 +52,7 @@ async function bulkAssignBatch(formData: FormData) {
       });
       created++;
       const emailResult = await sendAssignmentAssignedEmail({
+        tenantId,
         candidateEmail: candidate.email,
         candidateName: candidate.fullName,
         assessmentTitle: assessment.title,
@@ -101,6 +102,7 @@ async function createAssignment(formData: FormData) {
   });
 
   const emailResult = await sendAssignmentAssignedEmail({
+    tenantId,
     candidateEmail: candidate.email,
     candidateName: candidate.fullName,
     assessmentTitle: assessment.title,

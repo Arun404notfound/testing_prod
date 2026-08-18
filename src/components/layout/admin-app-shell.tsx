@@ -11,6 +11,7 @@ import {
   HelpCircle,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu,
   UserPlus,
   Users,
@@ -50,6 +51,12 @@ const navGroups = [
     label: "Reports & Settings",
     items: [
       { href: "/admin/reports", label: "Reports", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Mail Templates",
+    items: [
+      { href: "/admin/mail-templates", label: "Mail Templates", icon: Mail },
     ],
   },
 ];

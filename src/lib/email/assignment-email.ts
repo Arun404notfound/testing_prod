@@ -1,5 +1,13 @@
 import { randomBytes } from "node:crypto";
+import { prisma } from "@/lib/prisma";
 import { sendTransactionalEmail, type SendEmailResult } from "./brevo";
+import {
+  ASSIGNMENT_INVITE_TEMPLATE_KEY,
+  DEFAULT_ASSIGNMENT_INVITE_BODY,
+  DEFAULT_ASSIGNMENT_INVITE_SUBJECT,
+  buildAssignmentEmailHtml,
+  renderTemplate,
+} from "./template-render";
 
 export function generateAccessToken() {
   return randomBytes(24).toString("base64url");
@@ -17,6 +25,7 @@ function formatDeadline(expiresAt: Date | null) {
 }
 
 export async function sendAssignmentAssignedEmail({
+  tenantId,
   candidateEmail,
   candidateName,
   assessmentTitle,
@@ -24,6 +33,7 @@ export async function sendAssignmentAssignedEmail({
   durationMinutes,
   expiresAt,
 }: {
+  tenantId?: string | null;
   candidateEmail: string;
   candidateName: string;
   assessmentTitle: string;
@@ -33,32 +43,27 @@ export async function sendAssignmentAssignedEmail({
 }): Promise<SendEmailResult> {
   const deadline = formatDeadline(expiresAt);
 
-  const html = `
-    <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px; margin: 0 auto; color: #0F172A;">
-      <p style="font-size: 15px;">Hi ${candidateName},</p>
-      <p style="font-size: 15px; line-height: 1.6;">
-        You've been assigned a new assessment: <strong>${assessmentTitle}</strong>.
-      </p>
-      <ul style="font-size: 14px; color: #475569; line-height: 1.8; padding-left: 18px;">
-        ${durationMinutes ? `<li>Duration: ${durationMinutes} minutes</li>` : ""}
-        ${deadline ? `<li>Complete before: ${deadline}</li>` : ""}
-      </ul>
-      <p style="margin: 24px 0;">
-        <a href="${link}" style="background: #2563EB; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
-          Start Assessment
-        </a>
-      </p>
-      <p style="font-size: 12px; color: #94A3B8;">
-        This link is unique to you — please don't share it. If the button doesn't work, copy this link into your browser:<br />
-        <a href="${link}" style="color: #2563EB;">${link}</a>
-      </p>
-    </div>
-  `;
+  const template = tenantId
+    ? await prisma.emailTemplate.findUnique({
+        where: { tenantId_key: { tenantId, key: ASSIGNMENT_INVITE_TEMPLATE_KEY } },
+      })
+    : null;
+
+  const vars = {
+    candidatename: candidateName,
+    assessmenttitle: assessmentTitle,
+    duration: durationMinutes ? String(durationMinutes) : "",
+    deadline: deadline ?? "",
+  };
+
+  const subject = renderTemplate(template?.subject ?? DEFAULT_ASSIGNMENT_INVITE_SUBJECT, vars);
+  const bodyText = renderTemplate(template?.bodyText ?? DEFAULT_ASSIGNMENT_INVITE_BODY, vars);
+  const html = buildAssignmentEmailHtml(bodyText, link);
 
   return sendTransactionalEmail({
     to: candidateEmail,
     toName: candidateName,
-    subject: `Assessment assigned: ${assessmentTitle}`,
+    subject,
     html,
   });
 }

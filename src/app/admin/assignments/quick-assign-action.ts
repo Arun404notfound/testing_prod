@@ -60,6 +60,7 @@ export async function quickAssignAction(
         });
         created++;
         const emailResult = await sendAssignmentAssignedEmail({
+          tenantId,
           candidateEmail: candidate.email,
           candidateName: candidate.fullName,
           assessmentTitle: assessment.title,
@@ -109,6 +110,7 @@ export async function quickAssignAction(
   });
 
   const emailResult = await sendAssignmentAssignedEmail({
+    tenantId,
     candidateEmail: candidate.email,
     candidateName: candidate.fullName,
     assessmentTitle: assessment.title,
