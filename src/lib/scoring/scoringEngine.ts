@@ -51,29 +51,28 @@ export type QuestionResponsePayload = {
   isCorrect: boolean;
 };
 
+export type ScoringItem = {
+  id: string;
+  itemType: ItemType;
+  prompt: string;
+  factor: string | null;
+  trait: string | null;
+  definition: string | null;
+  polarity: Polarity | null;
+  sectionTitle: string;
+  options: Array<{
+    id: string;
+    label: string;
+    value: string;
+    isCorrect: boolean;
+    scoreValue: number | null;
+  }>;
+};
+
 export type ScoringContext = {
   blocks: TestBlock[];
   answers: AnswerMap;
-  itemById: Map<
-    string,
-    {
-      id: string;
-      itemType: ItemType;
-      prompt: string;
-      factor: string | null;
-      trait: string | null;
-      definition: string | null;
-      polarity: Polarity | null;
-      sectionTitle: string;
-      options: Array<{
-        id: string;
-        label: string;
-        value: string;
-        isCorrect: boolean;
-        scoreValue: number | null;
-      }>;
-    }
-  >;
+  itemById: Map<string, ScoringItem>;
   questionById: Map<
     string,
     {
@@ -130,6 +129,24 @@ function maxMarksForMcqItem(options: Array<{ isCorrect: boolean; scoreValue: num
     if (o.isCorrect) m = Math.max(m, o.scoreValue ?? 1);
   }
   return m;
+}
+
+/** SJT max isn't gated on isCorrect — every option can carry weighted partial credit, so the best-possible score is simply the highest scoreValue across all options. */
+function maxMarksForSjtItem(options: Array<{ scoreValue: number | null }>): number {
+  let m = 1;
+  for (const o of options) m = Math.max(m, o.scoreValue ?? 0);
+  return m;
+}
+
+/** Shared single-best-answer MCQ evaluation, reused by item_mcq/item_tf and by each case-study sub-question. */
+function evaluateMcqSelection(item: ScoringItem, optionId: string | undefined) {
+  if (optionId === undefined) return null;
+  const opt = item.options.find((o) => o.id === optionId);
+  if (!opt) return null;
+  const max = maxMarksForMcqItem(item.options);
+  const score = opt.isCorrect ? optionMarks(opt) : 0;
+  const correctOpt = item.options.find((o) => o.isCorrect);
+  return { opt, max, score, isCorrect: opt.isCorrect, correctOpt };
 }
 
 function likertScoredValue(selectedRating: number, itemPolarity: Polarity | null): number {
@@ -211,6 +228,22 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         bumpTrait(st.factor, st.trait, st.definition, 0, 3);
       }
       bumpSection(group.sectionTitle, 0, 6);
+    } else if (b.kind === "sjt") {
+      const item = ctx.itemById.get(b.itemId);
+      if (!item) continue;
+      const max = maxMarksForSjtItem(item.options);
+      bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), 0, max);
+      bumpSection(item.sectionTitle, 0, max);
+    } else if (b.kind === "case_study") {
+      let csMax = 0;
+      for (const sq of b.subQuestions) {
+        const item = ctx.itemById.get(sq.itemId);
+        if (!item) continue;
+        const max = maxMarksForMcqItem(item.options);
+        bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), 0, max);
+        csMax += max;
+      }
+      bumpSection(b.section, 0, csMax);
     }
   }
 
@@ -245,14 +278,11 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
       });
       questionResponses.push({ questionId: q.id, selectedOption, isCorrect });
     } else if (b.kind === "item_mcq" || b.kind === "item_tf") {
-      const optionId = String(v);
       const item = ctx.itemById.get(b.itemId);
       if (!item) continue;
-      const opt = item.options.find((o) => o.id === optionId);
-      if (!opt) continue;
-      const max = maxMarksForMcqItem(item.options);
-      const score = opt.isCorrect ? optionMarks(opt) : 0;
-      const isCorrect = opt.isCorrect;
+      const evalResult = evaluateMcqSelection(item, String(v));
+      if (!evalResult) continue;
+      const { opt, max, score, isCorrect, correctOpt } = evalResult;
       totalRaw += score;
       // Only bump raw — max already registered in pre-pass
       bumpTrait(
@@ -263,7 +293,6 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         0,
       );
 
-      const correctOpt = item.options.find((o) => o.isCorrect);
       evaluations.push({
         itemId: item.id,
         itemType: item.itemType,
@@ -362,6 +391,89 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         rawScore: groupRaw,
         scoredValue: groupRaw,
       });
+    } else if (b.kind === "sjt") {
+      const optionId = String(v);
+      const item = ctx.itemById.get(b.itemId);
+      if (!item) continue;
+      const opt = item.options.find((o) => o.id === optionId);
+      if (!opt) continue;
+      const max = maxMarksForSjtItem(item.options);
+      // Weighted partial credit — every option can carry marks, not gated on isCorrect.
+      const score = opt.scoreValue ?? 0;
+      // "isCorrect" here is a review signal (did they pick the top-scoring option), not the scoring driver.
+      const isCorrect = score >= max;
+      totalRaw += score;
+      // Only bump raw — max already registered in pre-pass
+      bumpTrait(
+        item.factor ?? "General",
+        item.trait ?? "General",
+        item.definition ?? item.prompt.slice(0, 120),
+        score,
+        0,
+      );
+
+      const bestOpt = [...item.options].sort((a, b2) => (b2.scoreValue ?? 0) - (a.scoreValue ?? 0))[0];
+      evaluations.push({
+        itemId: item.id,
+        itemType: "SJT",
+        selectedAnswer: opt.label || opt.value,
+        correctAnswer: bestOpt ? bestOpt.label || bestOpt.value : null,
+        score,
+        maxScore: max,
+        isCorrect,
+        factor: item.factor ?? "General",
+        attribute: item.trait ?? "General",
+        polarity: item.polarity ?? null,
+      });
+      attemptResponses.push({
+        itemId: item.id,
+        itemOptionId: opt.id,
+        status: "ANSWERED",
+        isCorrect,
+        numericValue: score,
+        rawScore: score,
+        scoredValue: score,
+      });
+    } else if (b.kind === "case_study") {
+      const answerMap = (v as Record<string, string> | undefined) ?? {};
+      for (const sq of b.subQuestions) {
+        const item = ctx.itemById.get(sq.itemId);
+        if (!item) continue;
+        const evalResult = evaluateMcqSelection(item, answerMap[sq.itemId]);
+        if (!evalResult) continue;
+        const { opt, max, score, isCorrect, correctOpt } = evalResult;
+        totalRaw += score;
+        // Only bump raw — max already registered in pre-pass
+        bumpTrait(
+          item.factor ?? "General",
+          item.trait ?? "General",
+          item.definition ?? item.prompt.slice(0, 120),
+          score,
+          0,
+        );
+
+        evaluations.push({
+          itemId: item.id,
+          itemType: item.itemType,
+          selectedAnswer: opt.label || opt.value,
+          correctAnswer: correctOpt ? correctOpt.label || correctOpt.value : null,
+          score,
+          maxScore: max,
+          isCorrect,
+          factor: item.factor ?? "General",
+          attribute: item.trait ?? "General",
+          polarity: item.polarity ?? null,
+        });
+        attemptResponses.push({
+          itemId: item.id,
+          itemOptionId: opt.id,
+          status: "ANSWERED",
+          isCorrect,
+          numericValue: isCorrect ? 1 : 0,
+          rawScore: score,
+          scoredValue: score,
+        });
+      }
     }
   }
 

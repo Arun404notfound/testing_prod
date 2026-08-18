@@ -14,3 +14,13 @@ export function allowsLikertPool(type: AssessmentType): boolean {
 export function allowsTriadPool(type: AssessmentType): boolean {
   return type === "FORCED_CHOICE_TRIAD" || type === "HYBRID";
 }
+
+// SJT and Case Study sub-questions are single-best-answer MCQ-shaped items,
+// so they pool under the same assessment types as knowledge MCQs.
+export function allowsSjtPool(type: AssessmentType): boolean {
+  return type === "KNOWLEDGE_MCQ" || type === "HYBRID";
+}
+
+export function allowsCaseStudyPool(type: AssessmentType): boolean {
+  return type === "KNOWLEDGE_MCQ" || type === "HYBRID";
+}

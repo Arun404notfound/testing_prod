@@ -7,7 +7,8 @@ import { PageHeader } from "@/components/ui/page-header";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-async function nextLikertDisplayOrder(): Promise<number> {
+/** Shared by any bank-level (unsectioned) AssessmentItem — Likert, SJT, etc. */
+async function nextBankItemDisplayOrder(): Promise<number> {
   const agg = await prisma.assessmentItem.aggregate({
     where: { sectionId: null },
     _max: { displayOrder: true },
@@ -17,6 +18,14 @@ async function nextLikertDisplayOrder(): Promise<number> {
 
 async function nextTriadDisplayOrder(): Promise<number> {
   const agg = await prisma.triadGroup.aggregate({
+    where: { sectionId: null },
+    _max: { displayOrder: true },
+  });
+  return (agg._max.displayOrder ?? 0) + 1;
+}
+
+async function nextCaseStudyDisplayOrder(): Promise<number> {
+  const agg = await prisma.caseStudy.aggregate({
     where: { sectionId: null },
     _max: { displayOrder: true },
   });
@@ -37,7 +46,7 @@ async function createLikertQuestion(formData: FormData) {
   const attribute = await prisma.attribute.findUnique({ where: { id: attributeId }, select: { name: true } });
   if (!attribute) redirect("/admin/questions?tab=likert&status=error&reason=missing");
 
-  const displayOrder = await nextLikertDisplayOrder();
+  const displayOrder = await nextBankItemDisplayOrder();
 
   try {
     await prisma.assessmentItem.create({
@@ -129,6 +138,145 @@ async function deleteTriadGroup(formData: FormData) {
   redirect("/admin/questions?tab=triad");
 }
 
+async function createSjtQuestion(formData: FormData) {
+  "use server";
+  const prompt = String(formData.get("prompt") ?? "").trim();
+  const attributeId = String(formData.get("attributeId") ?? "").trim();
+  const opts = [1, 2, 3, 4].map((n) => ({
+    label: String(formData.get(`opt${n}_label`) ?? "").trim(),
+    scoreValue: Number(formData.get(`opt${n}_score`)),
+  }));
+
+  if (
+    !prompt || !attributeId ||
+    opts.some((o) => !o.label || !Number.isFinite(o.scoreValue))
+  ) {
+    redirect("/admin/questions?tab=sjt&status=error&reason=missing");
+  }
+
+  const attribute = await prisma.attribute.findUnique({ where: { id: attributeId }, select: { name: true, category: true } });
+  if (!attribute) redirect("/admin/questions?tab=sjt&status=error&reason=missing");
+
+  const bestScore = Math.max(...opts.map((o) => o.scoreValue));
+  const displayOrder = await nextBankItemDisplayOrder();
+
+  try {
+    await prisma.assessmentItem.create({
+      data: {
+        itemType: "SJT",
+        prompt,
+        factor: attribute.category || "General",
+        trait: attribute.name,
+        definition: attribute.name,
+        attributeId,
+        displayOrder,
+        options: {
+          create: opts.map((o, i) => ({
+            label: o.label,
+            value: o.label,
+            displayOrder: i,
+            // Best-scoring option flagged as "correct" for admin-review display only —
+            // scoring itself uses each option's scoreValue directly (weighted partial credit).
+            isCorrect: o.scoreValue === bestScore,
+            scoreValue: o.scoreValue,
+          })),
+        },
+      },
+    });
+  } catch {
+    redirect("/admin/questions?tab=sjt&status=error&reason=db");
+  }
+  redirect("/admin/questions?tab=sjt&status=success");
+}
+
+async function deleteSjtItem(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  await prisma.assessmentItem.delete({ where: { id } }).catch(() => {});
+  redirect("/admin/questions?tab=sjt");
+}
+
+async function createCaseStudy(formData: FormData) {
+  "use server";
+  const title = String(formData.get("title") ?? "").trim();
+  const passageText = String(formData.get("passageText") ?? "").trim();
+
+  const subs = [0, 1, 2].map((i) => ({
+    prompt: String(formData.get(`sub_${i}_prompt`) ?? "").trim(),
+    attributeId: String(formData.get(`sub_${i}_attributeId`) ?? "").trim(),
+    options: [1, 2, 3, 4].map((n) => String(formData.get(`sub_${i}_option${n}`) ?? "").trim()),
+    correctOption: Number(formData.get(`sub_${i}_correctOption`)),
+  }));
+
+  if (
+    !title || !passageText ||
+    subs.some(
+      (s) =>
+        !s.prompt || !s.attributeId || s.options.some((o) => !o) ||
+        !Number.isInteger(s.correctOption) || s.correctOption < 1 || s.correctOption > 4,
+    )
+  ) {
+    redirect("/admin/questions?tab=case_study&status=error&reason=missing");
+  }
+
+  const attrs = await prisma.attribute.findMany({
+    where: { id: { in: subs.map((s) => s.attributeId) } },
+    select: { id: true, name: true, category: true },
+  });
+  const attrById = new Map(attrs.map((a) => [a.id, a]));
+  if (subs.some((s) => !attrById.has(s.attributeId))) {
+    redirect("/admin/questions?tab=case_study&status=error&reason=missing");
+  }
+
+  const tenantId = await getDefaultTenantId();
+  const displayOrder = await nextCaseStudyDisplayOrder();
+
+  try {
+    await prisma.caseStudy.create({
+      data: {
+        tenantId,
+        title,
+        passageText,
+        displayOrder,
+        subQuestions: {
+          create: subs.map((s, i) => {
+            const attr = attrById.get(s.attributeId)!;
+            return {
+              itemType: "MCQ_SINGLE" as const,
+              prompt: s.prompt,
+              displayOrder: i,
+              factor: attr.category || "General",
+              trait: attr.name,
+              definition: attr.name,
+              attributeId: s.attributeId,
+              options: {
+                create: s.options.map((label, oi) => ({
+                  label,
+                  value: label,
+                  displayOrder: oi,
+                  isCorrect: oi + 1 === s.correctOption,
+                })),
+              },
+            };
+          }),
+        },
+      },
+    });
+  } catch {
+    redirect("/admin/questions?tab=case_study&status=error&reason=db");
+  }
+  redirect("/admin/questions?tab=case_study&status=success");
+}
+
+async function deleteCaseStudy(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+  await prisma.caseStudy.delete({ where: { id } }).catch(() => {});
+  redirect("/admin/questions?tab=case_study");
+}
+
 async function createMcqQuestion(formData: FormData) {
   "use server";
   const questionText = String(formData.get("questionText") ?? "").trim();
@@ -210,7 +358,8 @@ async function updateItemAttribute(formData: FormData) {
   "use server";
   const itemId = String(formData.get("itemId") ?? "").trim();
   const attributeId = String(formData.get("attributeId") ?? "").trim();
-  if (!itemId) redirect("/admin/questions?tab=likert");
+  const tab = String(formData.get("tab") ?? "likert").trim() || "likert";
+  if (!itemId) redirect(`/admin/questions?tab=${tab}`);
   let saved = false;
   try {
     await prisma.assessmentItem.update({
@@ -219,7 +368,7 @@ async function updateItemAttribute(formData: FormData) {
     });
     saved = true;
   } catch { /* swallow — redirect below carries the status */ }
-  redirect(`/admin/questions?tab=likert&status=${saved ? "success" : "error"}&reason=db`);
+  redirect(`/admin/questions?tab=${tab}&status=${saved ? "success" : "error"}&reason=db`);
 }
 
 async function updateStatementAttribute(formData: FormData) {
@@ -267,16 +416,21 @@ const BIG_FIVE_FACTORS = ["Extraversion", "Agreeableness", "Conscientiousness", 
 export default async function QuestionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; status?: string; reason?: string; addLikert?: string; addTriad?: string; addMcq?: string }>;
+  searchParams: Promise<{
+    tab?: string; status?: string; reason?: string;
+    addLikert?: string; addTriad?: string; addMcq?: string; addSjt?: string; addCaseStudy?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const tab = sp.tab ?? "likert";
   const addLikertOpen = sp.addLikert === "1";
   const addTriadOpen = sp.addTriad === "1";
   const addMcqOpen = sp.addMcq === "1";
+  const addSjtOpen = sp.addSjt === "1";
+  const addCaseStudyOpen = sp.addCaseStudy === "1";
   const tenantId = await getDefaultTenantId();
 
-  const [likertItems, triadGroups, mcqQuestions, attributes, competencies, mappings] = await Promise.all([
+  const [likertItems, triadGroups, mcqQuestions, sjtItems, caseStudies, attributes, competencies, mappings] = await Promise.all([
     prisma.assessmentItem.findMany({
       where: { itemType: "LIKERT" },
       include: {
@@ -303,6 +457,29 @@ export default async function QuestionsPage({
       },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.assessmentItem.findMany({
+      where: { itemType: "SJT" },
+      include: {
+        attribute: { include: { competencyMaps: { include: { competency: true } } } },
+        section: { select: { title: true } },
+        options: { orderBy: { displayOrder: "asc" } },
+      },
+      orderBy: { displayOrder: "asc" },
+    }),
+    prisma.caseStudy.findMany({
+      where: { tenantId },
+      include: {
+        section: { select: { title: true } },
+        subQuestions: {
+          include: {
+            attribute: { include: { competencyMaps: { include: { competency: true } } } },
+            options: { orderBy: { displayOrder: "asc" } },
+          },
+          orderBy: { displayOrder: "asc" },
+        },
+      },
+      orderBy: { displayOrder: "asc" },
+    }),
     prisma.attribute.findMany({ where: { tenantId }, orderBy: { code: "asc" } }),
     prisma.competency.findMany({ where: { tenantId }, orderBy: { name: "asc" } }),
     prisma.attributeCompetencyMap.findMany({ include: { attribute: true, competency: true } }),
@@ -314,6 +491,8 @@ export default async function QuestionsPage({
     { id: "likert", label: `Likert Items (${likertItems.length})` },
     { id: "triad", label: `Triad Groups (${triadGroups.length})` },
     { id: "mcq", label: `MCQ Questions (${mcqQuestions.length})` },
+    { id: "sjt", label: `SJT Items (${sjtItems.length})` },
+    { id: "case_study", label: `Case Studies (${caseStudies.length})` },
     { id: "chain", label: "Scoring Chain" },
   ];
 
@@ -726,6 +905,236 @@ export default async function QuestionsPage({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── SJT TAB ───────────────────────────────────────────────────────────── */}
+      {tab === "sjt" && (
+        <div className="space-y-4">
+          {!addSjtOpen ? (
+            <Link href="/admin/questions?tab=sjt&addSjt=1"
+              className="flex items-center gap-2 rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white px-5 py-3.5 text-sm font-medium text-[#475569] transition hover:border-blue-400 hover:text-blue-600">
+              <Plus size={16} /> Add New SJT Item
+            </Link>
+          ) : (
+            <div className={card}>
+              <div className={`${cardHeader} flex items-center justify-between`}>
+                <div>
+                  <p className="text-sm font-semibold text-[#0F172A]">Add New Situational Judgment Item</p>
+                  <p className="text-[11px] text-[#64748B]">A short scenario with response options — each option carries its own point value, so credit isn&apos;t all-or-nothing.</p>
+                </div>
+                <Link href="/admin/questions?tab=sjt" className="text-xs text-[#94A3B8] hover:text-[#334155]">Cancel</Link>
+              </div>
+              <form action={createSjtQuestion} className="grid gap-4 p-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Scenario *</label>
+                  <input name="prompt" required placeholder="e.g. A teammate consistently misses deadlines. What do you do?" className={inputCls} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute *</label>
+                  <select name="attributeId" required defaultValue="" className={inputCls}>
+                    <option value="" disabled>Select attribute…</option>
+                    {attributes.map((a) => (
+                      <option key={a.id} value={a.id}>[{a.code}] {a.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {[1, 2, 3, 4].map((n) => (
+                  <div key={n} className="rounded-xl border border-[#E2E8F0] p-3">
+                    <label className="mb-1 block text-xs font-medium text-[#475569]">Response {n} *</label>
+                    <input name={`opt${n}_label`} required placeholder={`Response ${n}`} className={`${inputCls} mb-2`} />
+                    <label className="mb-1 block text-xs font-medium text-[#475569]">Points *</label>
+                    <input name={`opt${n}_score`} type="number" step="1" required placeholder="e.g. 3 = best, 0 = worst" className={inputCls} />
+                  </div>
+                ))}
+                <div className="sm:col-span-2 flex justify-end gap-3 border-t border-[#F1F5F9] pt-4">
+                  <Link href="/admin/questions?tab=sjt" className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">Cancel</Link>
+                  <button type="submit" className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                    Add SJT Item
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className={card}>
+            <div className={cardHeader}>
+              <p className="text-sm font-semibold text-[#0F172A]">Situational Judgment Items</p>
+              <p className="mt-0.5 text-xs text-[#64748B]">Scenario-based questions scored with weighted partial credit across options.</p>
+            </div>
+            <div className="divide-y divide-[#F1F5F9]">
+              {sjtItems.map((item, idx) => {
+                const bestScore = Math.max(...item.options.map((o) => o.scoreValue ?? 0));
+                return (
+                  <div key={item.id} className="px-5 py-4 sm:flex sm:items-start sm:gap-4">
+                    <span className="hidden sm:flex h-6 w-6 shrink-0 mt-0.5 items-center justify-center rounded-full bg-[#F1F5F9] text-[11px] font-bold text-[#64748B]">
+                      {idx + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[#0F172A] leading-snug">{item.prompt}</p>
+                      {item.trait && <p className="mt-1 text-[10px] text-[#94A3B8]">Attribute: {item.trait}</p>}
+                      <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                        {item.options.map((opt) => (
+                          <p key={opt.id} className={`flex items-start gap-1.5 text-xs ${opt.scoreValue === bestScore ? "font-semibold text-emerald-700" : "text-[#475569]"}`}>
+                            <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${opt.scoreValue === bestScore ? "bg-emerald-100 text-emerald-700" : "bg-[#F1F5F9] text-[#94A3B8]"}`}>
+                              {opt.scoreValue ?? 0}pt
+                            </span>
+                            {opt.label}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 sm:mt-0 sm:shrink-0 sm:w-56">
+                      <form key={item.attributeId ?? "none"} action={updateItemAttribute} className="flex flex-1 items-center gap-2">
+                        <input type="hidden" name="itemId" value={item.id} />
+                        <input type="hidden" name="tab" value="sjt" />
+                        <select name="attributeId" defaultValue={item.attributeId ?? ""} className={selectCls}>{attrOptions}</select>
+                        <button type="submit" className={saveBtnCls}>Save</button>
+                      </form>
+                      <form action={deleteSjtItem}>
+                        <input type="hidden" name="id" value={item.id} />
+                        <button type="submit" className="rounded-lg border border-rose-200 p-1.5 text-rose-500 hover:bg-rose-50 transition" title="Delete">
+                          <Trash2 size={14} />
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                );
+              })}
+              {sjtItems.length === 0 && (
+                <p className="px-5 py-10 text-center text-sm text-[#64748B]">No SJT items yet. Add one above.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CASE STUDY TAB ────────────────────────────────────────────────────── */}
+      {tab === "case_study" && (
+        <div className="space-y-4">
+          {!addCaseStudyOpen ? (
+            <Link href="/admin/questions?tab=case_study&addCaseStudy=1"
+              className="flex items-center gap-2 rounded-xl border-2 border-dashed border-[#CBD5E1] bg-white px-5 py-3.5 text-sm font-medium text-[#475569] transition hover:border-fuchsia-400 hover:text-fuchsia-600">
+              <Plus size={16} /> Add New Case Study
+            </Link>
+          ) : (
+            <div className={card}>
+              <div className={`${cardHeader} flex items-center justify-between`}>
+                <div>
+                  <p className="text-sm font-semibold text-[#0F172A]">Add New Case Study</p>
+                  <p className="text-[11px] text-[#64748B]">One passage followed by 3 multiple-choice sub-questions, shown together on one screen.</p>
+                </div>
+                <Link href="/admin/questions?tab=case_study" className="text-xs text-[#94A3B8] hover:text-[#334155]">Cancel</Link>
+              </div>
+              <form action={createCaseStudy} className="space-y-5 p-5">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Case Study Title *</label>
+                  <input name="title" required placeholder="e.g. The Delayed Product Launch" className={inputCls} />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[#475569]">Passage *</label>
+                  <textarea name="passageText" required rows={6} placeholder="Write the case study passage the candidate will read…" className={`${inputCls} resize-y`} />
+                </div>
+
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="rounded-xl border border-[#E2E8F0] p-4 space-y-3">
+                    <p className="text-xs font-bold text-fuchsia-600 uppercase tracking-wide">Sub-question {i + 1}</p>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-[#475569]">Question *</label>
+                      <input name={`sub_${i}_prompt`} required placeholder={`Question ${i + 1} about the passage…`} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute *</label>
+                      <select name={`sub_${i}_attributeId`} required defaultValue="" className={inputCls}>
+                        <option value="" disabled>Select attribute…</option>
+                        {attributes.map((a) => (
+                          <option key={a.id} value={a.id}>[{a.code}] {a.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {[1, 2, 3, 4].map((n) => (
+                        <div key={n}>
+                          <label className="mb-1 block text-xs font-medium text-[#475569]">Option {n} *</label>
+                          <input name={`sub_${i}_option${n}`} required placeholder={`Option ${n}`} className={inputCls} />
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-[#475569]">Correct option *</label>
+                      <select name={`sub_${i}_correctOption`} required defaultValue="" className={inputCls}>
+                        <option value="" disabled>Select correct option…</option>
+                        <option value="1">Option 1</option>
+                        <option value="2">Option 2</option>
+                        <option value="3">Option 3</option>
+                        <option value="4">Option 4</option>
+                      </select>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex justify-end gap-3 border-t border-[#F1F5F9] pt-4">
+                  <Link href="/admin/questions?tab=case_study" className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">Cancel</Link>
+                  <button type="submit" className="rounded-lg bg-fuchsia-600 px-5 py-2 text-sm font-semibold text-white hover:bg-fuchsia-700">
+                    Add Case Study
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {caseStudies.map((cs, gi) => (
+            <div key={cs.id} className={card}>
+              <div className={`${cardHeader} flex items-center justify-between`}>
+                <div>
+                  <p className="text-sm font-semibold text-[#0F172A]">Case Study {gi + 1}: {cs.title}</p>
+                  <p className="text-[11px] text-[#94A3B8]">Section: {cs.section?.title ?? "—"} · {cs.subQuestions.length} sub-questions</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-fuchsia-100 px-2.5 py-0.5 text-[11px] font-semibold text-fuchsia-700">Case Study</span>
+                  <form action={deleteCaseStudy}>
+                    <input type="hidden" name="id" value={cs.id} />
+                    <button type="submit" className="rounded-lg border border-rose-200 p-1.5 text-rose-500 hover:bg-rose-50 transition" title="Delete case study">
+                      <Trash2 size={14} />
+                    </button>
+                  </form>
+                </div>
+              </div>
+              <div className="whitespace-pre-line border-b border-[#F1F5F9] bg-[#FAFAFA] px-5 py-3 text-xs leading-relaxed text-[#475569]">
+                {cs.passageText}
+              </div>
+              <div className="divide-y divide-[#F8FAFC]">
+                {cs.subQuestions.map((sq, si) => (
+                  <div key={sq.id} className="px-5 py-3.5 sm:flex sm:items-start sm:gap-4">
+                    <span className="hidden sm:flex h-6 w-6 shrink-0 mt-0.5 items-center justify-center rounded-lg bg-fuchsia-50 text-[11px] font-bold text-fuchsia-600">{si + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-[#0F172A] leading-snug">{sq.prompt}</p>
+                      <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                        {sq.options.map((opt, oi) => (
+                          <p key={opt.id} className={`flex items-start gap-1.5 text-xs ${opt.isCorrect ? "font-semibold text-emerald-700" : "text-[#475569]"}`}>
+                            <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${opt.isCorrect ? "bg-emerald-100 text-emerald-700" : "bg-[#F1F5F9] text-[#94A3B8]"}`}>
+                              {String.fromCharCode(65 + oi)}
+                            </span>
+                            {opt.label}
+                          </p>
+                        ))}
+                      </div>
+                      {sq.trait && <p className="mt-1.5 text-[10px] text-[#94A3B8]">Attribute: {sq.trait}</p>}
+                    </div>
+                    <form key={sq.attributeId ?? "none"} action={updateItemAttribute} className="mt-3 flex items-center gap-2 sm:mt-0 sm:shrink-0 sm:w-56">
+                      <input type="hidden" name="itemId" value={sq.id} />
+                      <input type="hidden" name="tab" value="case_study" />
+                      <select name="attributeId" defaultValue={sq.attributeId ?? ""} className={selectCls}>{attrOptions}</select>
+                      <button type="submit" className={saveBtnCls}>Save</button>
+                    </form>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {caseStudies.length === 0 && (
+            <div className={`${card} px-5 py-10 text-center text-sm text-[#64748B]`}>No case studies yet. Add one above.</div>
+          )}
         </div>
       )}
 

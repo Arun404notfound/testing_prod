@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
-type PoolTab = "likert" | "triad" | "mcq";
+type PoolTab = "likert" | "triad" | "mcq" | "sjt" | "case_study";
 
 export function PoolFiltersForm({
   tab,
@@ -14,6 +14,8 @@ export function PoolFiltersForm({
   showLikert,
   showTriad,
   showMcq,
+  showSjt,
+  showCaseStudy,
 }: {
   tab: PoolTab;
   sentimentQ: string;
@@ -23,10 +25,12 @@ export function PoolFiltersForm({
   showLikert: boolean;
   showTriad: boolean;
   showMcq: boolean;
+  showSjt: boolean;
+  showCaseStudy: boolean;
 }) {
   const [selectedTab, setSelectedTab] = useState<PoolTab>(tab);
   const isTriad = selectedTab === "triad";
-  const isMcq = selectedTab === "mcq";
+  const sentimentDisabled = selectedTab === "mcq" || selectedTab === "sjt" || selectedTab === "case_study";
 
   return (
     <form method="GET" className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -41,11 +45,13 @@ export function PoolFiltersForm({
           {showLikert ? <option value="likert">Likert pool</option> : null}
           {showTriad ? <option value="triad">Triad pool</option> : null}
           {showMcq ? <option value="mcq">MCQ pool</option> : null}
+          {showSjt ? <option value="sjt">SJT pool</option> : null}
+          {showCaseStudy ? <option value="case_study">Case Study pool</option> : null}
         </select>
       </label>
       <label className="text-sm text-[#334155]">
-        <span className={`mb-1 block font-medium ${isMcq ? "text-[#94A3B8]" : ""}`}>Sentiment</span>
-        <select name="sentiment" defaultValue={sentimentQ} disabled={isMcq} className="tg-input w-full disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:border-[#E2E8F0]">
+        <span className={`mb-1 block font-medium ${sentimentDisabled ? "text-[#94A3B8]" : ""}`}>Sentiment</span>
+        <select name="sentiment" defaultValue={sentimentQ} disabled={sentimentDisabled} className="tg-input w-full disabled:cursor-not-allowed disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:border-[#E2E8F0]">
           <option value="">All</option>
           <option value="POSITIVE">Positive</option>
           <option value="NEGATIVE">Negative</option>

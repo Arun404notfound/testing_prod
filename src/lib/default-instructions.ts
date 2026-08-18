@@ -1,4 +1,4 @@
-export type BlockKind = "legacy_mcq" | "item_mcq" | "item_tf" | "likert" | "triad";
+export type BlockKind = "legacy_mcq" | "item_mcq" | "item_tf" | "likert" | "triad" | "sjt" | "case_study";
 
 export interface DefaultInstruction {
   key: string;
@@ -35,6 +35,18 @@ export const DEFAULT_INSTRUCTIONS: DefaultInstruction[] = [
     heading: "How to answer Multiple Choice questions",
     text: "You'll see one question with four options. Select the single option you believe is correct.",
     when: (kinds) => kinds.has("item_mcq") || kinds.has("item_tf") || kinds.has("legacy_mcq"),
+  },
+  {
+    key: "sjt-howto",
+    heading: "How to answer Situational Judgment questions",
+    text: "You'll see a short workplace scenario followed by several possible responses. Select the option you believe is the most effective response to the situation.",
+    when: (kinds) => kinds.has("sjt"),
+  },
+  {
+    key: "case-study-howto",
+    heading: "How to answer Case Study questions",
+    text: "You'll see a passage followed by several related questions. Read the passage carefully, then answer each question based on it. The passage stays visible while you answer.",
+    when: (kinds) => kinds.has("case_study"),
   },
   {
     key: "honesty",

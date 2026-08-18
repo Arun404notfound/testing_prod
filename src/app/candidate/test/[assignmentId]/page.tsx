@@ -51,6 +51,16 @@ export default async function CandidateTestPage({
             include: { section: true, statements: { orderBy: { displayOrder: "asc" } } },
             orderBy: { displayOrder: "asc" },
           },
+          caseStudies: {
+            include: {
+              section: true,
+              subQuestions: {
+                include: { section: true, options: { orderBy: { displayOrder: "asc" } } },
+                orderBy: { displayOrder: "asc" },
+              },
+            },
+            orderBy: { displayOrder: "asc" },
+          },
           compositionItems: {
             orderBy: { displayOrder: "asc" },
             include: {
@@ -60,6 +70,15 @@ export default async function CandidateTestPage({
               },
               sourceTriad: {
                 include: { section: true, statements: { orderBy: { displayOrder: "asc" } } },
+              },
+              sourceCaseStudy: {
+                include: {
+                  section: true,
+                  subQuestions: {
+                    include: { section: true, options: { orderBy: { displayOrder: "asc" } } },
+                    orderBy: { displayOrder: "asc" },
+                  },
+                },
               },
             },
           },

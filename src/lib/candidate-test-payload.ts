@@ -40,6 +40,27 @@ export type TestBlock =
       section: string;
       title: string;
       statements: { id: string; text: string }[];
+    }
+  | {
+      kind: "sjt";
+      key: string;
+      itemId: string;
+      section: string;
+      prompt: string;
+      options: { optionId: string; label: string }[];
+    }
+  | {
+      kind: "case_study";
+      key: string;
+      caseStudyId: string;
+      section: string;
+      title: string;
+      passageText: string;
+      subQuestions: {
+        itemId: string;
+        prompt: string;
+        options: { optionId: string; label: string }[];
+      }[];
     };
 
 type SectionLike = { title: string; displayOrder: number };
@@ -90,6 +111,18 @@ function pushItemBlock(
     });
     return;
   }
+  if (item.itemType === "SJT" && item.options.length > 0) {
+    const opts = [...item.options].sort((a, b) => a.displayOrder - b.displayOrder);
+    blocks.push({
+      kind: "sjt",
+      key: `sjt:${item.id}`,
+      itemId: item.id,
+      section: item.section.title,
+      prompt: item.prompt,
+      options: opts.map((o) => ({ optionId: o.id, label: o.label || o.value })),
+    });
+    return;
+  }
   if (item.itemType === "TRUE_FALSE" && item.options.length >= 2) {
     const opts = [...item.options].sort((a, b) => a.displayOrder - b.displayOrder).slice(0, 2);
     blocks.push({
@@ -101,6 +134,30 @@ function pushItemBlock(
       options: opts.map((o) => ({ optionId: o.id, label: o.label || o.value })),
     });
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildCaseStudyBlock(cs: any, fallbackSectionTitle: string): TestBlock {
+  const subs = [...(cs.subQuestions ?? [])].sort(
+    (a: { displayOrder: number }, b: { displayOrder: number }) => a.displayOrder - b.displayOrder,
+  );
+  return {
+    kind: "case_study",
+    key: `case_study:${cs.id}`,
+    caseStudyId: cs.id,
+    section: cs.section?.title ?? fallbackSectionTitle,
+    title: cs.title,
+    passageText: cs.passageText,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    subQuestions: subs.map((sq: any) => ({
+      itemId: sq.id,
+      prompt: sq.prompt,
+      options: [...(sq.options ?? [])]
+        .sort((a: { displayOrder: number }, b: { displayOrder: number }) => a.displayOrder - b.displayOrder)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((o: any) => ({ optionId: o.id, label: o.label || o.value })),
+    })),
+  };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -128,14 +185,30 @@ export function buildTestBlocks(assessment: any): TestBlock[] {
     });
   }
 
-  const sortedItems = [...(assessment.items ?? [])].sort((a, b) => {
-    const sa = sectionSortKey(sections, a.section.title);
-    const sb = sectionSortKey(sections, b.section.title);
+  const sortedItems = [...(assessment.items ?? [])]
+    .filter((i: { caseStudyId?: string | null }) => !i.caseStudyId)
+    .sort((a, b) => {
+      const sa = sectionSortKey(sections, a.section.title);
+      const sb = sectionSortKey(sections, b.section.title);
+      if (sa !== sb) return sa - sb;
+      return a.displayOrder - b.displayOrder;
+    });
+  for (const item of sortedItems) {
+    pushItemBlock(blocks, item, skipMcqTf);
+  }
+
+  const seenCaseStudy = new Set<string>();
+  const sortedCaseStudies = [...(assessment.caseStudies ?? [])].sort((a, b) => {
+    const sa = sectionSortKey(sections, a.section?.title ?? "");
+    const sb = sectionSortKey(sections, b.section?.title ?? "");
     if (sa !== sb) return sa - sb;
     return a.displayOrder - b.displayOrder;
   });
-  for (const item of sortedItems) {
-    pushItemBlock(blocks, item, skipMcqTf);
+  for (const cs of sortedCaseStudies) {
+    if (seenCaseStudy.has(cs.id)) continue;
+    if ((cs.subQuestions ?? []).length === 0) continue;
+    seenCaseStudy.add(cs.id);
+    blocks.push(buildCaseStudyBlock(cs, "General"));
   }
 
   const seenTriad = new Set<string>();
@@ -196,6 +269,13 @@ export function buildTestBlocks(assessment: any): TestBlock[] {
         statements: stmts.map((s) => ({ id: s.id, text: s.statementText })),
       });
     }
+    if (row.sourceCaseStudy) {
+      const cs = row.sourceCaseStudy;
+      if (seenCaseStudy.has(cs.id)) continue;
+      if ((cs.subQuestions ?? []).length === 0) continue;
+      seenCaseStudy.add(cs.id);
+      blocks.push(buildCaseStudyBlock(cs, row.section?.title ?? "Imported"));
+    }
   }
 
   const withOrder = blocks.map((b, i) => ({
@@ -214,8 +294,17 @@ export function shuffleBlockOptions(blocks: TestBlock[], randomizeOptions: boole
     if (b.kind === "legacy_mcq") {
       return { ...b, options: seededShuffle(b.options, `${seed}:${b.key}`) };
     }
-    if (b.kind === "item_mcq" || b.kind === "item_tf") {
+    if (b.kind === "item_mcq" || b.kind === "item_tf" || b.kind === "sjt") {
       return { ...b, options: seededShuffle(b.options, `${seed}:${b.key}`) };
+    }
+    if (b.kind === "case_study") {
+      return {
+        ...b,
+        subQuestions: b.subQuestions.map((sq) => ({
+          ...sq,
+          options: seededShuffle(sq.options, `${seed}:${b.key}:${sq.itemId}`),
+        })),
+      };
     }
     return b;
   });

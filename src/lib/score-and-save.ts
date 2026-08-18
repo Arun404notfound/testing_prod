@@ -41,6 +41,19 @@ export function buildScoringContext(assessment: any, blocks: TestBlock[], answer
         })),
       });
     }
+    if (comp.sourceCaseStudy) {
+      for (const sq of comp.sourceCaseStudy.subQuestions ?? []) {
+        itemById.set(sq.id, {
+          id: sq.id, itemType: sq.itemType, prompt: sq.prompt,
+          factor: sq.factor ?? null, trait: sq.trait ?? null,
+          definition: sq.definition ?? null, polarity: sq.polarity ?? null,
+          sectionTitle: sq.section?.title ?? comp.sourceCaseStudy.section?.title ?? comp.section?.title ?? "Imported",
+          options: (sq.options ?? []).map((o: { id: string; label: string; value: string; isCorrect: boolean; scoreValue: number | null }) => ({
+            id: o.id, label: o.label, value: o.value, isCorrect: o.isCorrect, scoreValue: o.scoreValue,
+          })),
+        });
+      }
+    }
   }
 
   const questionById: ScoringContext["questionById"] = new Map();
@@ -105,12 +118,31 @@ export const ASSESSMENT_INCLUDE = {
         include: { section: true, statements: { orderBy: { displayOrder: "asc" as const } } },
         orderBy: { displayOrder: "asc" as const },
       },
+      caseStudies: {
+        include: {
+          section: true,
+          subQuestions: {
+            include: { section: true, options: { orderBy: { displayOrder: "asc" as const } } },
+            orderBy: { displayOrder: "asc" as const },
+          },
+        },
+        orderBy: { displayOrder: "asc" as const },
+      },
       compositionItems: {
         orderBy: { displayOrder: "asc" as const },
         include: {
           section: true,
           sourceItem: { include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, likertScale: true } },
           sourceTriad: { include: { section: true, statements: { orderBy: { displayOrder: "asc" as const } } } },
+          sourceCaseStudy: {
+            include: {
+              section: true,
+              subQuestions: {
+                include: { section: true, options: { orderBy: { displayOrder: "asc" as const } } },
+                orderBy: { displayOrder: "asc" as const },
+              },
+            },
+          },
         },
       },
     },

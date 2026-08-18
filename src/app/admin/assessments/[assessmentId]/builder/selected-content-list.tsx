@@ -5,7 +5,9 @@ import { useState } from "react";
 export type SelectedRow =
   | { kind: "mcq"; section: string; key: string; label: string }
   | { kind: "likert"; section: string; key: string; label: string }
-  | { kind: "triad"; section: string; key: string; label: string };
+  | { kind: "triad"; section: string; key: string; label: string }
+  | { kind: "sjt"; section: string; key: string; label: string }
+  | { kind: "case_study"; section: string; key: string; label: string };
 
 export function SelectedContentList({
   rows,

@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import {
+  allowsCaseStudyPool,
   allowsLikertPool,
   allowsMcqPool,
+  allowsSjtPool,
   allowsTriadPool,
 } from "@/lib/assessment-pools";
 import { DEFAULT_INSTRUCTIONS } from "@/lib/default-instructions";
@@ -87,6 +89,54 @@ export async function addTriadFromPoolBulk(assessmentId: string, formData: FormD
     const maxOrder = await prisma.assessmentCompositionItem.aggregate({ where: { sectionId }, _max: { displayOrder: true } });
     await prisma.assessmentCompositionItem.create({
       data: { assessmentId, sectionId, displayOrder: (maxOrder._max.displayOrder ?? 0) + 1, sourceTriadGroupId: group.id },
+    });
+  }
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  revalidatePath("/admin/assessments");
+}
+
+export async function addSjtFromPoolBulk(assessmentId: string, formData: FormData) {
+  const tenantId = await getDefaultTenantId();
+  const assessment = await assertAssessment(assessmentId);
+  if (!allowsSjtPool(assessment.assessmentType)) return;
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  if (!ids.length) return;
+  const tenantIds = await tenantAssessmentIds(tenantId);
+  const items = await prisma.assessmentItem.findMany({
+    where: { id: { in: ids }, OR: [{ assessmentId: { in: tenantIds } }, { assessmentId: null }], itemType: "SJT" },
+    select: { id: true },
+  });
+  const sectionId = await primarySectionId(assessmentId);
+  for (const item of items) {
+    const dup = await prisma.assessmentCompositionItem.findFirst({ where: { assessmentId, sourceAssessmentItemId: item.id } });
+    if (dup) continue;
+    const maxOrder = await prisma.assessmentCompositionItem.aggregate({ where: { sectionId }, _max: { displayOrder: true } });
+    await prisma.assessmentCompositionItem.create({
+      data: { assessmentId, sectionId, displayOrder: (maxOrder._max.displayOrder ?? 0) + 1, sourceAssessmentItemId: item.id },
+    });
+  }
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  revalidatePath("/admin/assessments");
+}
+
+export async function addCaseStudyFromPoolBulk(assessmentId: string, formData: FormData) {
+  const tenantId = await getDefaultTenantId();
+  const assessment = await assertAssessment(assessmentId);
+  if (!allowsCaseStudyPool(assessment.assessmentType)) return;
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  if (!ids.length) return;
+  const tenantIds = await tenantAssessmentIds(tenantId);
+  const caseStudies = await prisma.caseStudy.findMany({
+    where: { id: { in: ids }, OR: [{ assessmentId: { in: tenantIds } }, { assessmentId: null }] },
+    select: { id: true },
+  });
+  const sectionId = await primarySectionId(assessmentId);
+  for (const cs of caseStudies) {
+    const dup = await prisma.assessmentCompositionItem.findFirst({ where: { assessmentId, sourceCaseStudyId: cs.id } });
+    if (dup) continue;
+    const maxOrder = await prisma.assessmentCompositionItem.aggregate({ where: { sectionId }, _max: { displayOrder: true } });
+    await prisma.assessmentCompositionItem.create({
+      data: { assessmentId, sectionId, displayOrder: (maxOrder._max.displayOrder ?? 0) + 1, sourceCaseStudyId: cs.id },
     });
   }
   revalidatePath(`/admin/assessments/${assessmentId}/builder`);

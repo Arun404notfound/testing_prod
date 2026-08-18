@@ -6,8 +6,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { getDefaultTenantId } from "@/lib/tenant";
 import type { AssessmentType } from "@/generated/prisma/enums";
 import {
+  allowsCaseStudyPool,
   allowsLikertPool,
   allowsMcqPool,
+  allowsSjtPool,
   allowsTriadPool,
 } from "@/lib/assessment-pools";
 import {
@@ -21,6 +23,8 @@ import {
 import { BulkLikertPool } from "./bulk-likert-pool";
 import { BulkTriadPool } from "./bulk-triad-pool";
 import { BulkMcqPool } from "./bulk-mcq-pool";
+import { BulkSjtPool } from "./bulk-sjt-pool";
+import { BulkCaseStudyPool } from "./bulk-case-study-pool";
 import { BuilderHeaderActions } from "./builder-header-actions";
 import { CustomInstructionsEditor } from "./custom-instructions-editor";
 import { DefaultInstructionsEditor } from "./default-instructions-editor";
@@ -38,19 +42,21 @@ type Search = {
   saved?: string;
 };
 
-type PoolTab = "likert" | "triad" | "mcq";
+type PoolTab = "likert" | "triad" | "mcq" | "sjt" | "case_study";
 
 function allowedTabsForType(assessmentType: AssessmentType): PoolTab[] {
   const tabs: PoolTab[] = [];
   if (allowsLikertPool(assessmentType)) tabs.push("likert");
   if (allowsTriadPool(assessmentType)) tabs.push("triad");
   if (allowsMcqPool(assessmentType)) tabs.push("mcq");
+  if (allowsSjtPool(assessmentType)) tabs.push("sjt");
+  if (allowsCaseStudyPool(assessmentType)) tabs.push("case_study");
   return tabs;
 }
 
 function resolveTab(assessmentType: AssessmentType, tab: string | undefined): PoolTab {
   const allowed = allowedTabsForType(assessmentType);
-  if (tab === "likert" || tab === "triad" || tab === "mcq") {
+  if (tab === "likert" || tab === "triad" || tab === "mcq" || tab === "sjt" || tab === "case_study") {
     if (allowed.includes(tab)) return tab;
   }
   return allowed[0] ?? "likert";
@@ -77,6 +83,9 @@ export default async function AssessmentBuilderPage({
         include: {
           sourceItem: { include: { section: true } },
           sourceTriad: { include: { section: true, statements: { orderBy: { displayOrder: "asc" } } } },
+          sourceCaseStudy: {
+            include: { section: true, subQuestions: { orderBy: { displayOrder: "asc" } } },
+          },
         },
       },
     },
@@ -119,7 +128,7 @@ export default async function AssessmentBuilderPage({
     })
   ).map((a) => a.id);
 
-  const [likertItems, triadGroups, mcqQuestions] = await Promise.all([
+  const [likertItems, triadGroups, mcqQuestions, sjtItems, caseStudies] = await Promise.all([
     allowsLikertPool(assessmentType)
       ? prisma.assessmentItem.findMany({
           where: {
@@ -175,6 +184,35 @@ export default async function AssessmentBuilderPage({
           take: 500,
         })
       : Promise.resolve([]),
+    allowsSjtPool(assessmentType)
+      ? prisma.assessmentItem.findMany({
+          where: {
+            OR: [{ assessmentId: { in: tenantAssessmentIds } }, { assessmentId: null }],
+            itemType: "SJT",
+            ...(attributeQ ? { trait: attributeQ } : {}),
+          },
+          include: { section: true, options: { orderBy: { displayOrder: "asc" } } },
+          orderBy: { displayOrder: "asc" },
+          take: 500,
+        })
+      : Promise.resolve([]),
+    allowsCaseStudyPool(assessmentType)
+      ? prisma.caseStudy.findMany({
+          where: {
+            OR: [{ assessmentId: { in: tenantAssessmentIds } }, { assessmentId: null }],
+            ...(attributeQ
+              ? { subQuestions: { some: { trait: attributeQ } } }
+              : {}),
+            ...(groupCodeQ ? { title: { contains: groupCodeQ } } : {}),
+          },
+          include: {
+            section: true,
+            subQuestions: { orderBy: { displayOrder: "asc" } },
+          },
+          orderBy: { displayOrder: "asc" },
+          take: 200,
+        })
+      : Promise.resolve([]),
   ]);
 
   // ── Attribute → Competency lookup ───────────────────────────────────────────
@@ -202,6 +240,13 @@ export default async function AssessmentBuilderPage({
   const selectedMcqIds = new Set(assessment.questions.map((aq) => aq.question.id));
   const selectedLikertIds = new Set(
     assessment.compositionItems
+      .filter((c) => c.sourceItem?.itemType === "LIKERT")
+      .map((c) => c.sourceAssessmentItemId)
+      .filter((id): id is string => Boolean(id)),
+  );
+  const selectedSjtIds = new Set(
+    assessment.compositionItems
+      .filter((c) => c.sourceItem?.itemType === "SJT")
       .map((c) => c.sourceAssessmentItemId)
       .filter((id): id is string => Boolean(id)),
   );
@@ -210,7 +255,13 @@ export default async function AssessmentBuilderPage({
       .map((c) => c.sourceTriadGroupId)
       .filter((id): id is string => Boolean(id)),
   );
-  const compositionIdByLikertItemId = new Map(
+  const selectedCaseStudyIds = new Set(
+    assessment.compositionItems
+      .map((c) => c.sourceCaseStudyId)
+      .filter((id): id is string => Boolean(id)),
+  );
+  // Shared by Likert and SJT — both pool through the same sourceAssessmentItemId FK.
+  const compositionIdByPooledItemId = new Map(
     assessment.compositionItems
       .filter((c) => c.sourceAssessmentItemId)
       .map((c) => [c.sourceAssessmentItemId!, c.id]),
@@ -219,6 +270,11 @@ export default async function AssessmentBuilderPage({
     assessment.compositionItems
       .filter((c) => c.sourceTriadGroupId)
       .map((c) => [c.sourceTriadGroupId!, c.id]),
+  );
+  const compositionIdByCaseStudyId = new Map(
+    assessment.compositionItems
+      .filter((c) => c.sourceCaseStudyId)
+      .map((c) => [c.sourceCaseStudyId!, c.id]),
   );
 
   const selectedRows: SelectedRow[] = [];
@@ -233,7 +289,7 @@ export default async function AssessmentBuilderPage({
   for (const c of assessment.compositionItems) {
     if (c.sourceItem) {
       selectedRows.push({
-        kind: "likert",
+        kind: c.sourceItem.itemType === "SJT" ? "sjt" : "likert",
         section: c.sourceItem.section?.title ?? "Question Pool",
         key: `comp-${c.id}`,
         label: c.sourceItem.prompt,
@@ -246,6 +302,13 @@ export default async function AssessmentBuilderPage({
         section: c.sourceTriad.section?.title ?? "Question Pool",
         key: `comp-${c.id}`,
         label: `${code}: ${stmts}`,
+      });
+    } else if (c.sourceCaseStudy) {
+      selectedRows.push({
+        kind: "case_study",
+        section: c.sourceCaseStudy.section?.title ?? "Question Pool",
+        key: `comp-${c.id}`,
+        label: `${c.sourceCaseStudy.title} (${c.sourceCaseStudy.subQuestions.length} sub-questions)`,
       });
     }
   }
@@ -441,6 +504,8 @@ export default async function AssessmentBuilderPage({
           showLikert={allowsLikertPool(assessmentType)}
           showTriad={allowsTriadPool(assessmentType)}
           showMcq={allowsMcqPool(assessmentType)}
+          showSjt={allowsSjtPool(assessmentType)}
+          showCaseStudy={allowsCaseStudyPool(assessmentType)}
         />
       </FormCard>
 
@@ -473,7 +538,7 @@ export default async function AssessmentBuilderPage({
             assessmentId={assessment.id}
             items={likertItems}
             selectedIdList={[...selectedLikertIds]}
-            compositionIdMap={[...compositionIdByLikertItemId]}
+            compositionIdMap={[...compositionIdByPooledItemId]}
             attrByNameEntries={[...attrByName]}
           />
         </FormCard>
@@ -502,6 +567,30 @@ export default async function AssessmentBuilderPage({
         </FormCard>
       ) : null}
 
+      {tab === "sjt" && allowsSjtPool(assessmentType) ? (
+        <FormCard id="question-pool" title={`SJT question pool (${sjtItems.length})`}>
+          <BulkSjtPool
+            assessmentId={assessment.id}
+            items={sjtItems}
+            selectedIdList={[...selectedSjtIds]}
+            compositionIdMap={[...compositionIdByPooledItemId]}
+            attrByNameEntries={[...attrByName]}
+          />
+        </FormCard>
+      ) : null}
+
+      {tab === "case_study" && allowsCaseStudyPool(assessmentType) ? (
+        <FormCard id="question-pool" title={`Case study pool (${caseStudies.length})`}>
+          <BulkCaseStudyPool
+            assessmentId={assessment.id}
+            caseStudies={caseStudies}
+            selectedIdList={[...selectedCaseStudyIds]}
+            compositionIdMap={[...compositionIdByCaseStudyId]}
+            attrByNameEntries={[...attrByName]}
+          />
+        </FormCard>
+      ) : null}
+
       {assessmentType === "HYBRID" ? (
         <div className="flex flex-wrap gap-2 text-sm">
           <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("likert")}>
@@ -514,6 +603,14 @@ export default async function AssessmentBuilderPage({
           <span className="text-slate-300">|</span>
           <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("mcq")}>
             MCQ tab
+          </Link>
+          <span className="text-slate-300">|</span>
+          <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("sjt")}>
+            SJT tab
+          </Link>
+          <span className="text-slate-300">|</span>
+          <Link className="text-[#0F766E] hover:underline" href={hybridTabHref("case_study")}>
+            Case Study tab
           </Link>
         </div>
       ) : null}

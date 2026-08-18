@@ -22,6 +22,7 @@ enum ItemType {
   TRUE_FALSE
   LIKERT
   TRIAD
+  SJT
 }
 
 enum Polarity {
@@ -88,41 +89,43 @@ enum UserRole {
 }
 
 model Tenant {
-  id               String           @id @default(cuid())
-  name             String
-  slug             String           @unique
-  logoUrl          String?
-  primaryColor     String?
-  secondaryColor   String?
-  accentColor      String?
-  disclaimerText   String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @default(now()) @updatedAt
-  candidates       Candidate[]
-  assessments      Assessment[]
-  questions        Question[]
-  reportTemplates  ReportTemplate[]
-  auditLogs        AuditLog[]
-  importJobs       ImportJob[]
-  triadGroups      TriadGroup[]
-  users            User[]
-  attributes          Attribute[]
-  competencies        Competency[]
+  id                   String                @id @default(cuid())
+  name                 String
+  slug                 String                @unique
+  logoUrl              String?
+  primaryColor         String?
+  secondaryColor       String?
+  accentColor          String?
+  disclaimerText       String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now()) @updatedAt
+  candidates           Candidate[]
+  assessments          Assessment[]
+  questions            Question[]
+  reportTemplates      ReportTemplate[]
+  auditLogs            AuditLog[]
+  importJobs           ImportJob[]
+  triadGroups          TriadGroup[]
+  caseStudies          CaseStudy[]
+  users                User[]
+  attributes           Attribute[]
+  competencies         Competency[]
   bigFiveFactorConfigs BigFiveFactorConfig[]
   jobRoles             JobRole[]
   domains              Domain[]
+  emailTemplates       EmailTemplate[]
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  role         UserRole
-  tenantId     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @default(now()) @updatedAt
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  role          UserRole
+  tenantId      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
   passwordSetAt DateTime?
-  tenant           Tenant?    @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([role])
@@ -153,41 +156,42 @@ model Candidate {
 }
 
 model Assessment {
-  id                   String                     @id @default(cuid())
-  tenantId             String?
-  reportTemplateId     String?
-  reportTemplateType   ReportTemplateType         @default(TECHNICAL_SKILLS_REPORT)
-  jobRoleId            String?
-  title                String
-  description          String
-  assessmentType       AssessmentType             @default(KNOWLEDGE_MCQ)
-  durationMinutes      Int
-  maxAttempts          Int                        @default(1)
-  startDateTime        DateTime?
-  endDateTime          DateTime?
-  randomizeQuestions   Boolean                    @default(false)
-  randomizeOptions     Boolean                    @default(false)
+  id                 String                      @id @default(cuid())
+  tenantId           String?
+  reportTemplateId   String?
+  reportTemplateType ReportTemplateType          @default(TECHNICAL_SKILLS_REPORT)
+  jobRoleId          String?
+  title              String
+  description        String
+  assessmentType     AssessmentType              @default(KNOWLEDGE_MCQ)
+  durationMinutes    Int
+  maxAttempts        Int                         @default(1)
+  startDateTime      DateTime?
+  endDateTime        DateTime?
+  randomizeQuestions Boolean                     @default(false)
+  randomizeOptions   Boolean                     @default(false)
   /**
    * Freeform note from the admin, appended after the standard candidate
    * instructions (timer/navigation/how-to-answer/etc). Null/empty means
    * nothing extra is shown — the system defaults are never replaced.
    */
-  customInstructions   String?
-  lifecycleStatus      AssessmentLifecycleStatus  @default(draft)
-  isActive             Boolean                    @default(true)
-  createdAt            DateTime                   @default(now())
-  updatedAt            DateTime                   @default(now()) @updatedAt
-  tenant               Tenant?                    @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  reportTemplate       ReportTemplate?            @relation(fields: [reportTemplateId], references: [id], onDelete: SetNull)
-  jobRole              JobRole?                   @relation(fields: [jobRoleId], references: [id], onDelete: SetNull)
-  sections             AssessmentSection[]
-  items                AssessmentItem[]
-  triadGroups          TriadGroup[]
-  assignments          AssessmentAssignment[]
-  attempts             AssessmentAttempt[]
-  results              AssessmentResult[]
-  questions            AssessmentQuestion[]
-  compositionItems     AssessmentCompositionItem[]
+  customInstructions String?
+  lifecycleStatus    AssessmentLifecycleStatus   @default(draft)
+  isActive           Boolean                     @default(true)
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @default(now()) @updatedAt
+  tenant             Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  reportTemplate     ReportTemplate?             @relation(fields: [reportTemplateId], references: [id], onDelete: SetNull)
+  jobRole            JobRole?                    @relation(fields: [jobRoleId], references: [id], onDelete: SetNull)
+  sections           AssessmentSection[]
+  items              AssessmentItem[]
+  triadGroups        TriadGroup[]
+  caseStudies        CaseStudy[]
+  assignments        AssessmentAssignment[]
+  attempts           AssessmentAttempt[]
+  results            AssessmentResult[]
+  questions          AssessmentQuestion[]
+  compositionItems   AssessmentCompositionItem[]
 
   @@index([tenantId])
   @@index([assessmentType])
@@ -198,49 +202,53 @@ model Assessment {
 }
 
 model AssessmentSection {
-  id               String                       @id @default(cuid())
+  id               String                      @id @default(cuid())
   assessmentId     String
-  title              String
-  description        String?
-  displayOrder       Int                          @default(0)
-  createdAt          DateTime                     @default(now())
-  updatedAt          DateTime                     @default(now()) @updatedAt
-  assessment         Assessment                   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  items              AssessmentItem[]
-  triadGroups        TriadGroup[]
-  sectionScores      SectionScore[]
-  compositionItems   AssessmentCompositionItem[]
+  title            String
+  description      String?
+  displayOrder     Int                         @default(0)
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @default(now()) @updatedAt
+  assessment       Assessment                  @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  items            AssessmentItem[]
+  triadGroups      TriadGroup[]
+  caseStudies      CaseStudy[]
+  sectionScores    SectionScore[]
+  compositionItems AssessmentCompositionItem[]
 
   @@unique([assessmentId, displayOrder])
   @@index([assessmentId])
 }
 
 model AssessmentItem {
-  id             String             @id @default(cuid())
-  assessmentId   String?
-  sectionId      String?
-  itemType       ItemType
-  prompt         String
-  helpText       String?
-  displayOrder   Int                @default(0)
-  factor         String?
-  trait          String?
-  definition     String?
-  polarity       Polarity?
-  likertScaleId  String?
-  attributeId    String?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @default(now()) @updatedAt
-  assessment     Assessment?        @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
-  section        AssessmentSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  likertScale    LikertScale?       @relation(fields: [likertScaleId], references: [id], onDelete: SetNull)
-  attribute      Attribute?         @relation(fields: [attributeId], references: [id], onDelete: SetNull)
-  options        ItemOption[]
-  responses      AttemptResponse[]
+  id              String                      @id @default(cuid())
+  assessmentId    String?
+  sectionId       String?
+  caseStudyId     String?
+  itemType        ItemType
+  prompt          String
+  helpText        String?
+  displayOrder    Int                         @default(0)
+  factor          String?
+  trait           String?
+  definition      String?
+  polarity        Polarity?
+  likertScaleId   String?
+  attributeId     String?
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @default(now()) @updatedAt
+  assessment      Assessment?                 @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  section         AssessmentSection?          @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  caseStudy       CaseStudy?                  @relation(fields: [caseStudyId], references: [id], onDelete: Cascade)
+  likertScale     LikertScale?                @relation(fields: [likertScaleId], references: [id], onDelete: SetNull)
+  attribute       Attribute?                  @relation(fields: [attributeId], references: [id], onDelete: SetNull)
+  options         ItemOption[]
+  responses       AttemptResponse[]
   compositionUses AssessmentCompositionItem[] @relation("CompositionLikertPoolItem")
 
   @@index([assessmentId])
   @@index([sectionId])
+  @@index([caseStudyId])
   @@index([itemType])
   @@index([factor, trait])
 }
@@ -264,32 +272,32 @@ model ItemOption {
 }
 
 model LikertScale {
-  id          String           @id @default(cuid())
-  name        String
-  minValue    Int              @default(1)
-  maxValue    Int              @default(5)
-  minLabel    String
-  maxLabel    String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @default(now()) @updatedAt
-  items       AssessmentItem[]
+  id        String           @id @default(cuid())
+  name      String
+  minValue  Int              @default(1)
+  maxValue  Int              @default(5)
+  minLabel  String
+  maxLabel  String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @default(now()) @updatedAt
+  items     AssessmentItem[]
 
   @@unique([name, minValue, maxValue])
 }
 
 model TriadGroup {
-  id              String             @id @default(cuid())
+  id              String                      @id @default(cuid())
   tenantId        String?
   triadGroupCode  String?
   assessmentId    String?
   sectionId       String?
   title           String
-  displayOrder    Int                @default(0)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @default(now()) @updatedAt
-  tenant          Tenant?            @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  assessment      Assessment?        @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
-  section         AssessmentSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  displayOrder    Int                         @default(0)
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @default(now()) @updatedAt
+  tenant          Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  assessment      Assessment?                 @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  section         AssessmentSection?          @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   statements      TriadStatement[]
   responses       AttemptResponse[]
   compositionUses AssessmentCompositionItem[] @relation("CompositionTriadPoolGroup")
@@ -301,6 +309,27 @@ model TriadGroup {
   @@index([triadGroupCode])
 }
 
+model CaseStudy {
+  id              String                      @id @default(cuid())
+  tenantId        String?
+  assessmentId    String?
+  sectionId       String?
+  title           String
+  passageText     String
+  displayOrder    Int                         @default(0)
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @default(now()) @updatedAt
+  tenant          Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  assessment      Assessment?                 @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  section         AssessmentSection?          @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  subQuestions    AssessmentItem[]
+  compositionUses AssessmentCompositionItem[] @relation("CompositionCaseStudyPool")
+
+  @@index([assessmentId])
+  @@index([sectionId])
+  @@index([tenantId])
+}
+
 model AssessmentCompositionItem {
   id                     String            @id @default(cuid())
   assessmentId           String
@@ -308,35 +337,38 @@ model AssessmentCompositionItem {
   displayOrder           Int
   sourceAssessmentItemId String?
   sourceTriadGroupId     String?
+  sourceCaseStudyId      String?
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @default(now()) @updatedAt
   assessment             Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  section                  AssessmentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section                AssessmentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   sourceItem             AssessmentItem?   @relation("CompositionLikertPoolItem", fields: [sourceAssessmentItemId], references: [id], onDelete: Cascade)
-  sourceTriad             TriadGroup?       @relation("CompositionTriadPoolGroup", fields: [sourceTriadGroupId], references: [id], onDelete: Cascade)
+  sourceTriad            TriadGroup?       @relation("CompositionTriadPoolGroup", fields: [sourceTriadGroupId], references: [id], onDelete: Cascade)
+  sourceCaseStudy        CaseStudy?        @relation("CompositionCaseStudyPool", fields: [sourceCaseStudyId], references: [id], onDelete: Cascade)
 
   @@unique([sectionId, displayOrder])
   @@index([assessmentId])
   @@index([sourceAssessmentItemId])
   @@index([sourceTriadGroupId])
+  @@index([sourceCaseStudyId])
 }
 
 model TriadStatement {
-  id               String            @id @default(cuid())
-  triadGroupId     String
-  statementText    String
-  displayOrder     Int               @default(0)
-  factor           String
-  trait            String
-  definition       String
-  polarity         Polarity
-  attributeId      String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @default(now()) @updatedAt
-  triadGroup       TriadGroup        @relation(fields: [triadGroupId], references: [id], onDelete: Cascade)
-  attribute        Attribute?        @relation(fields: [attributeId], references: [id], onDelete: SetNull)
-  mostResponses    AttemptResponse[] @relation("MostTriadStatement")
-  leastResponses   AttemptResponse[] @relation("LeastTriadStatement")
+  id             String            @id @default(cuid())
+  triadGroupId   String
+  statementText  String
+  displayOrder   Int               @default(0)
+  factor         String
+  trait          String
+  definition     String
+  polarity       Polarity
+  attributeId    String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @default(now()) @updatedAt
+  triadGroup     TriadGroup        @relation(fields: [triadGroupId], references: [id], onDelete: Cascade)
+  attribute      Attribute?        @relation(fields: [attributeId], references: [id], onDelete: SetNull)
+  mostResponses  AttemptResponse[] @relation("MostTriadStatement")
+  leastResponses AttemptResponse[] @relation("LeastTriadStatement")
 
   @@unique([triadGroupId, displayOrder])
   @@index([triadGroupId])
@@ -368,17 +400,17 @@ model AssessmentAssignment {
 }
 
 model AssessmentAttempt {
-  id           String               @id @default(cuid())
-  assignmentId String?
-  candidateId  String
-  assessmentId String
-  status       AttemptStatus         @default(NOT_STARTED)
-  attemptNo    Int                   @default(1)
-  startedAt    DateTime?
-  submittedAt  DateTime?
-  scoredAt     DateTime?
+  id                      String                @id @default(cuid())
+  assignmentId            String?
+  candidateId             String
+  assessmentId            String
+  status                  AttemptStatus         @default(NOT_STARTED)
+  attemptNo               Int                   @default(1)
+  startedAt               DateTime?
+  submittedAt             DateTime?
+  scoredAt                DateTime?
   /// Basic proctoring: false if candidate denied camera
-  proctoringCameraGranted Boolean   @default(true)
+  proctoringCameraGranted Boolean               @default(true)
   /// JPEG data URL or raw base64 snapshot at test start (optional)
   proctoringSnapshot      String?
   /// Final trust score (0–100) set when attempt is scored
@@ -387,17 +419,17 @@ model AssessmentAttempt {
   progressData            Json?
   /// How the attempt was closed: NORMAL | TIMED_OUT | SIGNED_OUT | TAB_CLOSED | AUTO_SUBMITTED
   submissionType          String?
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @default(now()) @updatedAt
-  assignment   AssessmentAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
-  candidate    Candidate             @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  assessment   Assessment            @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  responses    AttemptResponse[]
-  scores       AttemptScore[]
-  traitScores      TraitScore[]
-  sectionScores    SectionScore[]
-  proctoringEvents ProctoringEvent[]
-  competencyScores CompetencyScore[]
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @default(now()) @updatedAt
+  assignment              AssessmentAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  candidate               Candidate             @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  assessment              Assessment            @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  responses               AttemptResponse[]
+  scores                  AttemptScore[]
+  traitScores             TraitScore[]
+  sectionScores           SectionScore[]
+  proctoringEvents        ProctoringEvent[]
+  competencyScores        CompetencyScore[]
 
   @@unique([assignmentId, attemptNo])
   @@index([candidateId])
@@ -416,28 +448,28 @@ model ProctoringEvent {
 }
 
 model AttemptResponse {
-  id                       String               @id @default(cuid())
-  attemptId                String
-  itemId                   String?
-  itemOptionId             String?
-  triadGroupId             String?
-  triadMostStatementId     String?
-  triadLeastStatementId    String?
-  status                   ResponseStatus       @default(ANSWERED)
-  numericValue             Int?
-  textValue                String?
-  isCorrect                Boolean?
-  rawScore                 Float?
-  scoredValue              Float?
-  answeredAt               DateTime             @default(now())
-  createdAt                DateTime             @default(now())
-  updatedAt                DateTime             @default(now()) @updatedAt
-  attempt                  AssessmentAttempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  item                     AssessmentItem?      @relation(fields: [itemId], references: [id], onDelete: SetNull)
-  itemOption               ItemOption?          @relation(fields: [itemOptionId], references: [id], onDelete: SetNull)
-  triadGroup               TriadGroup?          @relation(fields: [triadGroupId], references: [id], onDelete: SetNull)
-  triadMostStatement       TriadStatement?      @relation("MostTriadStatement", fields: [triadMostStatementId], references: [id], onDelete: SetNull)
-  triadLeastStatement      TriadStatement?      @relation("LeastTriadStatement", fields: [triadLeastStatementId], references: [id], onDelete: SetNull)
+  id                    String            @id @default(cuid())
+  attemptId             String
+  itemId                String?
+  itemOptionId          String?
+  triadGroupId          String?
+  triadMostStatementId  String?
+  triadLeastStatementId String?
+  status                ResponseStatus    @default(ANSWERED)
+  numericValue          Int?
+  textValue             String?
+  isCorrect             Boolean?
+  rawScore              Float?
+  scoredValue           Float?
+  answeredAt            DateTime          @default(now())
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @default(now()) @updatedAt
+  attempt               AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  item                  AssessmentItem?   @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  itemOption            ItemOption?       @relation(fields: [itemOptionId], references: [id], onDelete: SetNull)
+  triadGroup            TriadGroup?       @relation(fields: [triadGroupId], references: [id], onDelete: SetNull)
+  triadMostStatement    TriadStatement?   @relation("MostTriadStatement", fields: [triadMostStatementId], references: [id], onDelete: SetNull)
+  triadLeastStatement   TriadStatement?   @relation("LeastTriadStatement", fields: [triadLeastStatementId], references: [id], onDelete: SetNull)
 
   @@index([attemptId])
   @@index([itemId])
@@ -447,32 +479,32 @@ model AttemptResponse {
 }
 
 model AttemptScore {
-  id          String             @id @default(cuid())
-  attemptId   String
-  scoreName   String
-  score       Float
-  maxScore    Float?
-  percent     Float?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @default(now()) @updatedAt
-  attempt     AssessmentAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  id        String            @id @default(cuid())
+  attemptId String
+  scoreName String
+  score     Float
+  maxScore  Float?
+  percent   Float?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @default(now()) @updatedAt
+  attempt   AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, scoreName])
   @@index([attemptId])
 }
 
 model TraitScore {
-  id          String             @id @default(cuid())
-  attemptId   String
-  factor      String
-  trait       String
-  definition  String
-  score       Float
-  maxScore    Float?
-  percent     Float?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @default(now()) @updatedAt
-  attempt     AssessmentAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  id         String            @id @default(cuid())
+  attemptId  String
+  factor     String
+  trait      String
+  definition String
+  score      Float
+  maxScore   Float?
+  percent    Float?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @default(now()) @updatedAt
+  attempt    AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, factor, trait])
   @@index([attemptId])
@@ -491,12 +523,12 @@ model Attribute {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 
-  tenant              Tenant?                       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  competencyMaps      AttributeCompetencyMap[]
-  bigFiveFactorMaps   BigFiveFactorAttributeMap[]
-  assessmentItems     AssessmentItem[]
-  triadStatements     TriadStatement[]
-  questions           Question[]
+  tenant            Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  competencyMaps    AttributeCompetencyMap[]
+  bigFiveFactorMaps BigFiveFactorAttributeMap[]
+  assessmentItems   AssessmentItem[]
+  triadStatements   TriadStatement[]
+  questions         Question[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -525,12 +557,12 @@ model BigFiveFactorConfig {
 }
 
 model BigFiveFactorAttributeMap {
-  id       String  @id @default(cuid())
-  factorId String
+  id          String   @id @default(cuid())
+  factorId    String
   attributeId String
-  weight   Float   @default(1.0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  weight      Float    @default(1.0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 
   factor    BigFiveFactorConfig @relation(fields: [factorId], references: [id], onDelete: Cascade)
   attribute Attribute           @relation(fields: [attributeId], references: [id], onDelete: Cascade)
@@ -541,35 +573,35 @@ model BigFiveFactorAttributeMap {
 }
 
 model Competency {
-  id                String   @id @default(cuid())
-  tenantId          String?
+  id                       String   @id @default(cuid())
+  tenantId                 String?
   /// Null for legacy tenant-wide competencies (e.g. the original Big Five set).
   /// Set for competencies that belong to a specific Job Role framework.
-  jobRoleId         String?
-  domainId          String?
-  name              String
-  description       String?
-  reportDescription String?
-  displayOrder      Int      @default(0)
+  jobRoleId                String?
+  domainId                 String?
+  name                     String
+  description              String?
+  reportDescription        String?
+  displayOrder             Int      @default(0)
   /// Scoring formula applied to mapped attribute scores.
   /// Supported values: "WEIGHTED_AVERAGE" | "SIMPLE_AVERAGE"
   /// Future values can be added without a schema migration.
-  scoringFormula    String   @default("WEIGHTED_AVERAGE")
+  scoringFormula           String   @default("WEIGHTED_AVERAGE")
   /// Which band thresholds to apply to this competency's scaledScore.
   /// "GENERIC_5"  — Exceptional/Strong/Moderate/Developing/Low (legacy default)
   /// "MATURITY_4" — Developing/Intermediate/Proficient/Expert (job-role framework)
   proficiencyScale         String   @default("GENERIC_5")
   strengthStatement        String?
   developmentNeedStatement String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @default(now()) @updatedAt
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @default(now()) @updatedAt
 
-  tenant         Tenant?                  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  jobRole        JobRole?                 @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
-  domain         Domain?                  @relation(fields: [domainId], references: [id], onDelete: SetNull)
-  attributeMaps  AttributeCompetencyMap[]
-  scores         CompetencyScore[]
-  bandContents   CompetencyBandContent[]
+  tenant              Tenant?                  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  jobRole             JobRole?                 @relation(fields: [jobRoleId], references: [id], onDelete: Cascade)
+  domain              Domain?                  @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  attributeMaps       AttributeCompetencyMap[]
+  scores              CompetencyScore[]
+  bandContents        CompetencyBandContent[]
   developmentProjects DevelopmentProject[]
 
   @@unique([tenantId, jobRoleId, name])
@@ -589,7 +621,7 @@ model JobRole {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
 
-  tenant         Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  tenant         Tenant?         @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   domains        Domain[]
   competencies   Competency[]
   assessments    Assessment[]
@@ -654,12 +686,12 @@ model DevelopmentProject {
 }
 
 model AttributeCompetencyMap {
-  id           String     @id @default(cuid())
+  id           String   @id @default(cuid())
   attributeId  String
   competencyId String
-  weight       Float      @default(1.0)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @default(now()) @updatedAt
+  weight       Float    @default(1.0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 
   attribute  Attribute  @relation(fields: [attributeId], references: [id], onDelete: Cascade)
   competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
@@ -670,7 +702,7 @@ model AttributeCompetencyMap {
 }
 
 model CompetencyScore {
-  id           String            @id @default(cuid())
+  id           String   @id @default(cuid())
   attemptId    String
   competencyId String
   rawScore     Float
@@ -678,8 +710,8 @@ model CompetencyScore {
   scaledScore  Float
   percent      Float
   band         String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @default(now()) @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
 
   attempt    AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   competency Competency        @relation(fields: [competencyId], references: [id], onDelete: Cascade)
@@ -690,19 +722,19 @@ model CompetencyScore {
 }
 
 model SectionScore {
-  id                 String             @id @default(cuid())
-  assessmentResultId String?
+  id                  String             @id @default(cuid())
+  assessmentResultId  String?
   assessmentAttemptId String?
-  sectionId          String?
-  sectionName        String
-  score              Float
-  maxScore           Float
-  summary            String
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @default(now()) @updatedAt
-  assessmentResult   AssessmentResult?  @relation(fields: [assessmentResultId], references: [id], onDelete: Cascade)
-  assessmentAttempt  AssessmentAttempt? @relation(fields: [assessmentAttemptId], references: [id], onDelete: Cascade)
-  section            AssessmentSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  sectionId           String?
+  sectionName         String
+  score               Float
+  maxScore            Float
+  summary             String
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @default(now()) @updatedAt
+  assessmentResult    AssessmentResult?  @relation(fields: [assessmentResultId], references: [id], onDelete: Cascade)
+  assessmentAttempt   AssessmentAttempt? @relation(fields: [assessmentAttemptId], references: [id], onDelete: Cascade)
+  section             AssessmentSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
 
   @@index([assessmentResultId])
   @@index([assessmentAttemptId])
@@ -731,20 +763,35 @@ model ReportTemplate {
   @@index([assessmentType])
 }
 
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  /// Identifies which outgoing mail this row overrides, e.g. "assignment_invite".
+  key       String
+  subject   String
+  bodyText  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+}
+
 model ImportJob {
-  id           String          @id @default(cuid())
-  tenantId     String?
-  importType   ImportType
-  status       ImportJobStatus @default(PROCESSING)
-  fileName     String
-  batchName    String?
-  totalRows    Int             @default(0)
-  successRows  Int             @default(0)
-  failedRows   Int             @default(0)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @default(now()) @updatedAt
-  tenant       Tenant?         @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  rowErrors    ImportRowError[]
+  id          String           @id @default(cuid())
+  tenantId    String?
+  importType  ImportType
+  status      ImportJobStatus  @default(PROCESSING)
+  fileName    String
+  batchName   String?
+  totalRows   Int              @default(0)
+  successRows Int              @default(0)
+  failedRows  Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now()) @updatedAt
+  tenant      Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  rowErrors   ImportRowError[]
 
   @@index([tenantId])
   @@index([importType])
@@ -753,30 +800,30 @@ model ImportJob {
 }
 
 model ImportRowError {
-  id          String     @id @default(cuid())
+  id          String    @id @default(cuid())
   importJobId String
   rowNumber   Int
   message     String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @default(now()) @updatedAt
-  importJob   ImportJob  @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  importJob   ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
 
   @@index([importJobId])
   @@index([rowNumber])
 }
 
 model AuditLog {
-  id          String    @id @default(cuid())
-  tenantId    String?
-  actorType   String
-  actorId     String?
-  action      String
-  entityType  String
-  entityId    String?
-  message     String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now()) @updatedAt
-  tenant      Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  id         String   @id @default(cuid())
+  tenantId   String?
+  actorType  String
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  message    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([entityType, entityId])
@@ -812,35 +859,35 @@ model Question {
 }
 
 model AssessmentQuestion {
-  id           String      @id @default(cuid())
+  id           String     @id @default(cuid())
   assessmentId String
   questionId   String
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @default(now()) @updatedAt
-  assessment   Assessment  @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  question     Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  question     Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([assessmentId, questionId])
   @@index([questionId])
 }
 
 model AssessmentResult {
-  id                 String                @id @default(cuid())
-  candidateId        String
-  assessmentId       String?
-  assignmentId       String?               @unique
-  assessmentName     String
-  completedAt        DateTime
-  overallScore       Float
-  strengths          Json
-  areasOfConcern     Json
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @default(now()) @updatedAt
-  candidate          Candidate             @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  assessment         Assessment?           @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
-  assignment         AssessmentAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
-  sectionScores      SectionScore[]
-  questionResponses  QuestionResponse[]
+  id                String                @id @default(cuid())
+  candidateId       String
+  assessmentId      String?
+  assignmentId      String?               @unique
+  assessmentName    String
+  completedAt       DateTime
+  overallScore      Float
+  strengths         Json
+  areasOfConcern    Json
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @default(now()) @updatedAt
+  candidate         Candidate             @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  assessment        Assessment?           @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
+  assignment        AssessmentAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  sectionScores     SectionScore[]
+  questionResponses QuestionResponse[]
 
   @@index([candidateId])
   @@index([assessmentId])
@@ -848,15 +895,15 @@ model AssessmentResult {
 }
 
 model QuestionResponse {
-  id                 String            @id @default(cuid())
+  id                 String           @id @default(cuid())
   assessmentResultId String
   questionId         String
   selectedOption     Int
   isCorrect          Boolean
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @default(now()) @updatedAt
-  assessmentResult   AssessmentResult  @relation(fields: [assessmentResultId], references: [id], onDelete: Cascade)
-  question           Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @default(now()) @updatedAt
+  assessmentResult   AssessmentResult @relation(fields: [assessmentResultId], references: [id], onDelete: Cascade)
+  question           Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@index([assessmentResultId])
   @@index([questionId])

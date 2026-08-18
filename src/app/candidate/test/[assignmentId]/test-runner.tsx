@@ -23,7 +23,10 @@ import type { TestBlock } from "@/lib/candidate-test-payload";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Answers = Record<string, number | string | { most: string; least: string } | undefined>;
+type Answers = Record<
+  string,
+  number | string | { most: string; least: string } | Record<string, string> | undefined
+>;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -33,6 +36,10 @@ function isAnswered(block: TestBlock, answers: Answers): boolean {
   if (block.kind === "triad") {
     const t = v as { most?: string; least?: string };
     return Boolean(t.most && t.least && t.most !== t.least);
+  }
+  if (block.kind === "case_study") {
+    const subAnswers = v as Record<string, string>;
+    return block.subQuestions.every((sq) => Boolean(subAnswers[sq.itemId]));
   }
   return true;
 }
@@ -241,7 +248,7 @@ function LikertQuestion({ block, answers, setAnswers }: {
 // ─── MCQ ─────────────────────────────────────────────────────────────────────
 
 function McqQuestion({ block, answers, setAnswers }: {
-  block: Extract<TestBlock, { kind: "item_mcq" | "item_tf" | "legacy_mcq" }>;
+  block: Extract<TestBlock, { kind: "item_mcq" | "item_tf" | "legacy_mcq" | "sjt" }>;
   answers: Answers;
   setAnswers: Dispatch<SetStateAction<Answers>>;
 }) {
@@ -254,6 +261,11 @@ function McqQuestion({ block, answers, setAnswers }: {
 
   return (
     <div className="space-y-4">
+      {block.kind === "sjt" && (
+        <span className="inline-flex items-center rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#1D4ED8]">
+          Situational Judgment
+        </span>
+      )}
       <p className="text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{prompt}</p>
       <div className="space-y-2">
         {options.map((opt, idx) => {
@@ -376,6 +388,73 @@ function TriadQuestion({ block, answers, setAnswers }: {
                   <X size={11} />
                   {isLeast ? "✓ Least" : "Least like me"}
                 </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Case Study ────────────────────────────────────────────────────────────
+
+function CaseStudyQuestion({ block, answers, setAnswers }: {
+  block: Extract<TestBlock, { kind: "case_study" }>;
+  answers: Answers;
+  setAnswers: Dispatch<SetStateAction<Answers>>;
+}) {
+  const subAnswers = (answers[block.key] as Record<string, string>) ?? {};
+  const setSubAnswer = (itemId: string, optionId: string) =>
+    setAnswers((a) => ({
+      ...a,
+      [block.key]: { ...((a[block.key] as Record<string, string>) ?? {}), [itemId]: optionId },
+    }));
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <span className="inline-flex items-center rounded-full bg-[#FDF4FF] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#A21CAF]">
+          Case Study
+        </span>
+        <p className="mt-2 text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{block.title}</p>
+      </div>
+
+      <div className="max-h-64 overflow-y-auto rounded-2xl border-2 border-[#E2E8F0] bg-[#F8FAFC] p-4">
+        <p className="whitespace-pre-line text-sm leading-relaxed text-[#334155]">{block.passageText}</p>
+      </div>
+
+      <div className="space-y-5">
+        {block.subQuestions.map((sq, qIdx) => {
+          const val = subAnswers[sq.itemId];
+          return (
+            <div key={sq.itemId} className="space-y-2">
+              <p className="text-sm font-semibold text-[#0F172A]">
+                {qIdx + 1}. {sq.prompt}
+              </p>
+              <div className="space-y-1.5">
+                {sq.options.map((opt, idx) => {
+                  const sel = val === opt.optionId;
+                  const letter = String.fromCharCode(65 + idx);
+                  return (
+                    <button
+                      key={opt.optionId}
+                      type="button"
+                      onClick={() => setSubAnswer(sq.itemId, opt.optionId)}
+                      className={`group flex w-full items-center gap-3 rounded-xl border-2 px-3 py-2 text-left transition-all ${
+                        sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
+                      }`}
+                    >
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold transition-all ${
+                        sel ? "bg-[#0F766E] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#0F766E]"
+                      }`}>
+                        {letter}
+                      </span>
+                      <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
+                      {sel && <CheckCircle2 size={14} className="ml-auto shrink-0 text-[#0F766E]" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );
@@ -833,14 +912,17 @@ export function CandidateTestRunner({
                   {block.kind === "likert" && (
                     <LikertQuestion block={block} answers={answers} setAnswers={setAnswers} />
                   )}
-                  {(block.kind === "item_mcq" || block.kind === "item_tf" || block.kind === "legacy_mcq") && (
+                  {(block.kind === "item_mcq" || block.kind === "item_tf" || block.kind === "legacy_mcq" || block.kind === "sjt") && (
                     <McqQuestion
-                      block={block as Extract<TestBlock, { kind: "item_mcq" | "item_tf" | "legacy_mcq" }>}
+                      block={block as Extract<TestBlock, { kind: "item_mcq" | "item_tf" | "legacy_mcq" | "sjt" }>}
                       answers={answers} setAnswers={setAnswers}
                     />
                   )}
                   {block.kind === "triad" && (
                     <TriadQuestion block={block} answers={answers} setAnswers={setAnswers} />
+                  )}
+                  {block.kind === "case_study" && (
+                    <CaseStudyQuestion block={block} answers={answers} setAnswers={setAnswers} />
                   )}
                 </div>
 
@@ -861,7 +943,9 @@ export function CandidateTestRunner({
                   <p className="text-xs font-medium text-amber-700">
                     {blocks[currentIndex]?.kind === "triad"
                       ? "Please select both a Most like me and a Least like me option before continuing."
-                      : "Please answer this question before continuing."}
+                      : blocks[currentIndex]?.kind === "case_study"
+                        ? "Please answer all questions in this case study before continuing."
+                        : "Please answer this question before continuing."}
                   </p>
                 </div>
               )}

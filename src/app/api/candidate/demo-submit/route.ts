@@ -61,6 +61,30 @@ function buildScoringContext(assessment: any, blocks: TestBlock[], answers: Answ
         ),
       });
     }
+    if (comp.sourceCaseStudy) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const sq of comp.sourceCaseStudy.subQuestions ?? []) {
+        itemById.set(sq.id, {
+          id: sq.id,
+          itemType: sq.itemType,
+          prompt: sq.prompt,
+          factor: sq.factor ?? null,
+          trait: sq.trait ?? null,
+          definition: sq.definition ?? null,
+          polarity: sq.polarity ?? null,
+          sectionTitle: sq.section?.title ?? comp.sourceCaseStudy.section?.title ?? comp.section?.title ?? "Imported",
+          options: (sq.options ?? []).map(
+            (o: { id: string; label: string; value: string; isCorrect: boolean; scoreValue: number | null }) => ({
+              id: o.id,
+              label: o.label,
+              value: o.value,
+              isCorrect: o.isCorrect,
+              scoreValue: o.scoreValue,
+            }),
+          ),
+        });
+      }
+    }
   }
 
   const questionById: ScoringContext["questionById"] = new Map();
@@ -201,6 +225,16 @@ export async function POST(req: Request) {
             },
             orderBy: { displayOrder: "asc" },
           },
+          caseStudies: {
+            include: {
+              section: true,
+              subQuestions: {
+                include: { section: true, options: { orderBy: { displayOrder: "asc" } } },
+                orderBy: { displayOrder: "asc" },
+              },
+            },
+            orderBy: { displayOrder: "asc" },
+          },
           compositionItems: {
             orderBy: { displayOrder: "asc" },
             include: {
@@ -216,6 +250,15 @@ export async function POST(req: Request) {
                 include: {
                   section: true,
                   statements: { orderBy: { displayOrder: "asc" } },
+                },
+              },
+              sourceCaseStudy: {
+                include: {
+                  section: true,
+                  subQuestions: {
+                    include: { section: true, options: { orderBy: { displayOrder: "asc" } } },
+                    orderBy: { displayOrder: "asc" },
+                  },
                 },
               },
             },
