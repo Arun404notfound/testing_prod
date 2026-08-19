@@ -26,9 +26,15 @@ export async function quickAssignAction(
 
   const assessment = await prisma.assessment.findFirst({
     where: { id: assessmentId, lifecycleStatus: "published" },
-    select: { id: true, title: true },
+    select: { id: true, title: true, durationMinutes: true },
   });
   if (!assessment) return { status: "error", message: "Assessment not found or not published." };
+
+  // Same fallback the candidate test page uses (assignment.durationMinutes ??
+  // assessment.durationMinutes) — an admin leaving the duration field blank
+  // means "use the assessment's own duration," not "no duration at all," so
+  // the invite email should reflect that instead of showing a blank value.
+  const effectiveDurationMinutes = durationMinutes ?? assessment.durationMinutes;
 
   const tenantId = await getDefaultTenantId();
 
@@ -65,7 +71,7 @@ export async function quickAssignAction(
           candidateName: candidate.fullName,
           assessmentTitle: assessment.title,
           link: appUrl(`/candidate/test/${assignment.id}?token=${accessToken}`),
-          durationMinutes,
+          durationMinutes: effectiveDurationMinutes,
           expiresAt,
         });
         if (!emailResult.ok) emailFailures++;
@@ -115,7 +121,7 @@ export async function quickAssignAction(
     candidateName: candidate.fullName,
     assessmentTitle: assessment.title,
     link: appUrl(`/candidate/test/${assignment.id}?token=${accessToken}`),
-    durationMinutes,
+    durationMinutes: effectiveDurationMinutes,
     expiresAt,
   });
 

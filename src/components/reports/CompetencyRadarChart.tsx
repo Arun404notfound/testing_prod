@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useReportTheme } from "@/components/reports/report-theme-context";
+import { reportTypography } from "@/components/reports/report-typography";
 
 export type RadarCompetencyDatum = {
   competencyId: string;
@@ -52,8 +53,14 @@ export function CompetencyRadarChart({
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={data} outerRadius="70%">
             <PolarGrid stroke={theme.hairline} />
-            <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: theme.body }} />
-            <PolarRadiusAxis angle={90} domain={[0, 10]} tickCount={6} tick={{ fontSize: 10, fill: theme.body }} />
+            <PolarAngleAxis
+              dataKey="subject"
+              tick={{ fontSize: reportTypography.bodyXSmall.fontSize, fontFamily: reportTypography.fontFamily, fill: theme.body }}
+            />
+            {/* No numeric tick labels: at angle=90 they render on top of the
+                "Trust and Fairness" category label at the top vertex — the
+                grid rings from PolarGrid already communicate scale. */}
+            <PolarRadiusAxis angle={90} domain={[0, 10]} tickCount={6} tick={false} axisLine={false} />
             <Radar name="You" dataKey="you" stroke={theme.accent} fill={theme.accent} fillOpacity={0.35} strokeWidth={2} />
             {hasCohort && (
               <Radar
@@ -66,12 +73,12 @@ export function CompetencyRadarChart({
                 strokeDasharray="4 3"
               />
             )}
-            <Legend wrapperStyle={{ fontSize: 12, color: theme.body }} />
+            <Legend wrapperStyle={{ fontSize: reportTypography.bodyXSmall.fontSize, fontFamily: reportTypography.fontFamily, color: theme.body }} />
           </RadarChart>
         </ResponsiveContainer>
       </div>
       {!hasCohort && (
-        <p style={{ fontSize: 11, color: theme.body, textAlign: "center", marginTop: 4 }}>
+        <p style={{ ...reportTypography.bodyXSmall, color: theme.body, textAlign: "center", marginTop: 4 }}>
           Cohort comparison will appear once enough candidates have completed this assessment.
         </p>
       )}

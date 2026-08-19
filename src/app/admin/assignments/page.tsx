@@ -27,12 +27,18 @@ async function bulkAssignBatch(formData: FormData) {
 
   const tenantId = await getDefaultTenantId();
   const [assessment, candidates] = await Promise.all([
-    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true, title: true } }),
+    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true, title: true, durationMinutes: true } }),
     prisma.candidate.findMany({ where: { tenantId, batchName: { in: batchNames } }, select: { id: true, fullName: true, email: true } }),
   ]);
 
   if (!assessment) redirect("/admin/assignments?status=error&reason=not_found");
   if (candidates.length === 0) redirect("/admin/assignments?status=error&reason=batch_empty");
+
+  // Same fallback the candidate test page uses (assignment.durationMinutes ??
+  // assessment.durationMinutes) — a blank duration field means "use the
+  // assessment's own duration," not "no duration," so the invite email
+  // should reflect that instead of showing a blank value.
+  const effectiveDurationMinutes = durationMinutes ?? assessment.durationMinutes;
 
   let created = 0;
   let emailFailures = 0;
@@ -57,7 +63,7 @@ async function bulkAssignBatch(formData: FormData) {
         candidateName: candidate.fullName,
         assessmentTitle: assessment.title,
         link: appUrl(`/candidate/test/${assignment.id}?token=${accessToken}`),
-        durationMinutes,
+        durationMinutes: effectiveDurationMinutes,
         expiresAt,
       });
       if (!emailResult.ok) emailFailures++;
@@ -82,9 +88,15 @@ async function createAssignment(formData: FormData) {
   const tenantId = await getDefaultTenantId();
   const [candidate, assessment] = await Promise.all([
     prisma.candidate.findFirst({ where: { id: candidateId, tenantId }, select: { id: true, fullName: true, email: true } }),
-    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true, title: true } }),
+    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true, title: true, durationMinutes: true } }),
   ]);
   if (!candidate || !assessment) redirect("/admin/assignments?status=error&reason=not_found");
+
+  // Same fallback the candidate test page uses (assignment.durationMinutes ??
+  // assessment.durationMinutes) — a blank duration field means "use the
+  // assessment's own duration," not "no duration," so the invite email
+  // should reflect that instead of showing a blank value.
+  const effectiveDurationMinutes = durationMinutes ?? assessment.durationMinutes;
 
   const existing = await prisma.assessmentAssignment.findFirst({
     where: {
@@ -107,7 +119,7 @@ async function createAssignment(formData: FormData) {
     candidateName: candidate.fullName,
     assessmentTitle: assessment.title,
     link: appUrl(`/candidate/test/${assignment.id}?token=${accessToken}`),
-    durationMinutes,
+    durationMinutes: effectiveDurationMinutes,
     expiresAt,
   });
 

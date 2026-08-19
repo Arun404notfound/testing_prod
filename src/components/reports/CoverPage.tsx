@@ -166,7 +166,7 @@ export function CoverPage({
       </div>
 
       {disclaimerText && (
-        <p className="relative text-center text-[11px]" style={{ color: theme.body, marginTop: "auto", zIndex: 1 }}>
+        <p className="relative text-left text-[11px]" style={{ color: theme.body, marginTop: "auto", zIndex: 1 }}>
           {disclaimerText}
         </p>
       )}

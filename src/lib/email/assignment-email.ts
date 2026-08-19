@@ -53,7 +53,10 @@ export async function sendAssignmentAssignedEmail({
     candidatename: candidateName,
     assessmenttitle: assessmentTitle,
     duration: durationMinutes ? String(durationMinutes) : "",
-    deadline: deadline ?? "",
+    // A real placeholder, not blank — the default/custom templates put this
+    // right after "Complete before:", and a genuinely empty value there
+    // read as a broken email rather than "no deadline was set."
+    deadline: deadline ?? "No expiry set — can be completed anytime",
   };
 
   const subject = renderTemplate(template?.subject ?? DEFAULT_ASSIGNMENT_INVITE_SUBJECT, vars);

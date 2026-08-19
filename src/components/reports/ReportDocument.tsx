@@ -7,6 +7,7 @@ import { FactorScoresPage } from "@/components/reports/FactorScoresPage";
 import { PsychometricGlancePage } from "@/components/reports/PsychometricGlancePage";
 import { CompetencyReportPage } from "@/components/reports/CompetencyReportPage";
 import { CompetencyExecutiveSummaryPage } from "@/components/reports/CompetencyExecutiveSummaryPage";
+import { ReportInterpretationPage } from "@/components/reports/ReportInterpretationPage";
 import { HybridOverviewPage } from "@/components/reports/HybridOverviewPage";
 import { ReportTemplatePlaceholderPage } from "@/components/reports/ReportTemplatePlaceholderPage";
 
@@ -31,31 +32,36 @@ export function ReportDocument({ report, completedDate }: { report: ReportPayloa
     </ReportPageShell>
   );
 
-  // Radar chart + executive summary share one auto-fit page (the chart alone
-  // left a lot of unused whitespace below it); the ranked score list gets its
-  // own page since it can run long. autoFit guarantees the combined page
-  // never overflows/bleeds into the next sheet, shrinking it down if needed.
+  // Radar chart, executive summary and the ranked score list each get their
+  // own full page — sharing one autoFit page previously forced the chart down
+  // to 260px and could shrink-transform the whole page unevenly if it ran
+  // long, which is what made the section feel cramped/misaligned. Splitting
+  // them out lets the radar chart render at full size and every page follow
+  // the same un-scaled heading/body rhythm as the rest of the report.
   const renderCompetencyStack = (pageOpts?: { startPage: number; totalPages: number }) => {
     if (report.competencyScores.length === 0) return null;
 
-    const heading = report.jobRoleName ? `${report.jobRoleName} — Competency Profile` : "Competency Profile";
     return (
       <>
+        {/*
+          Executive Summary — spans two pages (radar/cohort comparison, then
+          strengths + focus areas) but reads as one section: same "Executive
+          Summary" title on both, matching the client-agreed report structure
+          (Executive Summary → Report Interpretation → competency-wise pages).
+        */}
         <ReportPageShell
           pageLabel={pageLabel}
           footerMeta={footerMeta}
           pageNumber={pageOpts?.startPage}
           totalPages={pageOpts?.totalPages}
-          autoFit
         >
           <CompetencyReportPage
             competencies={report.competencyScores}
             detailCompetencies={[]}
-            heading={heading}
+            heading="Executive Summary"
             showScoreOverview={false}
-            radarHeight={260}
+            radarHeight={440}
           />
-          <CompetencyExecutiveSummaryPage report={report} />
         </ReportPageShell>
         <ReportPageShell
           pageLabel={pageLabel}
@@ -63,10 +69,26 @@ export function ReportDocument({ report, completedDate }: { report: ReportPayloa
           pageNumber={pageOpts ? pageOpts.startPage + 1 : undefined}
           totalPages={pageOpts?.totalPages}
         >
+          <CompetencyExecutiveSummaryPage report={report} />
+        </ReportPageShell>
+        <ReportPageShell
+          pageLabel={pageLabel}
+          footerMeta={footerMeta}
+          pageNumber={pageOpts ? pageOpts.startPage + 2 : undefined}
+          totalPages={pageOpts?.totalPages}
+          autoFit
+        >
+          <ReportInterpretationPage />
+        </ReportPageShell>
+        <ReportPageShell
+          pageLabel={pageLabel}
+          footerMeta={footerMeta}
+          pageNumber={pageOpts ? pageOpts.startPage + 3 : undefined}
+          totalPages={pageOpts?.totalPages}
+        >
           <CompetencyReportPage
             competencies={report.competencyScores}
             detailCompetencies={[]}
-            heading={heading}
             showRadar={false}
           />
         </ReportPageShell>
@@ -75,7 +97,7 @@ export function ReportDocument({ report, completedDate }: { report: ReportPayloa
             key={competency.competencyId}
             pageLabel={pageLabel}
             footerMeta={footerMeta}
-            pageNumber={pageOpts ? pageOpts.startPage + 2 + index : undefined}
+            pageNumber={pageOpts ? pageOpts.startPage + 4 + index : undefined}
             totalPages={pageOpts?.totalPages}
             autoFit
           >
@@ -99,7 +121,7 @@ export function ReportDocument({ report, completedDate }: { report: ReportPayloa
   );
 
   const renderLikertStack = () => {
-    const totalPages = 1 + 2 + report.competencyScores.length; // glance page + (radar/summary + score overview) + one per competency
+    const totalPages = 1 + 4 + report.competencyScores.length; // glance page + (radar + executive summary + interpretation + score overview) + one per competency
     return (
       <>
         <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages}>
@@ -111,7 +133,7 @@ export function ReportDocument({ report, completedDate }: { report: ReportPayloa
   };
 
   const renderTriadStack = () => {
-    const totalPages = 1 + 2 + report.competencyScores.length; // factor scores + (radar/summary + score overview) + one per competency
+    const totalPages = 1 + 4 + report.competencyScores.length; // factor scores + (radar + executive summary + interpretation + score overview) + one per competency
     return (
       <>
         <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages}>
@@ -123,7 +145,7 @@ export function ReportDocument({ report, completedDate }: { report: ReportPayloa
   };
 
   const renderHybridStack = () => {
-    const totalPages = 1 + 2 + report.competencyScores.length; // hybrid overview + (radar/summary + score overview) + one per competency
+    const totalPages = 1 + 4 + report.competencyScores.length; // hybrid overview + (radar + executive summary + interpretation + score overview) + one per competency
     return (
       <>
         <ReportPageShell pageLabel={pageLabel} footerMeta={footerMeta} pageNumber={1} totalPages={totalPages} centerContent>

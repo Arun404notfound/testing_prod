@@ -2,6 +2,7 @@ export const reportTypography = {
   fontFamily: "var(--font-inter), system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
 
   // Heading scale - consistent across all report pages
+  display: { fontSize: "2.5rem", lineHeight: "1.05", fontWeight: 800, letterSpacing: "-0.02em" }, // 40px - Full-bleed divider/title pages only
   h1: { fontSize: "1.875rem", lineHeight: "1.1", fontWeight: 800 },     // 30px - Main page title
   h2: { fontSize: "1.25rem", lineHeight: "1.2", fontWeight: 700 },       // 20px - Section heading
   h3: { fontSize: "0.875rem", lineHeight: "1.3", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.05em" }, // 14px - Subsection label

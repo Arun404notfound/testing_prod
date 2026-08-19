@@ -2,10 +2,16 @@
 
 import type { ReportPayload } from "@/lib/report-data";
 import { useReportTheme } from "./report-theme-context";
+import { reportTypography } from "./report-typography";
 
-// Manual bullet rows, not <ul>/list-disc — leftover from the old html2canvas PDF
-// pipeline (see CompetencyReportPage.tsx); no longer required but renders correctly.
-function BulletList({
+/**
+ * A stark black-and-white grid — deliberately monochrome (no accent tint)
+ * to match this page's bold, high-contrast title treatment instead of the
+ * colored cards used elsewhere in the report. The 1px ink-colored gap
+ * between white cells reads as table rules without needing per-cell
+ * borders, which would double up awkwardly at shared edges.
+ */
+function InfoGrid({
   items,
   ink,
   body,
@@ -15,15 +21,23 @@ function BulletList({
   body: string;
 }) {
   return (
-    <div className="mt-8 max-w-2xl">
+    <div
+      className="mt-8 max-w-2xl"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 1,
+        backgroundColor: ink,
+        border: `1px solid ${ink}`,
+      }}
+    >
       {items.map((item, i) => (
-        <div key={i} className="flex items-start gap-3" style={{ marginBottom: 16 }}>
-          <p className="text-sm leading-relaxed">
-            <span className="font-bold" style={{ color: ink }}>
-              {item.label}:{" "}
-            </span>
-            <span style={{ color: body }}>{item.description}</span>
+        <div key={i} style={{ backgroundColor: "#fff", padding: "1.125rem 1.25rem" }}>
+          <p style={{ ...reportTypography.bodyXSmall, color: body, letterSpacing: "0.05em" }}>
+            {String(i + 1).padStart(2, "0")}
           </p>
+          <p style={{ ...reportTypography.h3, marginTop: 6, color: ink }}>{item.label}</p>
+          <p style={{ ...reportTypography.bodySmall, marginTop: 4, color: body }}>{item.description}</p>
         </div>
       ))}
     </div>
@@ -60,18 +74,18 @@ export function HybridOverviewPage({ report }: { report: ReportPayload }) {
     // 230mm available) gives `justify-center` real room to work with.
     <div className="flex flex-1 flex-col justify-center" style={{ minHeight: "225mm" }}>
       <section>
-        <h2 className="font-extrabold leading-[0.95] tracking-tight" style={{ color: theme.ink, fontSize: "4.5rem" }}>
+        <h2 style={{ ...reportTypography.display, color: theme.ink }}>
           <span className="block">About</span>
           <span className="block">This</span>
           <span className="block">Report</span>
         </h2>
         <div className="mt-4 mb-6 h-px w-24" style={{ backgroundColor: theme.hairline }} />
-        <p className="mt-4 max-w-2xl text-base leading-relaxed" style={{ color: theme.ink }}>
+        <p className="mt-4 max-w-2xl" style={{ ...reportTypography.body, color: theme.ink }}>
           This report combines knowledge checks with psychometric-style signals where applicable. Section scores
           reflect knowledge domains; trait scores summarize self-report and forced-choice components.
         </p>
 
-        <BulletList items={items} ink={theme.ink} body={theme.body} />
+        <InfoGrid items={items} ink={theme.ink} body={theme.body} />
       </section>
     </div>
   );

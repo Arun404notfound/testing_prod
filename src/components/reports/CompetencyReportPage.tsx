@@ -173,8 +173,8 @@ function CompetencyNumberBadge({ number, color }: { number: number; color: strin
         x="16"
         y="16"
         fill={color}
-        fontFamily="Arial, sans-serif"
-        fontSize="14"
+        fontFamily={reportTypography.fontFamily}
+        fontSize={reportTypography.dataSmall.fontSize}
         fontWeight="700"
         textAnchor="middle"
         dominantBaseline="central"
@@ -210,7 +210,7 @@ export function CompetencyReportPage({
   if (competencies.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm" style={{ color: theme.body }}>No competency scores available for this assessment.</p>
+        <p style={{ ...reportTypography.bodySmall, color: theme.body }}>No competency scores available for this assessment.</p>
       </div>
     );
   }
@@ -346,11 +346,13 @@ return (
                       <div
                         data-pdf-break-inside="avoid"
                         style={{
-                          backgroundColor: "#F8FAFC",
-                          border: `1px solid ${theme.hairline}`,
+                          backgroundColor: `${theme.accent}08`,
+                          border: `1px solid ${theme.accent}2E`,
+                          borderLeft: `4px solid ${theme.accent}`,
                           borderRadius: 8,
                           padding: "0.625rem 1rem",
                           marginBottom: 12,
+                          boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
                         }}
                       >
                         {c.reportDescription && (
@@ -477,9 +479,9 @@ return (
                                 float: "left",
                                 width: "calc((100% - 24px) / 3)",
                                 marginRight: i < projects.length - 1 ? 12 : 0,
-                                backgroundColor: "#F8FAFC",
-                                border: `1px solid ${theme.hairline}`,
-                                borderTop: `2px solid ${theme.accent}`,
+                                backgroundColor: `${theme.accent}08`,
+                                border: `1px solid ${theme.accent}2E`,
+                                borderTop: `3px solid ${theme.accent}`,
                                 borderRadius: 8,
                                 padding: "0.5rem 0.875rem 0.625rem",
                                 boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",

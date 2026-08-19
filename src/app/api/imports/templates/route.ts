@@ -9,6 +9,8 @@ const validTypes: TemplateType[] = [
   "MCQ_QUESTIONS",
   "LIKERT_ITEMS",
   "TRIAD_ITEMS",
+  "SJT_ITEMS",
+  "CASE_STUDY_ITEMS",
 ];
 
 export async function GET(request: Request) {

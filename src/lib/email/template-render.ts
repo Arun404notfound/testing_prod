@@ -14,8 +14,8 @@ Click the button below to get started.`;
 export const PLACEHOLDER_FIELDS: { token: string; description: string }[] = [
   { token: "@CandidateName", description: "Candidate's full name" },
   { token: "@AssessmentTitle", description: "Title of the assigned assessment" },
-  { token: "@Duration", description: "Time limit in minutes (blank if untimed)" },
-  { token: "@Deadline", description: "Deadline date, formatted (blank if none)" },
+  { token: "@Duration", description: "Time limit in minutes — assignment override if set, otherwise the assessment's own duration" },
+  { token: "@Deadline", description: "Deadline date, formatted (\"No expiry set — can be completed anytime\" if none)" },
 ];
 
 export const SAMPLE_PREVIEW_VARS = {

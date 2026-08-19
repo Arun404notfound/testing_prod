@@ -1,4 +1,4 @@
-export type TemplateType = "CANDIDATES" | "MCQ_QUESTIONS" | "LIKERT_ITEMS" | "TRIAD_ITEMS";
+export type TemplateType = "CANDIDATES" | "MCQ_QUESTIONS" | "LIKERT_ITEMS" | "TRIAD_ITEMS" | "SJT_ITEMS" | "CASE_STUDY_ITEMS";
 
 type TemplateConfig = {
   fileName: string;
@@ -7,6 +7,91 @@ type TemplateConfig = {
 };
 
 const templates: Record<TemplateType, TemplateConfig> = {
+  SJT_ITEMS: {
+    fileName: "sjt-items-template.csv",
+    columns: [
+      "prompt",
+      "attribute",
+      "option1",
+      "option1Score",
+      "option2",
+      "option2Score",
+      "option3",
+      "option3Score",
+      "option4",
+      "option4Score",
+    ],
+    rows: [
+      [
+        "A customer is visibly frustrated about a delayed delivery and raises their voice on the call. What do you do?",
+        "Stress resilience",
+        "Acknowledge the frustration, apologise, and give a clear updated timeline.",
+        "3",
+        "Explain the delay is due to logistics and it's out of your hands.",
+        "1",
+        "Ask them to calm down before continuing the conversation.",
+        "0",
+        "Escalate immediately without addressing their concern first.",
+        "1",
+      ],
+      [
+        "You notice a teammate is struggling to meet their weekly targets but hasn't asked for help. What's your best response?",
+        "Sympathy",
+        "Check in privately and offer to help however they need.",
+        "3",
+        "Wait for them to ask for help since it's not your responsibility.",
+        "0",
+        "Mention it to your manager so they can follow up.",
+        "1",
+        "Publicly offer help during the team meeting.",
+        "1",
+      ],
+    ],
+  },
+  CASE_STUDY_ITEMS: {
+    fileName: "case-study-items-template.csv",
+    columns: [
+      "caseStudyCode",
+      "title",
+      "passageText",
+      "subQuestionNumber",
+      "attribute",
+      "questionText",
+      "option1",
+      "option2",
+      "option3",
+      "option4",
+      "correctOption",
+    ],
+    rows: [
+      [
+        "CASE-DEMO-1",
+        "The Delayed Product Launch",
+        "Your team is two weeks from a major product launch when a critical vendor announces a shipping delay that will push delivery back by a month...",
+        "1",
+        "Competence",
+        "What should be the first step in responding to this situation?",
+        "Assess the actual impact on the launch timeline and dependent workstreams",
+        "Immediately announce a delay to all stakeholders",
+        "Ask the vendor to expedite shipping at any cost",
+        "Wait to see if the vendor recovers the timeline on their own",
+        "1",
+      ],
+      [
+        "CASE-DEMO-1",
+        "The Delayed Product Launch",
+        "Your team is two weeks from a major product launch when a critical vendor announces a shipping delay that will push delivery back by a month...",
+        "2",
+        "Dutifulness",
+        "How should this be communicated to leadership?",
+        "With a clear impact assessment and at least two mitigation options",
+        "As a minor issue that doesn't need escalation yet",
+        "By assigning blame to the vendor without further detail",
+        "After the launch date has already been missed",
+        "1",
+      ],
+    ],
+  },
   CANDIDATES: {
     fileName: "candidates-template.csv",
     columns: [
@@ -185,5 +270,7 @@ export function getTemplateColumns() {
     mcq: templates.MCQ_QUESTIONS.columns,
     likert: templates.LIKERT_ITEMS.columns,
     triad: templates.TRIAD_ITEMS.columns,
+    sjt: templates.SJT_ITEMS.columns,
+    caseStudy: templates.CASE_STUDY_ITEMS.columns,
   };
 }

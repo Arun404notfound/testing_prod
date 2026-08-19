@@ -150,6 +150,8 @@ export default async function ImportsPage({
                 <option value="MCQ_QUESTIONS">MCQ Questions</option>
                 <option value="LIKERT_ITEMS">Likert Items</option>
                 <option value="TRIAD_ITEMS">Triad Items</option>
+                <option value="SJT_ITEMS">SJT Items</option>
+                <option value="CASE_STUDY_ITEMS">Case Study Items</option>
               </select>
             </label>
 
@@ -214,9 +216,23 @@ export default async function ImportsPage({
             >
               Download Triad Template
             </a>
+            <a
+              href="/api/imports/templates?type=SJT_ITEMS"
+              className="tg-button-primary inline-flex items-center justify-center"
+            >
+              Download SJT Template
+            </a>
+            <a
+              href="/api/imports/templates?type=CASE_STUDY_ITEMS"
+              className="tg-button-primary inline-flex items-center justify-center"
+            >
+              Download Case Study Template
+            </a>
           </div>
           <p className="mt-3 text-sm text-[#64748B]">
             Templates include headers and sample rows. Triad template includes two complete groups (6 data rows).
+            Case Study template groups sub-questions by <code>caseStudyCode</code> — include as many rows sharing the
+            same code as sub-questions you want (numbered 1, 2, 3… via <code>subQuestionNumber</code>).
           </p>
         </FormCard>
 
@@ -237,6 +253,14 @@ export default async function ImportsPage({
             <div>
               <p className="font-semibold text-[#0F172A]">Triad Items</p>
               <p>{templateColumns.triad.join(", ")}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-[#0F172A]">SJT Items</p>
+              <p>{templateColumns.sjt.join(", ")}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-[#0F172A]">Case Study Items</p>
+              <p>{templateColumns.caseStudy.join(", ")}</p>
             </div>
           </div>
         </TableCard>

@@ -4,6 +4,7 @@ import { ArrowRight, BookOpen, Brain, CheckCircle2, ChevronDown, Layers, Plus, T
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { PageHeader } from "@/components/ui/page-header";
+import { CaseStudyForm } from "./case-study-form";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -202,15 +203,21 @@ async function createCaseStudy(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const passageText = String(formData.get("passageText") ?? "").trim();
 
-  const subs = [0, 1, 2].map((i) => ({
-    prompt: String(formData.get(`sub_${i}_prompt`) ?? "").trim(),
-    attributeId: String(formData.get(`sub_${i}_attributeId`) ?? "").trim(),
-    options: [1, 2, 3, 4].map((n) => String(formData.get(`sub_${i}_option${n}`) ?? "").trim()),
-    correctOption: Number(formData.get(`sub_${i}_correctOption`)),
-  }));
+  // Sub-question count is admin-controlled (see CaseStudyForm's "Add
+  // sub-question" button) rather than a fixed number, so read as many
+  // `sub_${i}_*` groups as were actually submitted instead of assuming 3.
+  const subs: Array<{ prompt: string; attributeId: string; options: string[]; correctOption: number }> = [];
+  for (let i = 0; formData.has(`sub_${i}_prompt`); i++) {
+    subs.push({
+      prompt: String(formData.get(`sub_${i}_prompt`) ?? "").trim(),
+      attributeId: String(formData.get(`sub_${i}_attributeId`) ?? "").trim(),
+      options: [1, 2, 3, 4].map((n) => String(formData.get(`sub_${i}_option${n}`) ?? "").trim()),
+      correctOption: Number(formData.get(`sub_${i}_correctOption`)),
+    });
+  }
 
   if (
-    !title || !passageText ||
+    !title || !passageText || subs.length === 0 ||
     subs.some(
       (s) =>
         !s.prompt || !s.attributeId || s.options.some((o) => !o) ||
@@ -1022,64 +1029,11 @@ export default async function QuestionsPage({
               <div className={`${cardHeader} flex items-center justify-between`}>
                 <div>
                   <p className="text-sm font-semibold text-[#0F172A]">Add New Case Study</p>
-                  <p className="text-[11px] text-[#64748B]">One passage followed by 3 multiple-choice sub-questions, shown together on one screen.</p>
+                  <p className="text-[11px] text-[#64748B]">One passage with as many multiple-choice sub-questions as you add, shown together on one screen.</p>
                 </div>
                 <Link href="/admin/questions?tab=case_study" className="text-xs text-[#94A3B8] hover:text-[#334155]">Cancel</Link>
               </div>
-              <form action={createCaseStudy} className="space-y-5 p-5">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[#475569]">Case Study Title *</label>
-                  <input name="title" required placeholder="e.g. The Delayed Product Launch" className={inputCls} />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[#475569]">Passage *</label>
-                  <textarea name="passageText" required rows={6} placeholder="Write the case study passage the candidate will read…" className={`${inputCls} resize-y`} />
-                </div>
-
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="rounded-xl border border-[#E2E8F0] p-4 space-y-3">
-                    <p className="text-xs font-bold text-fuchsia-600 uppercase tracking-wide">Sub-question {i + 1}</p>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-[#475569]">Question *</label>
-                      <input name={`sub_${i}_prompt`} required placeholder={`Question ${i + 1} about the passage…`} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-[#475569]">Attribute *</label>
-                      <select name={`sub_${i}_attributeId`} required defaultValue="" className={inputCls}>
-                        <option value="" disabled>Select attribute…</option>
-                        {attributes.map((a) => (
-                          <option key={a.id} value={a.id}>[{a.code}] {a.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {[1, 2, 3, 4].map((n) => (
-                        <div key={n}>
-                          <label className="mb-1 block text-xs font-medium text-[#475569]">Option {n} *</label>
-                          <input name={`sub_${i}_option${n}`} required placeholder={`Option ${n}`} className={inputCls} />
-                        </div>
-                      ))}
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-[#475569]">Correct option *</label>
-                      <select name={`sub_${i}_correctOption`} required defaultValue="" className={inputCls}>
-                        <option value="" disabled>Select correct option…</option>
-                        <option value="1">Option 1</option>
-                        <option value="2">Option 2</option>
-                        <option value="3">Option 3</option>
-                        <option value="4">Option 4</option>
-                      </select>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="flex justify-end gap-3 border-t border-[#F1F5F9] pt-4">
-                  <Link href="/admin/questions?tab=case_study" className="rounded-lg border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#334155] hover:bg-[#F8FAFC]">Cancel</Link>
-                  <button type="submit" className="rounded-lg bg-fuchsia-600 px-5 py-2 text-sm font-semibold text-white hover:bg-fuchsia-700">
-                    Add Case Study
-                  </button>
-                </div>
-              </form>
+              <CaseStudyForm attributes={attributes} action={createCaseStudy} />
             </div>
           )}
 

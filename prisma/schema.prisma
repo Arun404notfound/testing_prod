@@ -60,6 +60,8 @@ enum ImportType {
   MCQ_QUESTIONS
   LIKERT_ITEMS
   TRIAD_ITEMS
+  SJT_ITEMS
+  CASE_STUDY_ITEMS
 }
 
 enum ImportJobStatus {

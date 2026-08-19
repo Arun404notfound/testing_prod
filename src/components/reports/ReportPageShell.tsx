@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useReportTheme } from "./report-theme-context";
 import { AutoFitPageBody } from "./AutoFitPageBody";
+import { reportTypography } from "./report-typography";
 
 type Props = {
   children: ReactNode;
@@ -62,14 +63,14 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
             ) : null}
             {pageLabel && (
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium" style={{ color: theme.ink }}>
+                <span style={{ ...reportTypography.bodySmall, fontWeight: 500, color: theme.ink }}>
                   {pageLabel}
                 </span>
               </div>
             )}
           </div>
           {pageNumber && (
-            <span className="text-xs font-semibold" style={{ color: theme.body }}>
+            <span style={{ ...reportTypography.bodyXSmall, fontWeight: 600, color: theme.body }}>
               Page {pageNumber}
               {totalPages ? ` of ${totalPages}` : ""}
             </span>
@@ -83,8 +84,8 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
 
       {hasRunningFooter && (
         <div
-          className="report-page-footer flex shrink-0 items-baseline justify-between border-t px-10 pt-4 pb-7 text-xs"
-          style={{ borderColor: theme.hairline, color: theme.body, backgroundColor: theme.cardBackground }}
+          className="report-page-footer flex shrink-0 items-baseline justify-between border-t px-10 pt-4 pb-7"
+          style={{ ...reportTypography.bodyXSmall, borderColor: theme.hairline, color: theme.body, backgroundColor: theme.cardBackground }}
         >
           <span>{footerMeta}</span>
           {pageNumber && <span>{pageNumber}{totalPages ? ` / ${totalPages}` : ""}</span>}

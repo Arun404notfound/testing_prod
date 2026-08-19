@@ -89,9 +89,9 @@ function SummaryList({
  * narrative naming the strongest and weakest areas, then two ranked lists —
  * styled with the same card language (tint, border, dot bullets) as the
  * Behavioural Implications / Watch-outs pair on the per-competency pages, so
- * it reads as part of the report rather than a bolted-on extra. Shares a page
- * with the candidate-vs-cohort radar chart, filling the whitespace the chart
- * alone left below it.
+ * it reads as part of the report rather than a bolted-on extra. Second half
+ * of the Executive Summary section (the radar/cohort-comparison page is the
+ * first), landing right before the Report Interpretation page.
  */
 export function CompetencyExecutiveSummaryPage({ report }: { report: ReportPayload }) {
   const { theme } = useReportTheme();
@@ -114,13 +114,14 @@ export function CompetencyExecutiveSummaryPage({ report }: { report: ReportPaylo
   const focusNames = formatList(focusAreas.map((c) => c.competencyName));
 
   return (
-    // Divider (not just a margin gap) so the section reads as visually
-    // distinct from the radar chart it shares a page with, instead of
-    // blurring straight into it.
-    <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: `1px solid ${theme.hairline}` }}>
-      <h3 style={{ ...reportTypography.h3, marginBottom: "0.5rem", color: theme.ink }}>Executive Summary</h3>
+    // Standalone page — same h2 + border-bottom title treatment as every
+    // other top-level report page (Score Overview, Trait Scores, etc.).
+    <div>
+      <div style={{ ...reportTypography.h2, borderBottom: `2px solid ${theme.ink}`, paddingBottom: "0.5rem", marginBottom: "1.5rem", color: theme.ink }}>
+        Executive Summary
+      </div>
 
-      <p style={{ ...reportTypography.bodySmall, color: theme.body, marginBottom: "0.875rem" }}>
+      <p style={{ ...reportTypography.body, color: theme.body, marginBottom: "1.5rem" }}>
         {strengthList.length > 0 && (
           <>
             Performance is strongest in <strong style={{ color: theme.ink }}>{strengthNames}</strong>
