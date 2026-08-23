@@ -7,9 +7,12 @@ import { deleteAssessmentById } from "./actions";
 export function BuilderHeaderActions({
   assessmentId,
   assessmentTitle,
+  backToProgramHref,
 }: {
   assessmentId: string;
   assessmentTitle: string;
+  /** Set when this module belongs to a Program — assigning happens at the Program level, so "Assign now" is replaced with a "done, take me back" affordance instead. Null for standalone/legacy assessments, which keep the old direct-assign button. */
+  backToProgramHref?: string | null;
 }) {
   const [delConfirm, setDelConfirm] = useState(false);
   const [delPending, setDelPending] = useState(false);
@@ -23,12 +26,21 @@ export function BuilderHeaderActions({
 
   return (
     <>
-      <Link
-        href={assignHref}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-[#2563EB] bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1d4edb] transition"
-      >
-        Assign now →
-      </Link>
+      {backToProgramHref ? (
+        <Link
+          href={backToProgramHref}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#0F766E] bg-[#0F766E] px-4 py-2 text-sm font-medium text-white hover:bg-[#0D9488] transition"
+        >
+          ✓ Done — Back to Program
+        </Link>
+      ) : (
+        <Link
+          href={assignHref}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[#2563EB] bg-[#2563EB] px-4 py-2 text-sm font-medium text-white hover:bg-[#1d4edb] transition"
+        >
+          Assign now →
+        </Link>
+      )}
 
       {!delConfirm ? (
         <button

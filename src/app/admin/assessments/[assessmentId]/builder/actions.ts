@@ -8,7 +8,10 @@ import {
   allowsCaseStudyPool,
   allowsLikertPool,
   allowsMcqPool,
+  allowsOpenEndedPool,
   allowsSjtPool,
+  allowsSurveyLikertPool,
+  allowsTechnicalMcqPool,
   allowsTriadPool,
 } from "@/lib/assessment-pools";
 import { DEFAULT_INSTRUCTIONS } from "@/lib/default-instructions";
@@ -16,7 +19,7 @@ import { serializeCustomInstructions } from "@/lib/custom-instructions";
 async function assertAssessment(assessmentId: string) {
   const assessment = await prisma.assessment.findFirst({
     where: { id: assessmentId },
-    select: { id: true, assessmentType: true },
+    select: { id: true, assessmentType: true, moduleType: true },
   });
   if (!assessment) redirect("/admin/assessments");
   return assessment;
@@ -143,6 +146,72 @@ export async function addCaseStudyFromPoolBulk(assessmentId: string, formData: F
   revalidatePath("/admin/assessments");
 }
 
+export async function addTechnicalMcqItemsBulk(assessmentId: string, formData: FormData) {
+  const assessment = await assertAssessment(assessmentId);
+  if (!allowsTechnicalMcqPool(assessment.moduleType)) return;
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  if (!ids.length) return;
+  const items = await prisma.assessmentItem.findMany({
+    where: { id: { in: ids }, itemType: { in: ["MCQ_SINGLE", "MCQ_MULTIPLE"] }, caseStudyId: null, attributeId: null },
+    select: { id: true },
+  });
+  const sectionId = await primarySectionId(assessmentId);
+  for (const item of items) {
+    const dup = await prisma.assessmentCompositionItem.findFirst({ where: { assessmentId, sourceAssessmentItemId: item.id } });
+    if (dup) continue;
+    const maxOrder = await prisma.assessmentCompositionItem.aggregate({ where: { sectionId }, _max: { displayOrder: true } });
+    await prisma.assessmentCompositionItem.create({
+      data: { assessmentId, sectionId, displayOrder: (maxOrder._max.displayOrder ?? 0) + 1, sourceAssessmentItemId: item.id },
+    });
+  }
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  revalidatePath("/admin/assessments");
+}
+
+export async function addOpenEndedItemsBulk(assessmentId: string, formData: FormData) {
+  const assessment = await assertAssessment(assessmentId);
+  if (!allowsOpenEndedPool(assessment.moduleType)) return;
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  if (!ids.length) return;
+  const items = await prisma.assessmentItem.findMany({
+    where: { id: { in: ids }, itemType: "OPEN_ENDED" },
+    select: { id: true },
+  });
+  const sectionId = await primarySectionId(assessmentId);
+  for (const item of items) {
+    const dup = await prisma.assessmentCompositionItem.findFirst({ where: { assessmentId, sourceAssessmentItemId: item.id } });
+    if (dup) continue;
+    const maxOrder = await prisma.assessmentCompositionItem.aggregate({ where: { sectionId }, _max: { displayOrder: true } });
+    await prisma.assessmentCompositionItem.create({
+      data: { assessmentId, sectionId, displayOrder: (maxOrder._max.displayOrder ?? 0) + 1, sourceAssessmentItemId: item.id },
+    });
+  }
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  revalidatePath("/admin/assessments");
+}
+
+export async function addSurveyLikertItemsBulk(assessmentId: string, formData: FormData) {
+  const assessment = await assertAssessment(assessmentId);
+  if (!allowsSurveyLikertPool(assessment.moduleType)) return;
+  const ids = formData.getAll("ids").map(String).filter(Boolean);
+  if (!ids.length) return;
+  const items = await prisma.assessmentItem.findMany({
+    where: { id: { in: ids }, itemType: "LIKERT", skillId: { not: null } },
+    select: { id: true },
+  });
+  const sectionId = await primarySectionId(assessmentId);
+  for (const item of items) {
+    const dup = await prisma.assessmentCompositionItem.findFirst({ where: { assessmentId, sourceAssessmentItemId: item.id } });
+    if (dup) continue;
+    const maxOrder = await prisma.assessmentCompositionItem.aggregate({ where: { sectionId }, _max: { displayOrder: true } });
+    await prisma.assessmentCompositionItem.create({
+      data: { assessmentId, sectionId, displayOrder: (maxOrder._max.displayOrder ?? 0) + 1, sourceAssessmentItemId: item.id },
+    });
+  }
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  revalidatePath("/admin/assessments");
+}
+
 export async function saveAssessmentDetails(assessmentId: string, formData: FormData) {
   await assertAssessment(assessmentId);
   const title = String(formData.get("title") ?? "").trim();
@@ -236,6 +305,27 @@ export async function updateAssessmentJobRole(assessmentId: string, formData: Fo
       // A Job Role's own report template takes over; clearing the Job Role
       // leaves reportTemplateId untouched (falls back to assessmentType lookup).
       ...(jobRoleId ? { reportTemplateId: jobRole?.reportTemplate?.id ?? null } : {}),
+    },
+  });
+  revalidatePath(`/admin/assessments/${assessmentId}/builder`);
+  revalidatePath("/admin/assessments");
+}
+
+export async function updateAssessmentSkillFramework(assessmentId: string, formData: FormData) {
+  await assertAssessment(assessmentId);
+  const raw = String(formData.get("skillFrameworkId") ?? "").trim();
+  const skillFrameworkId = raw || null;
+  const skillFramework = skillFrameworkId
+    ? await prisma.skillFramework.findFirst({ where: { id: skillFrameworkId }, select: { id: true, reportTemplate: { select: { id: true } } } })
+    : null;
+  if (skillFrameworkId && !skillFramework) return;
+  await prisma.assessment.update({
+    where: { id: assessmentId },
+    data: {
+      skillFrameworkId,
+      // A Skill Framework's own report template takes over; clearing it
+      // leaves reportTemplateId untouched (falls back to assessmentType lookup).
+      ...(skillFrameworkId ? { reportTemplateId: skillFramework?.reportTemplate?.id ?? null } : {}),
     },
   });
   revalidatePath(`/admin/assessments/${assessmentId}/builder`);
