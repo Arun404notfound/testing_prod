@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { Plus, X } from "lucide-react";
+import { OptionImageField, QuestionAudioField, QuestionImagesField } from "@/components/admin/media-upload-fields";
 
 const inputCls = "w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] placeholder:text-[#94A3B8] focus:border-[#2563EB] focus:outline-none";
 
@@ -73,11 +74,16 @@ export function CaseStudyForm({
               ))}
             </select>
           </div>
+          <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 grid gap-3 sm:grid-cols-2">
+            <QuestionImagesField namePrefix={`sub_${i}_img`} max={3} />
+            <QuestionAudioField name={`sub_${i}_audio`} />
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {[1, 2, 3, 4].map((n) => (
-              <div key={n}>
+              <div key={n} className="space-y-1.5">
                 <label className="mb-1 block text-xs font-medium text-[#475569]">Option {n} *</label>
                 <input name={`sub_${i}_option${n}`} required placeholder={`Option ${n}`} className={inputCls} />
+                <OptionImageField name={`sub_${i}_img_opt${n}`} />
               </div>
             ))}
           </div>

@@ -23,6 +23,20 @@ enum ItemType {
   LIKERT
   TRIAD
   SJT
+  OPEN_ENDED
+}
+
+enum ModuleType {
+  PSYCHOMETRIC
+  TECHNICAL
+  SURVEY
+}
+
+enum ProgramCompositionType {
+  PSYCHOMETRIC
+  TECHNICAL
+  SURVEY
+  MIXED
 }
 
 enum Polarity {
@@ -116,6 +130,11 @@ model Tenant {
   jobRoles             JobRole[]
   domains              Domain[]
   emailTemplates       EmailTemplate[]
+  skills               Skill[]
+  programs             Program[]
+  skillFrameworks      SkillFramework[]
+  skillDomains         SkillDomain[]
+  skillCompetencies    SkillCompetency[]
 }
 
 model User {
@@ -134,22 +153,24 @@ model User {
 }
 
 model Candidate {
-  id          String                 @id @default(cuid())
-  tenantId    String?
-  fullName    String
-  email       String
-  mobile      String
-  employeeId  String
-  designation String
-  department  String
-  location    String
-  batchName   String?
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @default(now()) @updatedAt
-  tenant      Tenant?                @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  assignments AssessmentAssignment[]
-  attempts    AssessmentAttempt[]
-  results     AssessmentResult[]
+  id                 String                 @id @default(cuid())
+  tenantId           String?
+  fullName           String
+  email              String
+  mobile             String
+  employeeId         String
+  designation        String
+  department         String
+  location           String
+  batchName          String?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @default(now()) @updatedAt
+  tenant             Tenant?                @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  assignments        AssessmentAssignment[]
+  attempts           AssessmentAttempt[]
+  results            AssessmentResult[]
+  programAssignments ProgramAssignment[]
+  programResults     ProgramResult[]
 
   @@index([tenantId])
   @@index([email])
@@ -163,9 +184,11 @@ model Assessment {
   reportTemplateId   String?
   reportTemplateType ReportTemplateType          @default(TECHNICAL_SKILLS_REPORT)
   jobRoleId          String?
+  skillFrameworkId   String?
   title              String
   description        String
   assessmentType     AssessmentType              @default(KNOWLEDGE_MCQ)
+  moduleType         ModuleType                  @default(PSYCHOMETRIC)
   durationMinutes    Int
   maxAttempts        Int                         @default(1)
   startDateTime      DateTime?
@@ -185,6 +208,7 @@ model Assessment {
   tenant             Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   reportTemplate     ReportTemplate?             @relation(fields: [reportTemplateId], references: [id], onDelete: SetNull)
   jobRole            JobRole?                    @relation(fields: [jobRoleId], references: [id], onDelete: SetNull)
+  skillFramework     SkillFramework?             @relation(fields: [skillFrameworkId], references: [id], onDelete: SetNull)
   sections           AssessmentSection[]
   items              AssessmentItem[]
   triadGroups        TriadGroup[]
@@ -194,13 +218,16 @@ model Assessment {
   results            AssessmentResult[]
   questions          AssessmentQuestion[]
   compositionItems   AssessmentCompositionItem[]
+  programAssessments ProgramAssessment[]
 
   @@index([tenantId])
   @@index([assessmentType])
+  @@index([moduleType])
   @@index([reportTemplateId])
   @@index([reportTemplateType])
   @@index([lifecycleStatus])
   @@index([jobRoleId])
+  @@index([skillFrameworkId])
 }
 
 model AssessmentSection {
@@ -237,6 +264,11 @@ model AssessmentItem {
   polarity        Polarity?
   likertScaleId   String?
   attributeId     String?
+  weightage       Float                       @default(1)
+  skillId         String?
+  subSkillId      String?
+  imageUrl        String?
+  audioUrl        String?
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @default(now()) @updatedAt
   assessment      Assessment?                 @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
@@ -244,15 +276,32 @@ model AssessmentItem {
   caseStudy       CaseStudy?                  @relation(fields: [caseStudyId], references: [id], onDelete: Cascade)
   likertScale     LikertScale?                @relation(fields: [likertScaleId], references: [id], onDelete: SetNull)
   attribute       Attribute?                  @relation(fields: [attributeId], references: [id], onDelete: SetNull)
+  skill           Skill?                      @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  subSkill        SubSkill?                   @relation(fields: [subSkillId], references: [id], onDelete: SetNull)
   options         ItemOption[]
   responses       AttemptResponse[]
   compositionUses AssessmentCompositionItem[] @relation("CompositionLikertPoolItem")
+  images          AssessmentItemImage[]
 
   @@index([assessmentId])
   @@index([sectionId])
   @@index([caseStudyId])
   @@index([itemType])
   @@index([factor, trait])
+  @@index([skillId])
+  @@index([subSkillId])
+}
+
+/// Up to 3 per AssessmentItem — the legacy single `AssessmentItem.imageUrl` column can't hold more than one, so multi-image questions (e.g. a graph-based quantitative item) use this table instead. `imageUrl` stays unused going forward.
+model AssessmentItemImage {
+  id           String         @id @default(cuid())
+  itemId       String
+  url          String
+  displayOrder Int            @default(0)
+  createdAt    DateTime       @default(now())
+  item         AssessmentItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
 }
 
 model ItemOption {
@@ -263,6 +312,7 @@ model ItemOption {
   displayOrder Int               @default(0)
   isCorrect    Boolean           @default(false)
   scoreValue   Float?
+  imageUrl     String?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @default(now()) @updatedAt
   item         AssessmentItem    @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -378,27 +428,33 @@ model TriadStatement {
 }
 
 model AssessmentAssignment {
-  id              String              @id @default(cuid())
-  candidateId     String
-  assessmentId    String
-  accessToken     String              @unique
-  status          AssignmentStatus    @default(assigned)
-  assignedAt      DateTime            @default(now())
-  completedAt     DateTime?
-  expiresAt       DateTime?
-  durationMinutes Int?
-  maxAttempts     Int?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @default(now()) @updatedAt
-  candidate       Candidate           @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  assessment      Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  attempts        AssessmentAttempt[]
-  result          AssessmentResult?
+  id                  String              @id @default(cuid())
+  candidateId         String
+  assessmentId        String
+  accessToken         String              @unique
+  status              AssignmentStatus    @default(assigned)
+  assignedAt          DateTime            @default(now())
+  completedAt         DateTime?
+  expiresAt           DateTime?
+  durationMinutes     Int?
+  maxAttempts         Int?
+  /// Set when this assignment is one module of a Program; null for direct/legacy assignments.
+  programAssignmentId String?
+  /// Mirrors ProgramAssessment.displayOrder for this module within its Program.
+  programModuleOrder  Int?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @default(now()) @updatedAt
+  candidate           Candidate           @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  assessment          Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  programAssignment   ProgramAssignment?  @relation(fields: [programAssignmentId], references: [id], onDelete: SetNull)
+  attempts            AssessmentAttempt[]
+  result              AssessmentResult?
 
   @@index([candidateId])
   @@index([assessmentId])
   @@index([status])
   @@index([assignedAt])
+  @@index([programAssignmentId])
 }
 
 model AssessmentAttempt {
@@ -432,8 +488,9 @@ model AssessmentAttempt {
   sectionScores           SectionScore[]
   proctoringEvents        ProctoringEvent[]
   competencyScores        CompetencyScore[]
+  skillScores             SkillScore[]
 
-  @@unique([assignmentId, attemptNo])
+  @@unique([assignmentId, assessmentId, attemptNo])
   @@index([candidateId])
   @@index([assessmentId])
   @@index([status])
@@ -723,6 +780,195 @@ model CompetencyScore {
   @@index([competencyId])
 }
 
+// ─── Skill Engine (Technical / Survey modules) ───────────────────────────────
+// Parallel to Attribute/Competency/CompetencyScore above, used only by
+// TECHNICAL and SURVEY module items. Psychometric items keep tagging
+// Attribute/Competency exclusively — the two taxonomies never mix.
+
+model Skill {
+  id           String   @id @default(cuid())
+  tenantId     String?
+  name         String
+  description  String?
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  tenant    Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  subSkills SubSkill[]
+  items     AssessmentItem[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model SubSkill {
+  id           String   @id @default(cuid())
+  skillId      String
+  name         String
+  description  String?
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  skill               Skill                @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  items               AssessmentItem[]
+  skillCompetencyMaps SkillCompetencyMap[]
+
+  @@unique([skillId, name])
+  @@index([skillId])
+}
+
+model SkillScore {
+  id                String   @id @default(cuid())
+  attemptId         String
+  skillCompetencyId String
+  rawScore          Float
+  maxScore          Float
+  scaledScore       Float
+  percent           Float
+  band              String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  attempt         AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  skillCompetency SkillCompetency   @relation(fields: [skillCompetencyId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, skillCompetencyId])
+  @@index([attemptId])
+  @@index([skillCompetencyId])
+}
+
+// ─── Skill Framework (Technical module's Job-Role equivalent) ───────────────
+// Full mirror of JobRole/Domain/Competency/AttributeCompetencyMap/
+// CompetencyBandContent/DevelopmentProject above, rooted in Skill/SubSkill
+// instead of Attribute. SubSkill is the measurable leaf (like Attribute);
+// Skill is the loose category (like Attribute.category).
+
+model SkillFramework {
+  id           String   @id @default(cuid())
+  tenantId     String?
+  name         String
+  slug         String?
+  description  String?
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  tenant            Tenant?           @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  skillDomains      SkillDomain[]
+  skillCompetencies SkillCompetency[]
+  assessments       Assessment[]
+  reportTemplate    ReportTemplate?
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+model SkillDomain {
+  id               String   @id @default(cuid())
+  tenantId         String?
+  skillFrameworkId String
+  name             String
+  description      String?
+  displayOrder     Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @default(now()) @updatedAt
+
+  tenant            Tenant?           @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  skillFramework    SkillFramework    @relation(fields: [skillFrameworkId], references: [id], onDelete: Cascade)
+  skillCompetencies SkillCompetency[]
+
+  @@unique([skillFrameworkId, name])
+  @@index([tenantId])
+  @@index([skillFrameworkId])
+}
+
+model SkillCompetency {
+  id                       String   @id @default(cuid())
+  tenantId                 String?
+  /// Null for a domainless skill competency within its framework.
+  skillFrameworkId         String?
+  skillDomainId            String?
+  name                     String
+  description              String?
+  reportDescription        String?
+  displayOrder             Int      @default(0)
+  /// Same convention as Competency.scoringFormula.
+  scoringFormula           String   @default("WEIGHTED_AVERAGE")
+  /// Same convention as Competency.proficiencyScale.
+  proficiencyScale         String   @default("GENERIC_5")
+  strengthStatement        String?
+  developmentNeedStatement String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @default(now()) @updatedAt
+
+  tenant              Tenant?                      @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  skillFramework      SkillFramework?              @relation(fields: [skillFrameworkId], references: [id], onDelete: Cascade)
+  skillDomain         SkillDomain?                 @relation(fields: [skillDomainId], references: [id], onDelete: SetNull)
+  subSkillMaps        SkillCompetencyMap[]
+  scores              SkillScore[]
+  bandContents        SkillCompetencyBandContent[]
+  developmentProjects SkillDevelopmentProject[]
+
+  @@unique([tenantId, skillFrameworkId, name])
+  @@index([tenantId])
+  @@index([skillFrameworkId])
+  @@index([skillDomainId])
+}
+
+model SkillCompetencyMap {
+  id                String   @id @default(cuid())
+  subSkillId        String
+  skillCompetencyId String
+  weight            Float    @default(1.0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  subSkill        SubSkill        @relation(fields: [subSkillId], references: [id], onDelete: Cascade)
+  skillCompetency SkillCompetency @relation(fields: [skillCompetencyId], references: [id], onDelete: Cascade)
+
+  @@unique([subSkillId, skillCompetencyId])
+  @@index([subSkillId])
+  @@index([skillCompetencyId])
+}
+
+model SkillCompetencyBandContent {
+  id                      String   @id @default(cuid())
+  skillCompetencyId       String
+  /// "Developing" | "Intermediate" | "Proficient" | "Expert"
+  band                    String
+  proficiencyDescription  String
+  /// Newline-delimited bullet points.
+  behaviouralImplications String
+  /// Newline-delimited bullet points.
+  watchOuts               String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @default(now()) @updatedAt
+
+  skillCompetency SkillCompetency @relation(fields: [skillCompetencyId], references: [id], onDelete: Cascade)
+
+  @@unique([skillCompetencyId, band])
+  @@index([skillCompetencyId])
+}
+
+model SkillDevelopmentProject {
+  id                String   @id @default(cuid())
+  skillCompetencyId String
+  displayOrder      Int      @default(0)
+  title             String
+  whatToDo          String
+  howToDoIt         String
+  evidence          String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  skillCompetency SkillCompetency @relation(fields: [skillCompetencyId], references: [id], onDelete: Cascade)
+
+  @@index([skillCompetencyId])
+}
+
 model SectionScore {
   id                  String             @id @default(cuid())
   assessmentResultId  String?
@@ -744,21 +990,24 @@ model SectionScore {
 }
 
 model ReportTemplate {
-  id             String         @id @default(cuid())
-  tenantId       String?
+  id               String          @id @default(cuid())
+  tenantId         String?
   /// Set when this template is owned by a Job Role framework rather than
   /// picked directly by assessmentType.
-  jobRoleId      String?        @unique
-  name           String
-  assessmentType AssessmentType
-  headerTitle    String
-  introduction   String
-  footerText     String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @default(now()) @updatedAt
-  tenant         Tenant?        @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  jobRole        JobRole?       @relation(fields: [jobRoleId], references: [id], onDelete: SetNull)
-  assessments    Assessment[]
+  jobRoleId        String?         @unique
+  /// Set when this template is owned by a Skill Framework instead.
+  skillFrameworkId String?         @unique
+  name             String
+  assessmentType   AssessmentType
+  headerTitle      String
+  introduction     String
+  footerText       String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @default(now()) @updatedAt
+  tenant           Tenant?         @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  jobRole          JobRole?        @relation(fields: [jobRoleId], references: [id], onDelete: SetNull)
+  skillFramework   SkillFramework? @relation(fields: [skillFrameworkId], references: [id], onDelete: SetNull)
+  assessments      Assessment[]
 
   @@unique([tenantId, name, assessmentType])
   @@index([tenantId])
@@ -883,17 +1132,21 @@ model AssessmentResult {
   overallScore      Float
   strengths         Json
   areasOfConcern    Json
+  /// Set once the Program this assignment belongs to has every module scored; null until then.
+  programResultId   String?
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @default(now()) @updatedAt
   candidate         Candidate             @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   assessment        Assessment?           @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
   assignment        AssessmentAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  programResult     ProgramResult?        @relation(fields: [programResultId], references: [id], onDelete: SetNull)
   sectionScores     SectionScore[]
   questionResponses QuestionResponse[]
 
   @@index([candidateId])
   @@index([assessmentId])
   @@index([completedAt])
+  @@index([programResultId])
 }
 
 model QuestionResponse {
@@ -909,4 +1162,81 @@ model QuestionResponse {
 
   @@index([assessmentResultId])
   @@index([questionId])
+}
+
+// ─── Program (candidate-facing container of one or more Modules) ────────────
+// A "Module" is not a new entity — it's an Assessment with a moduleType,
+// attached into a Program via ProgramAssessment. Program : ProgramAssignment
+// mirrors the existing Assessment : AssessmentAssignment split one level up.
+// Every AssessmentAssignment/AssessmentAttempt/AssessmentResult keeps meaning
+// exactly what it means today; these tables only ever wrap them.
+
+model Program {
+  id              String                 @id @default(cuid())
+  tenantId        String?
+  title           String
+  description     String?
+  compositionType ProgramCompositionType
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @default(now()) @updatedAt
+
+  tenant      Tenant?             @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  assessments ProgramAssessment[]
+  assignments ProgramAssignment[]
+
+  @@index([tenantId])
+  @@index([compositionType])
+}
+
+model ProgramAssessment {
+  id           String   @id @default(cuid())
+  programId    String
+  assessmentId String
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  program    Program    @relation(fields: [programId], references: [id], onDelete: Cascade)
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, assessmentId])
+  @@unique([programId, displayOrder])
+  @@index([assessmentId])
+}
+
+model ProgramAssignment {
+  id          String           @id @default(cuid())
+  programId   String
+  candidateId String
+  accessToken String           @unique
+  status      AssignmentStatus @default(assigned)
+  assignedAt  DateTime         @default(now())
+  completedAt DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now()) @updatedAt
+
+  program               Program                @relation(fields: [programId], references: [id], onDelete: Cascade)
+  candidate             Candidate              @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  assessmentAssignments AssessmentAssignment[]
+  result                ProgramResult?
+
+  @@index([programId])
+  @@index([candidateId])
+  @@index([status])
+}
+
+model ProgramResult {
+  id                  String   @id @default(cuid())
+  programAssignmentId String   @unique
+  candidateId         String
+  completedAt         DateTime
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now()) @updatedAt
+
+  programAssignment ProgramAssignment  @relation(fields: [programAssignmentId], references: [id], onDelete: Cascade)
+  candidate         Candidate          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  assessmentResults AssessmentResult[]
+
+  @@index([candidateId])
 }

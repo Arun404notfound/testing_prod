@@ -27,9 +27,9 @@ const cards = [
     icon: HelpCircle,
   },
   {
-    title: "Assessment Builder",
-    description: "Create demo assessments from existing questions.",
-    href: "/admin/assessments",
+    title: "Program Builder",
+    description: "Compose Programs from Psychometric/Technical/Survey modules.",
+    href: "/admin/programs",
     icon: ClipboardList,
   },
   {

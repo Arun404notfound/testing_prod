@@ -4,12 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BarChart3,
+  Braces,
+  Brain,
   Briefcase,
   ChevronDown,
+  ChevronRight,
   ClipboardList,
+  Cpu,
   FileUp,
   HelpCircle,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   Mail,
   Menu,
@@ -39,11 +44,51 @@ const navGroups = [
     ],
   },
   {
+    label: "Programs",
+    items: [
+      { href: "/admin/programs", label: "Program Builder", icon: ClipboardList },
+    ],
+  },
+];
+
+/**
+ * Three Module sections — Psychometric/Technical/Survey — each collapsible.
+ * Psychometric keeps its existing Job Role feature untouched; Technical gets
+ * its Skill Framework mirror; Survey has no framework item (none exists).
+ */
+const moduleGroups = [
+  {
+    key: "psychometric",
+    label: "Psychometric",
+    icon: Brain,
+    items: [
+      { href: "/admin/job-roles", label: "Job Roles", icon: Briefcase },
+      { href: "/admin/questions/psychometric", label: "Questions", icon: HelpCircle },
+    ],
+  },
+  {
+    key: "technical",
+    label: "Technical",
+    icon: Cpu,
+    items: [
+      { href: "/admin/skill-frameworks", label: "Skill Frameworks", icon: Braces },
+      { href: "/admin/questions/technical", label: "Questions", icon: HelpCircle },
+    ],
+  },
+  {
+    key: "survey",
+    label: "Survey",
+    icon: ListChecks,
+    items: [
+      { href: "/admin/questions/survey", label: "Questions", icon: HelpCircle },
+    ],
+  },
+];
+
+const trailingGroups = [
+  {
     label: "Content",
     items: [
-      { href: "/admin/assessments", label: "Assessment Builder", icon: ClipboardList },
-      { href: "/admin/questions", label: "Questions", icon: HelpCircle },
-      { href: "/admin/job-roles", label: "Job Roles", icon: Briefcase },
       { href: "/admin/imports", label: "Imports", icon: FileUp },
     ],
   },
@@ -59,6 +104,12 @@ const navGroups = [
       { href: "/admin/mail-templates", label: "Mail Templates", icon: Mail },
     ],
   },
+];
+
+const allNavItems = [
+  ...navGroups.flatMap((g) => g.items),
+  ...moduleGroups.flatMap((g) => g.items),
+  ...trailingGroups.flatMap((g) => g.items),
 ];
 
 export function AdminAppShell({
@@ -78,11 +129,22 @@ export function AdminAppShell({
     .slice(0, 2)
     .join("") || user.email.slice(0, 2).toUpperCase();
 
-  const activeLabel = navGroups.flatMap((g) => g.items).find((item) =>
+  const activeLabel = allNavItems.find((item) =>
     item.href === "/admin/dashboard"
       ? pathname === "/admin/dashboard"
       : pathname.startsWith(item.href)
   )?.label ?? "Admin";
+
+  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>(
+    Object.fromEntries(moduleGroups.map((g) => [g.key, true])),
+  );
+  function toggleModule(key: string) {
+    setExpandedModules((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function isActiveHref(href: string) {
+    return href === "/admin/dashboard" ? pathname === "/admin/dashboard" : pathname.startsWith(href);
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
@@ -125,34 +187,76 @@ export function AdminAppShell({
                 {group.label}
               </p>
               <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const active =
-                    item.href === "/admin/dashboard"
-                      ? pathname === "/admin/dashboard"
-                      : pathname.startsWith(item.href);
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150 ${
-                        active
-                          ? "bg-[#EFF6FF] text-[#2563EB]"
-                          : "text-[#6B7280] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+                {group.items.map((item) => (
+                  <NavItemLink
+                    key={item.href}
+                    item={item}
+                    active={isActiveHref(item.href)}
+                    onClick={() => setMobileOpen(false)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div>
+            <p className="mb-1 px-2 text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF]">
+              Modules
+            </p>
+            <div className="space-y-1">
+              {moduleGroups.map((group) => {
+                const expanded = expandedModules[group.key] ?? true;
+                const GroupIcon = group.icon;
+                const groupActive = group.items.some((item) => isActiveHref(item.href));
+                return (
+                  <div key={group.key}>
+                    <button
+                      type="button"
+                      onClick={() => toggleModule(group.key)}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition-all duration-150 ${
+                        groupActive ? "text-[#0F172A]" : "text-[#374151] hover:bg-[#F8FAFC]"
                       }`}
                     >
-                      <Icon
-                        size={15}
-                        className={active ? "text-[#2563EB]" : "text-[#9CA3AF]"}
-                      />
-                      {item.label}
-                      {active && (
-                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+                      <GroupIcon size={15} className={groupActive ? "text-[#2563EB]" : "text-[#9CA3AF]"} />
+                      {group.label}
+                      {expanded ? (
+                        <ChevronDown size={13} className="ml-auto text-[#9CA3AF]" />
+                      ) : (
+                        <ChevronRight size={13} className="ml-auto text-[#9CA3AF]" />
                       )}
-                    </Link>
-                  );
-                })}
+                    </button>
+                    {expanded && (
+                      <div className="ml-4 space-y-0.5 border-l border-[#F1F5F9] pl-2">
+                        {group.items.map((item) => (
+                          <NavItemLink
+                            key={item.href}
+                            item={item}
+                            active={isActiveHref(item.href)}
+                            onClick={() => setMobileOpen(false)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {trailingGroups.map((group) => (
+            <div key={group.label}>
+              <p className="mb-1 px-2 text-[9px] font-bold uppercase tracking-widest text-[#9CA3AF]">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <NavItemLink
+                    key={item.href}
+                    item={item}
+                    active={isActiveHref(item.href)}
+                    onClick={() => setMobileOpen(false)}
+                  />
+                ))}
               </div>
             </div>
           ))}
@@ -242,5 +346,26 @@ export function AdminAppShell({
       </div>
 
     </div>
+  );
+}
+
+type NavItem = { href: string; label: string; icon: React.ComponentType<{ size?: number; className?: string }> };
+
+function NavItemLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick: () => void }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-150 ${
+        active
+          ? "bg-[#EFF6FF] text-[#2563EB]"
+          : "text-[#6B7280] hover:bg-[#F8FAFC] hover:text-[#0F172A]"
+      }`}
+    >
+      <Icon size={15} className={active ? "text-[#2563EB]" : "text-[#9CA3AF]"} />
+      {item.label}
+      {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#2563EB]" />}
+    </Link>
   );
 }
