@@ -40,6 +40,7 @@ export type AttemptResponsePayload = {
   triadLeastStatementId?: string;
   status: "ANSWERED";
   numericValue?: number;
+  textValue?: string;
   rawScore?: number;
   scoredValue?: number;
   isCorrect?: boolean;
@@ -60,6 +61,11 @@ export type ScoringItem = {
   definition: string | null;
   polarity: Polarity | null;
   sectionTitle: string;
+  /** Technical/Survey tagging, parallel to factor/trait's Psychometric Attribute tagging. Null for every Psychometric item. */
+  skillId: string | null;
+  subSkillId: string | null;
+  /** Set only for Survey Likert items authored with a custom scale; null for every legacy Psychometric Likert item, which keeps their 1–5 scoring untouched. */
+  likertScale: { minValue: number; maxValue: number } | null;
   options: Array<{
     id: string;
     label: string;
@@ -105,12 +111,21 @@ export type ScoringContext = {
   >;
 };
 
+export type SkillScoreRow = {
+  skillId: string;
+  subSkillId: string;
+  score: number;
+  maxScore: number;
+};
+
 export type ScoringResult = {
   totalRawScore: number;
   maxScore: number;
   percentage: number;
   sectionScores: SectionScoreRow[];
   traitScores: TraitScoreRow[];
+  /** Technical/Survey per-sub-skill raw aggregates. Empty for every Psychometric assessment. */
+  skillScores: SkillScoreRow[];
   responseEvaluations: ResponseEvaluation[];
   questionResponses: QuestionResponsePayload[];
   attemptResponses: AttemptResponsePayload[];
@@ -138,6 +153,26 @@ function maxMarksForSjtItem(options: Array<{ scoreValue: number | null }>): numb
   return m;
 }
 
+/** Multi-correct MCQ is all-or-nothing — one mark for the whole item, not per-option. */
+function maxMarksForMultiItem(): number {
+  return 1;
+}
+
+/**
+ * All-or-nothing: the candidate must select exactly the correct set of options —
+ * every correct one, and no incorrect one — to earn the item's single mark. Any
+ * partial or over-inclusive selection scores 0, so checking every option is never
+ * a viable strategy.
+ */
+function evaluateMcqMultiSelection(item: ScoringItem, selectedIds: string[]) {
+  const max = maxMarksForMultiItem();
+  const correctIds = new Set(item.options.filter((o) => o.isCorrect).map((o) => o.id));
+  const selectedSet = new Set(selectedIds);
+  const isCorrect = selectedSet.size === correctIds.size && [...correctIds].every((id) => selectedSet.has(id));
+  const score = isCorrect ? max : 0;
+  return { max, score, isCorrect };
+}
+
 /** Shared single-best-answer MCQ evaluation, reused by item_mcq/item_tf and by each case-study sub-question. */
 function evaluateMcqSelection(item: ScoringItem, optionId: string | undefined) {
   if (optionId === undefined) return null;
@@ -149,8 +184,8 @@ function evaluateMcqSelection(item: ScoringItem, optionId: string | undefined) {
   return { opt, max, score, isCorrect: opt.isCorrect, correctOpt };
 }
 
-function likertScoredValue(selectedRating: number, itemPolarity: Polarity | null): number {
-  if (itemPolarity === "NEGATIVE") return 6 - selectedRating;
+function likertScoredValue(selectedRating: number, itemPolarity: Polarity | null, min: number, max: number): number {
+  if (itemPolarity === "NEGATIVE") return min + max - selectedRating;
   return selectedRating;
 }
 
@@ -185,6 +220,7 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
     string,
     { factor: string; trait: string; definition: string; raw: number; max: number }
   >();
+  const skillAgg = new Map<string, { skillId: string; subSkillId: string; raw: number; max: number }>();
 
   const bumpSection = (section: string, raw: number, max: number) => {
     const prev = sectionAgg.get(section) ?? { raw: 0, max: 0 };
@@ -199,6 +235,16 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
     prev.raw += raw;
     prev.max += max;
     traitAgg.set(key, prev);
+  };
+
+  // Technical/Survey items tag skillId/subSkillId instead of factor/trait — no-op for
+  // every Psychometric item, which never sets these fields.
+  const bumpSkill = (skillId: string | null, subSkillId: string | null, raw: number, max: number) => {
+    if (!subSkillId || !skillId) return;
+    const prev = skillAgg.get(subSkillId) ?? { skillId, subSkillId, raw: 0, max: 0 };
+    prev.raw += raw;
+    prev.max += max;
+    skillAgg.set(subSkillId, prev);
   };
 
   // ── Pre-pass: register full possible max for EVERY item/block ──────────────
@@ -216,11 +262,21 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
       const max = maxMarksForMcqItem(item.options);
       bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), 0, max);
       bumpSection(item.sectionTitle, 0, max);
+      bumpSkill(item.skillId, item.subSkillId, 0, max);
+    } else if (b.kind === "item_mcq_multi") {
+      const item = ctx.itemById.get(b.itemId);
+      if (!item) continue;
+      const max = maxMarksForMultiItem();
+      bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), 0, max);
+      bumpSection(item.sectionTitle, 0, max);
+      bumpSkill(item.skillId, item.subSkillId, 0, max);
     } else if (b.kind === "likert") {
       const item = ctx.itemById.get(b.itemId);
       if (!item) continue;
-      bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), 0, 5);
-      bumpSection(item.sectionTitle, 0, 5);
+      const scaleMax = (item.likertScale?.maxValue ?? 5) - (item.likertScale?.minValue ?? 1) + 1;
+      bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), 0, scaleMax);
+      bumpSection(item.sectionTitle, 0, scaleMax);
+      bumpSkill(item.skillId, item.subSkillId, 0, scaleMax);
     } else if (b.kind === "triad") {
       const group = ctx.triadByGroupId.get(b.groupId);
       if (!group) continue;
@@ -234,6 +290,7 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
       const max = maxMarksForSjtItem(item.options);
       bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), 0, max);
       bumpSection(item.sectionTitle, 0, max);
+      bumpSkill(item.skillId, item.subSkillId, 0, max);
     } else if (b.kind === "case_study") {
       let csMax = 0;
       for (const sq of b.subQuestions) {
@@ -245,6 +302,8 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
       }
       bumpSection(b.section, 0, csMax);
     }
+    // "open_ended" is intentionally excluded from the pre-pass — unscored/qualitative
+    // for v1, so it never contributes to totalMax/trait/skill percentages.
   }
 
   // totalMax comes from the pre-pass (all items); only totalRaw accumulates per answer
@@ -292,6 +351,7 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         score,
         0,
       );
+      bumpSkill(item.skillId, item.subSkillId, score, 0);
 
       evaluations.push({
         itemId: item.id,
@@ -314,12 +374,12 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         rawScore: score,
         scoredValue: score,
       });
-    } else if (b.kind === "likert") {
-      const selectedRating = Number(v);
+    } else if (b.kind === "item_mcq_multi") {
       const item = ctx.itemById.get(b.itemId);
       if (!item) continue;
-      if (!Number.isFinite(selectedRating) || selectedRating < 1 || selectedRating > 5) continue;
-      const score = likertScoredValue(selectedRating, item.polarity);
+      const selectedIds = Array.isArray(v) ? v.map(String) : [];
+      if (selectedIds.length === 0) continue;
+      const { max, score, isCorrect } = evaluateMcqMultiSelection(item, selectedIds);
       totalRaw += score;
       // Only bump raw — max already registered in pre-pass
       bumpTrait(
@@ -329,6 +389,79 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         score,
         0,
       );
+      bumpSkill(item.skillId, item.subSkillId, score, 0);
+
+      const selectedLabels = selectedIds
+        .map((id) => item.options.find((o) => o.id === id))
+        .filter((o): o is NonNullable<typeof o> => Boolean(o))
+        .map((o) => o.label || o.value)
+        .join(", ");
+      const correctLabels = item.options.filter((o) => o.isCorrect).map((o) => o.label || o.value).join(", ");
+      evaluations.push({
+        itemId: item.id,
+        itemType: item.itemType,
+        selectedAnswer: selectedLabels,
+        correctAnswer: correctLabels || null,
+        score,
+        maxScore: max,
+        isCorrect,
+        factor: item.factor ?? "General",
+        attribute: item.trait ?? "General",
+        polarity: item.polarity ?? null,
+      });
+      for (const id of selectedIds) {
+        const opt = item.options.find((o) => o.id === id);
+        if (!opt) continue;
+        attemptResponses.push({
+          itemId: item.id,
+          itemOptionId: opt.id,
+          status: "ANSWERED",
+          isCorrect: opt.isCorrect,
+          numericValue: opt.isCorrect ? 1 : 0,
+          rawScore: opt.isCorrect ? (opt.scoreValue ?? 1) : 0,
+          scoredValue: opt.isCorrect ? (opt.scoreValue ?? 1) : 0,
+        });
+      }
+    } else if (b.kind === "open_ended") {
+      const text = typeof v === "string" ? v.trim() : "";
+      const item = ctx.itemById.get(b.itemId);
+      if (!item || !text) continue;
+      // Unscored/qualitative for v1 — recorded for human review, excluded from percentage math.
+      evaluations.push({
+        itemId: item.id,
+        itemType: "OPEN_ENDED",
+        selectedAnswer: text,
+        correctAnswer: null,
+        score: 0,
+        maxScore: 0,
+        isCorrect: null,
+        factor: item.factor ?? "General",
+        attribute: item.trait ?? "General",
+        polarity: null,
+      });
+      attemptResponses.push({
+        itemId: item.id,
+        status: "ANSWERED",
+        textValue: text,
+      });
+    } else if (b.kind === "likert") {
+      const selectedRating = Number(v);
+      const item = ctx.itemById.get(b.itemId);
+      if (!item) continue;
+      const scaleMin = item.likertScale?.minValue ?? 1;
+      const scaleMax = item.likertScale?.maxValue ?? 5;
+      if (!Number.isFinite(selectedRating) || selectedRating < scaleMin || selectedRating > scaleMax) continue;
+      const score = likertScoredValue(selectedRating, item.polarity, scaleMin, scaleMax);
+      totalRaw += score;
+      // Only bump raw — max already registered in pre-pass
+      bumpTrait(
+        item.factor ?? "General",
+        item.trait ?? "General",
+        item.definition ?? item.prompt.slice(0, 120),
+        score,
+        0,
+      );
+      bumpSkill(item.skillId, item.subSkillId, score, 0);
 
       evaluations.push({
         itemId: item.id,
@@ -336,7 +469,7 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         selectedAnswer: selectedRating,
         correctAnswer: null,
         score,
-        maxScore: 5,
+        maxScore: scaleMax - scaleMin + 1,
         isCorrect: null,
         factor: item.factor ?? "General",
         attribute: item.trait ?? "General",
@@ -411,6 +544,7 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         score,
         0,
       );
+      bumpSkill(item.skillId, item.subSkillId, score, 0);
 
       const bestOpt = [...item.options].sort((a, b2) => (b2.scoreValue ?? 0) - (a.scoreValue ?? 0))[0];
       evaluations.push({
@@ -498,6 +632,13 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
     percent: row.max > 0 ? Math.round((row.raw / row.max) * 1000) / 10 : 0,
   }));
 
+  const skillScores: SkillScoreRow[] = Array.from(skillAgg.values()).map((row) => ({
+    skillId: row.skillId,
+    subSkillId: row.subSkillId,
+    score: row.raw,
+    maxScore: row.max,
+  }));
+
   const strengths = sectionScores
     .filter((s) => s.maxScore > 0 && s.score / s.maxScore >= 0.7)
     .map((s) => `Strength in ${s.sectionName}.`);
@@ -520,6 +661,7 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
     percentage,
     sectionScores,
     traitScores,
+    skillScores,
     responseEvaluations: evaluations,
     questionResponses,
     attemptResponses,

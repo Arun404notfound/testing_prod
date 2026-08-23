@@ -6,10 +6,12 @@ import {
   useRef,
   useCallback,
   type Dispatch,
+  type ReactNode,
   type SetStateAction,
 } from "react";
 import {
   AlertCircle,
+  Check,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -25,7 +27,7 @@ import type { TestBlock } from "@/lib/candidate-test-payload";
 
 type Answers = Record<
   string,
-  number | string | { most: string; least: string } | Record<string, string> | undefined
+  number | string | string[] | { most: string; least: string } | Record<string, string> | undefined
 >;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -40,6 +42,12 @@ function isAnswered(block: TestBlock, answers: Answers): boolean {
   if (block.kind === "case_study") {
     const subAnswers = v as Record<string, string>;
     return block.subQuestions.every((sq) => Boolean(subAnswers[sq.itemId]));
+  }
+  if (block.kind === "item_mcq_multi") {
+    return Array.isArray(v) && v.length > 0;
+  }
+  if (block.kind === "open_ended") {
+    return typeof v === "string" && v.trim().length > 0;
   }
   return true;
 }
@@ -175,6 +183,130 @@ function QuestionNavigator({ blocks, answers, currentIndex }: {
   );
 }
 
+// ─── Question media (images + audio) ──────────────────────────────────────────
+// Renders nothing when a block carries no media — every existing question type
+// is unaffected until Phase B actually populates images/audioUrl on a block.
+
+function QuestionMedia({ images, audioUrl }: { images?: string[]; audioUrl?: string | null }) {
+  const hasImages = Boolean(images && images.length > 0);
+  if (!hasImages && !audioUrl) return null;
+  const gridColsClass = (images?.length ?? 0) <= 1 ? "grid-cols-1" : (images?.length ?? 0) === 2 ? "grid-cols-2" : "grid-cols-3";
+  return (
+    <div className="mb-4 space-y-3">
+      {hasImages && (
+        <div className={`grid gap-3 ${gridColsClass}`}>
+          {images!.map((src, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={i} src={src} alt="" className="max-h-72 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] object-contain" />
+          ))}
+        </div>
+      )}
+      {audioUrl && <audio controls src={audioUrl} className="w-full" />}
+    </div>
+  );
+}
+
+// ─── Question header card (media + badge + title + subtitle) ─────────────────
+// Shared shell used by every question type, kept separate from the response
+// card below it so media/prompt and answer controls read as distinct zones.
+
+function QuestionHeader({ badge, badgeClassName, title, subtitle, extra, images, audioUrl }: {
+  badge?: string;
+  badgeClassName?: string;
+  title: string;
+  subtitle?: ReactNode;
+  extra?: ReactNode;
+  images?: string[];
+  audioUrl?: string | null;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+      <QuestionMedia images={images} audioUrl={audioUrl} />
+      {badge && (
+        <span className={badgeClassName ?? "inline-flex items-center rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#1D4ED8]"}>
+          {badge}
+        </span>
+      )}
+      <p className={`${badge ? "mt-2" : ""} text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl`}>{title}</p>
+      {subtitle && <div className="mt-1 text-sm text-[#64748B]">{subtitle}</div>}
+      {extra}
+    </div>
+  );
+}
+
+/** Derives the shared header's props per block kind — the single place that knows each type's badge/title/subtitle copy. */
+function QuestionHeaderForBlock({ block }: { block: TestBlock }) {
+  if (block.kind === "likert") {
+    return (
+      <QuestionHeader
+        title={block.prompt}
+        subtitle={block.scale ? "Select the option that best reflects your response." : "Rate how much the statement above describes you."}
+        images={block.images} audioUrl={block.audioUrl}
+      />
+    );
+  }
+  if (block.kind === "item_mcq" || block.kind === "item_tf") {
+    return <QuestionHeader title={block.prompt} images={block.images} audioUrl={block.audioUrl} />;
+  }
+  if (block.kind === "legacy_mcq") {
+    return <QuestionHeader title={block.questionText} />;
+  }
+  if (block.kind === "sjt") {
+    return (
+      <QuestionHeader
+        badge="Situational Judgment"
+        title={block.prompt}
+        images={block.images} audioUrl={block.audioUrl}
+      />
+    );
+  }
+  if (block.kind === "item_mcq_multi") {
+    return (
+      <QuestionHeader
+        badge="Select all that apply"
+        title={block.prompt}
+        images={block.images} audioUrl={block.audioUrl}
+      />
+    );
+  }
+  if (block.kind === "open_ended") {
+    return (
+      <QuestionHeader
+        badge="Open-Ended"
+        badgeClassName="inline-flex items-center rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-purple-700"
+        title={block.prompt}
+        subtitle={block.helpText ?? undefined}
+        images={block.images} audioUrl={block.audioUrl}
+      />
+    );
+  }
+  if (block.kind === "triad") {
+    return (
+      <QuestionHeader
+        title={block.title}
+        subtitle={
+          <>
+            Below are three ways to complete this statement. Choose the one that is <span className="font-semibold text-emerald-600">Most like you</span> and the one that is <span className="font-semibold text-rose-500">Least like you</span>.
+          </>
+        }
+      />
+    );
+  }
+  // case_study
+  return (
+    <QuestionHeader
+      badge="Case Study"
+      badgeClassName="inline-flex items-center rounded-full bg-[#FDF4FF] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#A21CAF]"
+      title={block.title}
+      extra={
+        <div className="mt-3 max-h-64 overflow-y-auto rounded-2xl border-2 border-[#E2E8F0] bg-[#F8FAFC] p-4">
+          <p className="whitespace-pre-line text-sm leading-relaxed text-[#334155]">{block.passageText}</p>
+        </div>
+      }
+    />
+  );
+}
+
 // ─── Likert (horizontal scale, compact) ──────────────────────────────────────
 
 const LIKERT_OPTS = [
@@ -185,23 +317,30 @@ const LIKERT_OPTS = [
   { value: 5, label: "Just like me" },
 ];
 
+/** Generates a generic N-point scale from a custom min/max — used only for Survey Likert items with a configured scale; every legacy Psychometric item has no scale and keeps the fixed LIKERT_OPTS above untouched. */
+function buildScaleOpts(scale: { min: number; max: number; minLabel: string; maxLabel: string }) {
+  const opts: { value: number; label: string }[] = [];
+  for (let v = scale.min; v <= scale.max; v++) {
+    const label = v === scale.min ? scale.minLabel : v === scale.max ? scale.maxLabel : String(v);
+    opts.push({ value: v, label });
+  }
+  return opts;
+}
+
 function LikertQuestion({ block, answers, setAnswers }: {
   block: Extract<TestBlock, { kind: "likert" }>;
   answers: Answers;
   setAnswers: Dispatch<SetStateAction<Answers>>;
 }) {
   const val = answers[block.key] as number | undefined;
+  const opts = block.scale ? buildScaleOpts(block.scale) : LIKERT_OPTS;
+  const gridColsClass = opts.length <= 5 ? "grid-cols-5" : opts.length <= 7 ? "grid-cols-7" : "grid-cols-5";
   return (
     <div className="space-y-5">
-      <div>
-        <p className="text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{block.prompt}</p>
-        <p className="mt-1 text-sm text-[#64748B]">Rate how much the statement above describes you.</p>
-      </div>
-
-      {/* Desktop: horizontal 5-col scale */}
+      {/* Desktop: horizontal scale */}
       <div className="hidden lg:block">
-        <div className="grid grid-cols-5 gap-3">
-          {LIKERT_OPTS.map((opt) => {
+        <div className={`grid gap-3 ${gridColsClass}`}>
+          {opts.map((opt) => {
             const sel = val === opt.value;
             return (
               <button
@@ -223,7 +362,7 @@ function LikertQuestion({ block, answers, setAnswers }: {
 
       {/* Mobile/tablet: vertical stacked */}
       <div className="space-y-2 lg:hidden">
-        {LIKERT_OPTS.map((opt) => {
+        {opts.map((opt) => {
           const sel = val === opt.value;
           return (
             <button
@@ -254,19 +393,12 @@ function McqQuestion({ block, answers, setAnswers }: {
 }) {
   const options =
     block.kind === "legacy_mcq"
-      ? block.options.map((o) => ({ id: o.value, label: o.label }))
-      : block.options.map((o) => ({ id: o.optionId, label: o.label }));
-  const prompt = block.kind === "legacy_mcq" ? block.questionText : block.prompt;
+      ? block.options.map((o) => ({ id: o.value, label: o.label, imageUrl: undefined as string | undefined }))
+      : block.options.map((o) => ({ id: o.optionId, label: o.label, imageUrl: o.imageUrl ?? undefined }));
   const val = answers[block.key];
 
   return (
     <div className="space-y-4">
-      {block.kind === "sjt" && (
-        <span className="inline-flex items-center rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#1D4ED8]">
-          Situational Judgment
-        </span>
-      )}
-      <p className="text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{prompt}</p>
       <div className="space-y-2">
         {options.map((opt, idx) => {
           const sel = val === opt.id;
@@ -285,12 +417,90 @@ function McqQuestion({ block, answers, setAnswers }: {
               }`}>
                 {letter}
               </span>
+              {opt.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={opt.imageUrl} alt="" className="h-16 w-16 shrink-0 rounded-lg border border-[#E2E8F0] object-cover" />
+              )}
               <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
               {sel && <CheckCircle2 size={16} className="ml-auto shrink-0 text-[#0F766E]" />}
             </button>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── MCQ multi-select ──────────────────────────────────────────────────────────
+
+function McqMultiQuestion({ block, answers, setAnswers }: {
+  block: Extract<TestBlock, { kind: "item_mcq_multi" }>;
+  answers: Answers;
+  setAnswers: Dispatch<SetStateAction<Answers>>;
+}) {
+  const selected = (answers[block.key] as string[] | undefined) ?? [];
+  const toggle = (id: string) =>
+    setAnswers((a) => {
+      const prev = (a[block.key] as string[] | undefined) ?? [];
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      return { ...a, [block.key]: next };
+    });
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {block.options.map((opt, idx) => {
+          const sel = selected.includes(opt.optionId);
+          const letter = String.fromCharCode(65 + idx);
+          return (
+            <button
+              key={opt.optionId}
+              type="button"
+              onClick={() => toggle(opt.optionId)}
+              className={`group flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
+              }`}
+            >
+              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 text-xs font-bold transition-all ${
+                sel ? "border-[#0F766E] bg-[#0F766E] text-white" : "border-[#CBD5E1] bg-white text-transparent group-hover:border-[#6EE7B7]"
+              }`}>
+                {sel && <Check size={13} strokeWidth={3} />}
+              </span>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all ${
+                sel ? "bg-[#0F766E] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#0F766E]"
+              }`}>
+                {letter}
+              </span>
+              {opt.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={opt.imageUrl} alt="" className="h-16 w-16 shrink-0 rounded-lg border border-[#E2E8F0] object-cover" />
+              )}
+              <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Open-Ended ─────────────────────────────────────────────────────────────────
+
+function OpenEndedQuestion({ block, answers, setAnswers }: {
+  block: Extract<TestBlock, { kind: "open_ended" }>;
+  answers: Answers;
+  setAnswers: Dispatch<SetStateAction<Answers>>;
+}) {
+  const val = (answers[block.key] as string | undefined) ?? "";
+  return (
+    <div className="space-y-4">
+      <textarea
+        value={val}
+        onChange={(e) => setAnswers((a) => ({ ...a, [block.key]: e.target.value }))}
+        rows={8}
+        placeholder="Type your answer here…"
+        className="w-full resize-y rounded-xl border-2 border-[#E2E8F0] px-4 py-3 text-sm text-[#334155] placeholder:text-[#94A3B8] transition-all focus:border-[#0F766E] focus:outline-none"
+      />
     </div>
   );
 }
@@ -310,13 +520,6 @@ function TriadQuestion({ block, answers, setAnswers }: {
 
   return (
     <div className="space-y-3">
-      <div>
-        <p className="text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{block.title}</p>
-        <p className="mt-1 text-sm text-[#64748B]">
-          Below are three ways to complete this statement. Choose the one that is <span className="font-semibold text-emerald-600">Most like you</span> and the one that is <span className="font-semibold text-rose-500">Least like you</span>.
-        </p>
-      </div>
-
       {/* Selection status bar */}
       <div className="flex gap-2">
         <div className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-1.5 text-xs font-semibold transition-all ${
@@ -413,22 +616,12 @@ function CaseStudyQuestion({ block, answers, setAnswers }: {
 
   return (
     <div className="space-y-5">
-      <div>
-        <span className="inline-flex items-center rounded-full bg-[#FDF4FF] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#A21CAF]">
-          Case Study
-        </span>
-        <p className="mt-2 text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl">{block.title}</p>
-      </div>
-
-      <div className="max-h-64 overflow-y-auto rounded-2xl border-2 border-[#E2E8F0] bg-[#F8FAFC] p-4">
-        <p className="whitespace-pre-line text-sm leading-relaxed text-[#334155]">{block.passageText}</p>
-      </div>
-
       <div className="space-y-5">
         {block.subQuestions.map((sq, qIdx) => {
           const val = subAnswers[sq.itemId];
           return (
             <div key={sq.itemId} className="space-y-2">
+              <QuestionMedia images={sq.images} audioUrl={sq.audioUrl} />
               <p className="text-sm font-semibold text-[#0F172A]">
                 {qIdx + 1}. {sq.prompt}
               </p>
@@ -450,6 +643,10 @@ function CaseStudyQuestion({ block, answers, setAnswers }: {
                       }`}>
                         {letter}
                       </span>
+                      {opt.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={opt.imageUrl} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-[#E2E8F0] object-cover" />
+                      )}
                       <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
                       {sel && <CheckCircle2 size={14} className="ml-auto shrink-0 text-[#0F766E]" />}
                     </button>
@@ -479,6 +676,56 @@ function TimesUpOverlay({ onSubmit, submitting }: { onSubmit: () => void; submit
         <button type="button" onClick={onSubmit} disabled={submitting}
           className="mt-6 w-full rounded-xl bg-[#0F766E] py-3 text-sm font-semibold text-white transition hover:bg-[#0D9488] disabled:opacity-60">
           {submitting ? <span className="flex items-center justify-center gap-2"><Loader2 size={15} className="animate-spin" />Submitting…</span> : "Submit My Responses"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const MODULE_LABELS: Record<string, string> = {
+  PSYCHOMETRIC: "Psychometric",
+  TECHNICAL: "Technical",
+  SURVEY: "Survey",
+};
+
+type NextModuleInfo = { assignmentId: string; accessToken: string; moduleType: string; title: string };
+
+function ModuleTransitionOverlay({
+  currentModuleType,
+  nextModule,
+}: {
+  currentModuleType?: string;
+  nextModule: NextModuleInfo;
+}) {
+  const nextHref = `/candidate/test/${nextModule.assignmentId}?token=${nextModule.accessToken}`;
+  const currentLabel = currentModuleType ? MODULE_LABELS[currentModuleType] ?? currentModuleType : null;
+  const nextLabel = MODULE_LABELS[nextModule.moduleType] ?? nextModule.moduleType;
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      window.location.href = nextHref;
+    }, 4000);
+    return () => clearTimeout(id);
+  }, [nextHref]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-2xl">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+          <CheckCircle2 size={30} className="text-emerald-600" />
+        </div>
+        <h2 className="text-xl font-bold text-[#0F172A]">
+          {currentLabel ? `${currentLabel} module complete!` : "Module complete!"}
+        </h2>
+        <p className="mt-2 text-sm text-[#64748B]">
+          You&apos;re now continuing to the <span className="font-semibold text-[#0F172A]">{nextLabel} module</span>.
+        </p>
+        <button
+          type="button"
+          onClick={() => { window.location.href = nextHref; }}
+          className="mt-6 w-full rounded-xl bg-[#0F766E] py-3 text-sm font-semibold text-white transition hover:bg-[#0D9488]"
+        >
+          Continue now
         </button>
       </div>
     </div>
@@ -594,13 +841,14 @@ function firstUnansweredIndex(blocks: TestBlock[], saved: Answers): number {
 }
 
 export function CandidateTestRunner({
-  assignmentId, accessToken, blocks, assessmentTitle, candidateName, durationMinutes, attemptId, savedAnswers, initialRemainingSeconds,
+  assignmentId, accessToken, blocks, assessmentTitle, candidateName, moduleType, durationMinutes, attemptId, savedAnswers, initialRemainingSeconds,
 }: {
   assignmentId: string;
   accessToken: string;
   blocks: TestBlock[];
   assessmentTitle?: string;
   candidateName?: string;
+  moduleType?: string;
   durationMinutes?: number;
   attemptId?: string;
   savedAnswers?: Record<string, unknown>;
@@ -613,6 +861,7 @@ export function CandidateTestRunner({
   );
   const [loading, setLoading] = useState(false);
   const [submitDone, setSubmitDone] = useState(false);
+  const [nextModule, setNextModule] = useState<NextModuleInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [timesUp, setTimesUp] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -762,13 +1011,14 @@ export function CandidateTestRunner({
         body: JSON.stringify({ assignmentId, answers, skippedKeys: [], submissionType, token: accessToken }),
         credentials: "same-origin",
       });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; resultId?: string; error?: string };
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; resultId?: string; error?: string; nextModule?: NextModuleInfo | null };
       if (!res.ok || !data.ok || typeof data.resultId !== "string") {
         setError(typeof data.error === "string" && data.error.length > 0 ? data.error : `Request failed (${res.status})`);
         setLoading(false);
         return;
       }
       try { sessionStorage.removeItem("activeAttemptId"); } catch { /* ignore */ }
+      setNextModule(data.nextModule ?? null);
       setSubmitDone(true);
     } catch {
       setError("Your internet connection was interrupted and the submission could not be sent. Please check your connection and try again.");
@@ -826,7 +1076,11 @@ export function CandidateTestRunner({
 
   return (
     <>
-      {(loading || timesUp) && <SubmittingOverlay done={submitDone} />}
+      {(loading || timesUp) && (
+        submitDone && nextModule
+          ? <ModuleTransitionOverlay currentModuleType={moduleType} nextModule={nextModule} />
+          : <SubmittingOverlay done={submitDone} />
+      )}
       {timerWarning && !loading && !timesUp && (
         <TimerWarningToast kind={timerWarning} onDismiss={() => setTimerWarning(null)} />
       )}
@@ -878,13 +1132,8 @@ export function CandidateTestRunner({
         */}
         <div className="flex min-h-0 flex-1">
 
-          {/* ── Left navigator (desktop only, read-only) ── */}
-          <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-[#E2E8F0] bg-white px-4 py-5 lg:flex">
-            <QuestionNavigator blocks={blocks} answers={answers} currentIndex={currentIndex} />
-          </aside>
-
           {/*
-            ── RIGHT PANEL ─────────────────────────────────────────────────
+            ── MAIN PANEL ──────────────────────────────────────────────────
             flex flex-col min-h-0: stacks question-area + nav-bar vertically.
             min-h-0 is CRITICAL — without it flex children can exceed allocated height.
           */}
@@ -907,8 +1156,11 @@ export function CandidateTestRunner({
                   </span>
                 </div>
 
-                {/* Question card */}
-                <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+                {/* Question header: media zone + prompt, shared across every type */}
+                <QuestionHeaderForBlock block={block} />
+
+                {/* Response card: the type-specific answer controls, kept visually distinct from the question above */}
+                <div className="mt-4 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
                   {block.kind === "likert" && (
                     <LikertQuestion block={block} answers={answers} setAnswers={setAnswers} />
                   )}
@@ -917,6 +1169,12 @@ export function CandidateTestRunner({
                       block={block as Extract<TestBlock, { kind: "item_mcq" | "item_tf" | "legacy_mcq" | "sjt" }>}
                       answers={answers} setAnswers={setAnswers}
                     />
+                  )}
+                  {block.kind === "item_mcq_multi" && (
+                    <McqMultiQuestion block={block} answers={answers} setAnswers={setAnswers} />
+                  )}
+                  {block.kind === "open_ended" && (
+                    <OpenEndedQuestion block={block} answers={answers} setAnswers={setAnswers} />
                   )}
                   {block.kind === "triad" && (
                     <TriadQuestion block={block} answers={answers} setAnswers={setAnswers} />
@@ -989,7 +1247,12 @@ export function CandidateTestRunner({
             {/* ↑ end nav bar */}
 
           </div>
-          {/* ↑ end right panel */}
+          {/* ↑ end main panel */}
+
+          {/* ── Right navigator (desktop only, read-only) ── */}
+          <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto border-l border-[#E2E8F0] bg-white px-4 py-5 lg:flex">
+            <QuestionNavigator blocks={blocks} answers={answers} currentIndex={currentIndex} />
+          </aside>
         </div>
         {/* ↑ end body row */}
       </div>

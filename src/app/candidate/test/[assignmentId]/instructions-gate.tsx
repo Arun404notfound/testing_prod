@@ -22,6 +22,7 @@ interface Props {
   blocks: TestBlock[];
   assessmentTitle?: string;
   candidateName?: string;
+  moduleType?: string;
   customInstructions?: string | null;
   durationMinutes: number;
   assessmentDurationMinutes?: number;
@@ -40,7 +41,7 @@ function fmt(mins: number) {
 
 type SessionState = "checking" | "duplicate" | "fresh";
 
-export function InstructionsGate({ assignmentId, accessToken, blocks, assessmentTitle, candidateName, customInstructions, durationMinutes, assessmentDurationMinutes, durationIsOverridden, activeAttemptId, activeProgressData, activeRemainingSeconds }: Props) {
+export function InstructionsGate({ assignmentId, accessToken, blocks, assessmentTitle, candidateName, moduleType, customInstructions, durationMinutes, assessmentDurationMinutes, durationIsOverridden, activeAttemptId, activeProgressData, activeRemainingSeconds }: Props) {
   const blockKinds = new Set<BlockKind>(blocks.map((b) => b.kind));
   const { defaultOrder, disabledDefaults, customPoints } = parseCustomInstructions(customInstructions);
   const instructionByKey = new Map(DEFAULT_INSTRUCTIONS.map((i) => [i.key, i]));
@@ -107,6 +108,7 @@ export function InstructionsGate({ assignmentId, accessToken, blocks, assessment
         blocks={blocks}
         assessmentTitle={assessmentTitle}
         candidateName={candidateName}
+        moduleType={moduleType}
         durationMinutes={durationMinutes}
         savedAnswers={savedAnswers ?? undefined}
         initialRemainingSeconds={remainingSecondsAtStart}

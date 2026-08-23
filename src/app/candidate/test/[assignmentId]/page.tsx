@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { seededShuffle } from "@/lib/shuffle";
@@ -38,13 +38,14 @@ export default async function CandidateTestPage({
     where: { id: assignmentId },
     include: {
       candidate: true,
+      programAssignment: { select: { id: true, accessToken: true } },
       assessment: {
         include: {
           tenant: true,
           questions: { include: { question: true } },
           sections: { orderBy: { displayOrder: "asc" } },
           items: {
-            include: { section: true, options: { orderBy: { displayOrder: "asc" } }, likertScale: true },
+            include: { section: true, options: { orderBy: { displayOrder: "asc" } }, likertScale: true, images: { orderBy: { displayOrder: "asc" } } },
             orderBy: { displayOrder: "asc" },
           },
           triadGroups: {
@@ -55,7 +56,7 @@ export default async function CandidateTestPage({
             include: {
               section: true,
               subQuestions: {
-                include: { section: true, options: { orderBy: { displayOrder: "asc" } } },
+                include: { section: true, options: { orderBy: { displayOrder: "asc" } }, images: { orderBy: { displayOrder: "asc" } } },
                 orderBy: { displayOrder: "asc" },
               },
             },
@@ -66,7 +67,7 @@ export default async function CandidateTestPage({
             include: {
               section: true,
               sourceItem: {
-                include: { section: true, options: { orderBy: { displayOrder: "asc" } }, likertScale: true },
+                include: { section: true, options: { orderBy: { displayOrder: "asc" } }, likertScale: true, images: { orderBy: { displayOrder: "asc" } } },
               },
               sourceTriad: {
                 include: { section: true, statements: { orderBy: { displayOrder: "asc" } } },
@@ -75,7 +76,7 @@ export default async function CandidateTestPage({
                 include: {
                   section: true,
                   subQuestions: {
-                    include: { section: true, options: { orderBy: { displayOrder: "asc" } } },
+                    include: { section: true, options: { orderBy: { displayOrder: "asc" } }, images: { orderBy: { displayOrder: "asc" } } },
                     orderBy: { displayOrder: "asc" },
                   },
                 },
@@ -113,6 +114,12 @@ export default async function CandidateTestPage({
     }),
   );
   if (assignment.status === "completed" || hasExistingResult) {
+    // Part of a Program — send them to the Program entry route instead of a
+    // per-module dead end, so it can route to the next incomplete module (or
+    // the Program-level completion screen if every module is done).
+    if (assignment.programAssignment) {
+      redirect(`/candidate/program/${assignment.programAssignment.id}?token=${assignment.programAssignment.accessToken}`);
+    }
     return (
       <div className="flex flex-1 items-center justify-center bg-[#F8FAFC] p-6">
         <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-8 text-center shadow-sm">
@@ -226,6 +233,7 @@ export default async function CandidateTestPage({
       blocks={blocks}
       assessmentTitle={assignment.assessment.title}
       candidateName={assignment.candidate.fullName}
+      moduleType={assignment.assessment.moduleType}
       customInstructions={assignment.assessment.customInstructions}
       durationMinutes={durationMinutes}
       assessmentDurationMinutes={assignment.assessment.durationMinutes}

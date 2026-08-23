@@ -23,6 +23,8 @@ export function buildScoringContext(assessment: any, blocks: TestBlock[], answer
       factor: i.factor ?? null, trait: i.trait ?? null,
       definition: i.definition ?? null, polarity: i.polarity ?? null,
       sectionTitle: i.section?.title ?? "General",
+      skillId: i.skillId ?? null, subSkillId: i.subSkillId ?? null,
+      likertScale: i.likertScale ? { minValue: i.likertScale.minValue, maxValue: i.likertScale.maxValue } : null,
       options: (i.options ?? []).map((o: { id: string; label: string; value: string; isCorrect: boolean; scoreValue: number | null }) => ({
         id: o.id, label: o.label, value: o.value, isCorrect: o.isCorrect, scoreValue: o.scoreValue,
       })),
@@ -36,6 +38,8 @@ export function buildScoringContext(assessment: any, blocks: TestBlock[], answer
         factor: i.factor ?? null, trait: i.trait ?? null,
         definition: i.definition ?? null, polarity: i.polarity ?? null,
         sectionTitle: i.section?.title ?? comp.section?.title ?? "Imported",
+        skillId: i.skillId ?? null, subSkillId: i.subSkillId ?? null,
+        likertScale: i.likertScale ? { minValue: i.likertScale.minValue, maxValue: i.likertScale.maxValue } : null,
         options: (i.options ?? []).map((o: { id: string; label: string; value: string; isCorrect: boolean; scoreValue: number | null }) => ({
           id: o.id, label: o.label, value: o.value, isCorrect: o.isCorrect, scoreValue: o.scoreValue,
         })),
@@ -48,6 +52,8 @@ export function buildScoringContext(assessment: any, blocks: TestBlock[], answer
           factor: sq.factor ?? null, trait: sq.trait ?? null,
           definition: sq.definition ?? null, polarity: sq.polarity ?? null,
           sectionTitle: sq.section?.title ?? comp.sourceCaseStudy.section?.title ?? comp.section?.title ?? "Imported",
+          skillId: sq.skillId ?? null, subSkillId: sq.subSkillId ?? null,
+          likertScale: null,
           options: (sq.options ?? []).map((o: { id: string; label: string; value: string; isCorrect: boolean; scoreValue: number | null }) => ({
             id: o.id, label: o.label, value: o.value, isCorrect: o.isCorrect, scoreValue: o.scoreValue,
           })),
@@ -97,7 +103,7 @@ export function buildDemo70ScoringResult(): ReturnType<typeof scoreAssessment> {
   return {
     totalRawScore: 70, maxScore: 100, percentage: 70,
     sectionScores: [{ sectionName: "Overall", score: 70, maxScore: 100, summary: "Auto-submitted with saved progress." }],
-    traitScores: [], responseEvaluations: [], questionResponses: [], attemptResponses: [],
+    traitScores: [], skillScores: [], responseEvaluations: [], questionResponses: [], attemptResponses: [],
     strengths: ["Assessment completed successfully."],
     concerns: ["Detailed analysis will be available in the final report."],
   };
@@ -111,7 +117,7 @@ export const ASSESSMENT_INCLUDE = {
       questions: { include: { question: true } },
       sections: { orderBy: { displayOrder: "asc" as const } },
       items: {
-        include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, likertScale: true },
+        include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, likertScale: true, images: { orderBy: { displayOrder: "asc" as const } } },
         orderBy: { displayOrder: "asc" as const },
       },
       triadGroups: {
@@ -122,7 +128,7 @@ export const ASSESSMENT_INCLUDE = {
         include: {
           section: true,
           subQuestions: {
-            include: { section: true, options: { orderBy: { displayOrder: "asc" as const } } },
+            include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, images: { orderBy: { displayOrder: "asc" as const } } },
             orderBy: { displayOrder: "asc" as const },
           },
         },
@@ -132,13 +138,13 @@ export const ASSESSMENT_INCLUDE = {
         orderBy: { displayOrder: "asc" as const },
         include: {
           section: true,
-          sourceItem: { include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, likertScale: true } },
+          sourceItem: { include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, likertScale: true, images: { orderBy: { displayOrder: "asc" as const } } } },
           sourceTriad: { include: { section: true, statements: { orderBy: { displayOrder: "asc" as const } } } },
           sourceCaseStudy: {
             include: {
               section: true,
               subQuestions: {
-                include: { section: true, options: { orderBy: { displayOrder: "asc" as const } } },
+                include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, images: { orderBy: { displayOrder: "asc" as const } } },
                 orderBy: { displayOrder: "asc" as const },
               },
             },
@@ -149,7 +155,11 @@ export const ASSESSMENT_INCLUDE = {
   },
 } as const;
 
-export type ScoreAndSaveResult = { ok: true; resultId: string } | { ok: false; error: string };
+export type NextModuleInfo = { assignmentId: string; accessToken: string; moduleType: string; title: string };
+
+export type ScoreAndSaveResult =
+  | { ok: true; resultId: string; nextModule?: NextModuleInfo | null }
+  | { ok: false; error: string };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function scoreAndSave(assignment: any, rawAnswers: AnswerMap, existingAttemptId?: string, submissionType?: string): Promise<ScoreAndSaveResult> {
@@ -188,6 +198,37 @@ export async function scoreAndSave(assignment: any, rawAnswers: AnswerMap, exist
     compMapById.get(m.competencyId)!.attributes.push({ attributeId: m.attributeId, weight: m.weight ?? 1 });
   }
   const competencyScores = computeCompetencyScores(attributeScores, Array.from(compMapById.values()));
+
+  // Skill Competency scoring — Technical/Survey's parallel to Job Role Competency
+  // scoring above, keyed directly on subSkillId (no name-matching layer needed since
+  // SkillCompetencyMap references subSkillId by FK). Skipped entirely when the
+  // assessment has no skill-tagged items (every Psychometric assessment), so this
+  // never runs an extra query on the hot path.
+  let skillCompetencyScores: ReturnType<typeof computeCompetencyScores> = [];
+  if (scored.skillScores.length > 0) {
+    const skillFrameworkId: string | null = assignment.assessment?.skillFrameworkId ?? null;
+    const skillCompetencyMappings = await prisma.skillCompetencyMap.findMany({
+      where: { skillCompetency: { tenantId, skillFrameworkId } },
+      include: { skillCompetency: true },
+    });
+    const subSkillScoreInputs = scored.skillScores.map((s) => ({
+      attributeId: s.subSkillId, rawScore: s.score, maxScore: s.maxScore,
+    }));
+    const skillCompMapById = new Map<string, CompetencyMap>();
+    for (const m of skillCompetencyMappings) {
+      if (!skillCompMapById.has(m.skillCompetencyId)) {
+        skillCompMapById.set(m.skillCompetencyId, {
+          competencyId: m.skillCompetencyId,
+          competencyName: m.skillCompetency.name,
+          scoringFormula: m.skillCompetency.scoringFormula ?? "WEIGHTED_AVERAGE",
+          proficiencyScale: m.skillCompetency.proficiencyScale ?? "GENERIC_5",
+          attributes: [],
+        });
+      }
+      skillCompMapById.get(m.skillCompetencyId)!.attributes.push({ attributeId: m.subSkillId, weight: m.weight ?? 1 });
+    }
+    skillCompetencyScores = computeCompetencyScores(subSkillScoreInputs, Array.from(skillCompMapById.values()));
+  }
 
   const completedAt = new Date();
   const overallScore = Math.round(scored.percentage);
@@ -288,12 +329,76 @@ export async function scoreAndSave(assignment: any, rawAnswers: AnswerMap, exist
         });
       }
 
+      if (skillCompetencyScores.length > 0) {
+        await tx.skillScore.createMany({
+          data: skillCompetencyScores.map((cs) => ({
+            attemptId: attempt.id,
+            skillCompetencyId: cs.competencyId,
+            rawScore: cs.rawScore,
+            maxScore: cs.maxScore,
+            scaledScore: cs.scaledScore,
+            percent: cs.percent,
+            band: cs.band,
+          })),
+        });
+      }
+
       await tx.assessmentAssignment.update({
         where: { id: assignment.id },
         data: { status: "completed", completedAt },
       });
 
-      return result;
+      // Program sequencing — additive, only runs for assignments created through
+      // the Program-assignment flow (programAssignmentId set). Every direct/legacy
+      // assignment has this null, so nextModule stays undefined for them and the
+      // candidate-facing behavior is byte-identical to before this existed.
+      let nextModule: NextModuleInfo | null = null;
+      if (assignment.programAssignmentId) {
+        const siblings = await tx.assessmentAssignment.findMany({
+          where: { programAssignmentId: assignment.programAssignmentId },
+          orderBy: { programModuleOrder: "asc" },
+          select: {
+            id: true,
+            status: true,
+            accessToken: true,
+            programModuleOrder: true,
+            assessment: { select: { moduleType: true, title: true } },
+          },
+        });
+        const currentOrder = siblings.find((s) => s.id === assignment.id)?.programModuleOrder ?? 0;
+        const upcoming = siblings.filter((s) => s.id !== assignment.id && s.status !== "completed");
+        const next =
+          upcoming.find((s) => (s.programModuleOrder ?? 0) > currentOrder) ?? upcoming[0] ?? null;
+
+        if (next) {
+          nextModule = {
+            assignmentId: next.id,
+            accessToken: next.accessToken,
+            moduleType: next.assessment.moduleType,
+            title: next.assessment.title,
+          };
+        } else {
+          // This was the last module — roll every sibling's AssessmentResult into
+          // one ProgramResult and mark the ProgramAssignment complete.
+          const programResult = await tx.programResult.create({
+            data: {
+              programAssignmentId: assignment.programAssignmentId,
+              candidateId: assignment.candidateId,
+              completedAt,
+            },
+          });
+          await tx.assessmentResult.updateMany({
+            where: { assignmentId: { in: siblings.map((s) => s.id) } },
+            data: { programResultId: programResult.id },
+          });
+          await tx.programAssignment.update({
+            where: { id: assignment.programAssignmentId },
+            data: { status: "completed", completedAt },
+          });
+        }
+      }
+
+      return { result, nextModule };
     });
 
     await logAudit({
@@ -302,11 +407,11 @@ export async function scoreAndSave(assignment: any, rawAnswers: AnswerMap, exist
       actorId: assignment.candidateId,
       action: "TEST_SUBMIT",
       entityType: "AssessmentResult",
-      entityId: createdResult.id,
+      entityId: createdResult.result.id,
       message: `Submitted "${assignment.assessment.title}" (${submissionType ?? "NORMAL"}), score ${overallScore}%`,
     });
 
-    return { ok: true, resultId: createdResult.id };
+    return { ok: true, resultId: createdResult.result.id, nextModule: createdResult.nextModule };
   } catch (err) {
     console.error("[scoreAndSave] transaction failed", String(err));
     return { ok: false, error: "Save failed" };

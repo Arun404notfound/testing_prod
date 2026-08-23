@@ -1,4 +1,4 @@
-export type BlockKind = "legacy_mcq" | "item_mcq" | "item_tf" | "likert" | "triad" | "sjt" | "case_study";
+export type BlockKind = "legacy_mcq" | "item_mcq" | "item_mcq_multi" | "item_tf" | "likert" | "triad" | "sjt" | "case_study" | "open_ended";
 
 export interface DefaultInstruction {
   key: string;
@@ -35,6 +35,18 @@ export const DEFAULT_INSTRUCTIONS: DefaultInstruction[] = [
     heading: "How to answer Multiple Choice questions",
     text: "You'll see one question with four options. Select the single option you believe is correct.",
     when: (kinds) => kinds.has("item_mcq") || kinds.has("item_tf") || kinds.has("legacy_mcq"),
+  },
+  {
+    key: "mcq-multi-howto",
+    heading: "How to answer Multiple Choice (multi-select) questions",
+    text: "You'll see one question with several options where more than one may be correct. Select every option you believe is correct — you can select or unselect as many as apply.",
+    when: (kinds) => kinds.has("item_mcq_multi"),
+  },
+  {
+    key: "open-ended-howto",
+    heading: "How to answer Open-Ended questions",
+    text: "You'll see a question with a free-text box. Type your answer in your own words — there's no character limit, and your response is reviewed manually rather than auto-scored.",
+    when: (kinds) => kinds.has("open_ended"),
   },
   {
     key: "sjt-howto",

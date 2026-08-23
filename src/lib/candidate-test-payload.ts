@@ -1,6 +1,11 @@
 import type { ItemType } from "@/generated/prisma/enums";
 import { seededShuffle } from "@/lib/shuffle";
 
+/** Up to 3 question-level images, ordered. Empty/absent for every question authored before this feature. */
+type ItemMedia = { images?: string[]; audioUrl?: string | null };
+/** One optional image per answer option (e.g. a graph as one of the choices). */
+type OptionWithImage = { optionId: string; label: string; imageUrl?: string | null };
+
 export type TestBlock =
   | {
       kind: "legacy_mcq";
@@ -10,29 +15,47 @@ export type TestBlock =
       questionText: string;
       options: { value: number; label: string }[];
     }
-  | {
+  | ({
       kind: "item_mcq";
       key: string;
       itemId: string;
       section: string;
       prompt: string;
-      options: { optionId: string; label: string }[];
-    }
-  | {
+      options: OptionWithImage[];
+    } & ItemMedia)
+  | ({
       kind: "item_tf";
       key: string;
       itemId: string;
       section: string;
       prompt: string;
-      options: { optionId: string; label: string }[];
-    }
-  | {
+      options: OptionWithImage[];
+    } & ItemMedia)
+  | ({
       kind: "likert";
       key: string;
       itemId: string;
       section: string;
       prompt: string;
-    }
+      /** Set only for Survey Likert items authored with a custom scale; absent (undefined) for every legacy Psychometric Likert item, which keeps their candidate-side rendering byte-identical. */
+      scale?: { min: number; max: number; minLabel: string; maxLabel: string };
+    } & ItemMedia)
+  | ({
+      kind: "item_mcq_multi";
+      key: string;
+      itemId: string;
+      section: string;
+      prompt: string;
+      options: OptionWithImage[];
+    } & ItemMedia)
+  | ({
+      kind: "open_ended";
+      key: string;
+      itemId: string;
+      section: string;
+      prompt: string;
+      helpText?: string | null;
+    } & ItemMedia)
   | {
       kind: "triad";
       key: string;
@@ -41,14 +64,14 @@ export type TestBlock =
       title: string;
       statements: { id: string; text: string }[];
     }
-  | {
+  | ({
       kind: "sjt";
       key: string;
       itemId: string;
       section: string;
       prompt: string;
-      options: { optionId: string; label: string }[];
-    }
+      options: OptionWithImage[];
+    } & ItemMedia)
   | {
       kind: "case_study";
       key: string;
@@ -56,11 +79,11 @@ export type TestBlock =
       section: string;
       title: string;
       passageText: string;
-      subQuestions: {
+      subQuestions: ({
         itemId: string;
         prompt: string;
-        options: { optionId: string; label: string }[];
-      }[];
+        options: OptionWithImage[];
+      } & ItemMedia)[];
     };
 
 type SectionLike = { title: string; displayOrder: number };
@@ -81,18 +104,52 @@ function pushItemBlock(
     id: string;
     itemType: ItemType;
     prompt: string;
-    section: SectionLike;
-    options: { id: string; label: string; value: string; displayOrder: number }[];
+    helpText?: string | null;
+    /** Null for pool/bank items (sectionId unset) — they're only ever placed into a section via the AssessmentCompositionItem row that pulls them in, hence the fallback param below. */
+    section: SectionLike | null;
+    options: { id: string; label: string; value: string; displayOrder: number; imageUrl?: string | null }[];
+    likertScale?: { minValue: number; maxValue: number; minLabel: string; maxLabel: string } | null;
+    images?: { url: string; displayOrder: number }[];
+    audioUrl?: string | null;
   },
   skipMcqTf: boolean,
+  fallbackSectionTitle = "General",
 ): void {
+  const sectionTitle = item.section?.title ?? fallbackSectionTitle;
+  const media: ItemMedia = {
+    images: item.images && item.images.length > 0 ? [...item.images].sort((a, b) => a.displayOrder - b.displayOrder).map((i) => i.url) : undefined,
+    audioUrl: item.audioUrl ?? undefined,
+  };
   if (item.itemType === "LIKERT") {
     blocks.push({
       kind: "likert",
       key: `likert:${item.id}`,
       itemId: item.id,
-      section: item.section.title,
+      section: sectionTitle,
       prompt: item.prompt,
+      ...media,
+      ...(item.likertScale
+        ? {
+            scale: {
+              min: item.likertScale.minValue,
+              max: item.likertScale.maxValue,
+              minLabel: item.likertScale.minLabel,
+              maxLabel: item.likertScale.maxLabel,
+            },
+          }
+        : {}),
+    });
+    return;
+  }
+  if (item.itemType === "OPEN_ENDED") {
+    blocks.push({
+      kind: "open_ended",
+      key: `open_ended:${item.id}`,
+      itemId: item.id,
+      section: sectionTitle,
+      prompt: item.prompt,
+      helpText: item.helpText ?? null,
+      ...media,
     });
     return;
   }
@@ -105,9 +162,23 @@ function pushItemBlock(
       kind: "item_mcq",
       key: `item_mcq:${item.id}`,
       itemId: item.id,
-      section: item.section.title,
+      section: sectionTitle,
       prompt: item.prompt,
-      options: opts.map((o) => ({ optionId: o.id, label: o.label || o.value })),
+      options: opts.map((o) => ({ optionId: o.id, label: o.label || o.value, imageUrl: o.imageUrl ?? undefined })),
+      ...media,
+    });
+    return;
+  }
+  if (item.itemType === "MCQ_MULTIPLE" && item.options.length > 0) {
+    const opts = [...item.options].sort((a, b) => a.displayOrder - b.displayOrder);
+    blocks.push({
+      kind: "item_mcq_multi",
+      key: `item_mcq_multi:${item.id}`,
+      itemId: item.id,
+      section: sectionTitle,
+      prompt: item.prompt,
+      options: opts.map((o) => ({ optionId: o.id, label: o.label || o.value, imageUrl: o.imageUrl ?? undefined })),
+      ...media,
     });
     return;
   }
@@ -117,9 +188,10 @@ function pushItemBlock(
       kind: "sjt",
       key: `sjt:${item.id}`,
       itemId: item.id,
-      section: item.section.title,
+      section: sectionTitle,
       prompt: item.prompt,
-      options: opts.map((o) => ({ optionId: o.id, label: o.label || o.value })),
+      options: opts.map((o) => ({ optionId: o.id, label: o.label || o.value, imageUrl: o.imageUrl ?? undefined })),
+      ...media,
     });
     return;
   }
@@ -129,9 +201,10 @@ function pushItemBlock(
       kind: "item_tf",
       key: `item_tf:${item.id}`,
       itemId: item.id,
-      section: item.section.title,
+      section: sectionTitle,
       prompt: item.prompt,
-      options: opts.map((o) => ({ optionId: o.id, label: o.label || o.value })),
+      options: opts.map((o) => ({ optionId: o.id, label: o.label || o.value, imageUrl: o.imageUrl ?? undefined })),
+      ...media,
     });
   }
 }
@@ -155,7 +228,12 @@ function buildCaseStudyBlock(cs: any, fallbackSectionTitle: string): TestBlock {
       options: [...(sq.options ?? [])]
         .sort((a: { displayOrder: number }, b: { displayOrder: number }) => a.displayOrder - b.displayOrder)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((o: any) => ({ optionId: o.id, label: o.label || o.value })),
+        .map((o: any) => ({ optionId: o.id, label: o.label || o.value, imageUrl: o.imageUrl ?? undefined })),
+      images: (sq.images && sq.images.length > 0)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? [...sq.images].sort((a: any, b: any) => a.displayOrder - b.displayOrder).map((i: any) => i.url)
+        : undefined,
+      audioUrl: sq.audioUrl ?? undefined,
     })),
   };
 }
@@ -251,9 +329,23 @@ export function buildTestBlocks(assessment: any): TestBlock[] {
         itemId: item.id,
         section: item.section?.title ?? row.section?.title ?? "Imported",
         prompt: item.prompt,
+        images: (item.images && item.images.length > 0)
+          ? [...item.images].sort((a: { displayOrder: number }, b: { displayOrder: number }) => a.displayOrder - b.displayOrder).map((i: { url: string }) => i.url)
+          : undefined,
+        audioUrl: item.audioUrl ?? undefined,
+        ...(item.likertScale
+          ? {
+              scale: {
+                min: item.likertScale.minValue,
+                max: item.likertScale.maxValue,
+                minLabel: item.likertScale.minLabel,
+                maxLabel: item.likertScale.maxLabel,
+              },
+            }
+          : {}),
       });
     } else if (row.sourceItem) {
-      pushItemBlock(blocks, row.sourceItem, false);
+      pushItemBlock(blocks, row.sourceItem, false, row.section?.title ?? "Imported");
     }
     if (row.sourceTriad) {
       const g = row.sourceTriad;
@@ -294,7 +386,7 @@ export function shuffleBlockOptions(blocks: TestBlock[], randomizeOptions: boole
     if (b.kind === "legacy_mcq") {
       return { ...b, options: seededShuffle(b.options, `${seed}:${b.key}`) };
     }
-    if (b.kind === "item_mcq" || b.kind === "item_tf" || b.kind === "sjt") {
+    if (b.kind === "item_mcq" || b.kind === "item_tf" || b.kind === "sjt" || b.kind === "item_mcq_multi") {
       return { ...b, options: seededShuffle(b.options, `${seed}:${b.key}`) };
     }
     if (b.kind === "case_study") {
