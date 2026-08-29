@@ -56,7 +56,11 @@ export default async function CandidateTestPage({
             include: {
               section: true,
               subQuestions: {
-                include: { section: true, options: { orderBy: { displayOrder: "asc" } }, images: { orderBy: { displayOrder: "asc" } } },
+                include: { section: true, options: { orderBy: { displayOrder: "asc" } }, likertScale: true, images: { orderBy: { displayOrder: "asc" } } },
+                orderBy: { displayOrder: "asc" },
+              },
+              triadSubQuestions: {
+                include: { statements: { orderBy: { displayOrder: "asc" } } },
                 orderBy: { displayOrder: "asc" },
               },
             },
@@ -76,7 +80,11 @@ export default async function CandidateTestPage({
                 include: {
                   section: true,
                   subQuestions: {
-                    include: { section: true, options: { orderBy: { displayOrder: "asc" } }, images: { orderBy: { displayOrder: "asc" } } },
+                    include: { section: true, options: { orderBy: { displayOrder: "asc" } }, likertScale: true, images: { orderBy: { displayOrder: "asc" } } },
+                    orderBy: { displayOrder: "asc" },
+                  },
+                  triadSubQuestions: {
+                    include: { statements: { orderBy: { displayOrder: "asc" } } },
                     orderBy: { displayOrder: "asc" },
                   },
                 },

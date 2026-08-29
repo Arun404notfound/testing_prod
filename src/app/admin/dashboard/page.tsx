@@ -33,8 +33,8 @@ const cards = [
     icon: ClipboardList,
   },
   {
-    title: "Assign Assessments",
-    description: "Assign assessments to candidates and track status.",
+    title: "Assign Program",
+    description: "Assign a Program (its modules bundled together) to a candidate and track status.",
     href: "/admin/assignments",
     icon: UserPlus,
   },

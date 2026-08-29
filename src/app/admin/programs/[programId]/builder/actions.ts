@@ -5,8 +5,14 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { appUrl } from "@/lib/app-url";
-import { generateAccessToken, sendAssignmentAssignedEmail } from "@/lib/email/assignment-email";
+import { sendAssignmentAssignedEmail } from "@/lib/email/assignment-email";
 import { attachAssessmentToProgram } from "@/lib/programs";
+import {
+  loadAssignableProgram,
+  checkAssignabilityReason,
+  createProgramAssignmentRecord,
+  type ProgramWithAssessments,
+} from "@/lib/program-assignment";
 import type { ModuleType } from "@/generated/prisma/enums";
 
 const MODULE_TYPES: ModuleType[] = ["PSYCHOMETRIC", "TECHNICAL", "SURVEY"];
@@ -42,11 +48,62 @@ export async function updateProgramDetails(programId: string, formData: FormData
   redirect(builderPath(programId, "?status=success"));
 }
 
-export async function deleteProgramById(programId: string) {
-  await prisma.program.delete({ where: { id: programId } }).catch(() => {});
+export type DeleteProgramResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "error" }
+  | { ok: false; reason: "blocked"; blockers: Array<{ title: string; assignmentCount: number; attemptCount: number }> };
+
+/**
+ * A module attached to only this Program, with no candidate activity on it,
+ * is genuinely deleted along with the Program. A module still attached to
+ * another Program too is left alone (just detached via the Program's own
+ * cascade-deleted ProgramAssessment row) — deleting this Program must never
+ * destroy a module another Program is still using. A module with any real
+ * AssessmentAssignment/AssessmentAttempt data blocks the *entire* deletion
+ * (all-or-nothing, not partial) — deleting an Assessment cascades away every
+ * response/score/proctoring-event for it, so that has to be an explicit,
+ * informed choice by the admin (detach it first, or clear its data), never a
+ * silent side effect of removing the Program that happened to contain it.
+ */
+export async function deleteProgramById(programId: string): Promise<DeleteProgramResult> {
+  const program = await prisma.program.findFirst({
+    where: { id: programId },
+    include: { assessments: { include: { assessment: { select: { id: true, title: true } } } } },
+  });
+  if (!program) return { ok: false, reason: "not_found" };
+
+  const blockers: Array<{ title: string; assignmentCount: number; attemptCount: number }> = [];
+  const toDeleteIds: string[] = [];
+
+  for (const pa of program.assessments) {
+    const assessmentId = pa.assessment.id;
+    const [otherProgramCount, assignmentCount, attemptCount] = await Promise.all([
+      prisma.programAssessment.count({ where: { assessmentId, programId: { not: programId } } }),
+      prisma.assessmentAssignment.count({ where: { assessmentId } }),
+      prisma.assessmentAttempt.count({ where: { assessmentId } }),
+    ]);
+    if (otherProgramCount > 0) continue; // shared elsewhere — leave it alone, just detach
+    if (assignmentCount > 0 || attemptCount > 0) {
+      blockers.push({ title: pa.assessment.title, assignmentCount, attemptCount });
+      continue;
+    }
+    toDeleteIds.push(assessmentId);
+  }
+
+  if (blockers.length > 0) return { ok: false, reason: "blocked", blockers };
+
+  try {
+    await prisma.$transaction([
+      ...(toDeleteIds.length > 0 ? [prisma.assessment.deleteMany({ where: { id: { in: toDeleteIds } } })] : []),
+      prisma.program.delete({ where: { id: programId } }),
+    ]);
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+
   revalidatePath("/admin/programs");
   revalidatePath("/admin/assessments");
-  redirect("/admin/programs");
+  return { ok: true };
 }
 
 /**
@@ -158,75 +215,15 @@ export async function reorderAssessment(programId: string, formData: FormData) {
   redirect(builderPath(programId));
 }
 
-type ProgramWithAssessments = {
-  id: string;
-  title: string;
-  assessments: { displayOrder: number; assessment: { id: string; title: string; lifecycleStatus: string } }[];
-};
-
-async function loadAssignableProgram(programId: string): Promise<ProgramWithAssessments | null> {
-  return prisma.program.findFirst({
-    where: { id: programId },
-    include: {
-      assessments: {
-        orderBy: { displayOrder: "asc" },
-        include: { assessment: { select: { id: true, title: true, lifecycleStatus: true } } },
-      },
-    },
-  });
-}
-
 /** Redirects (never returns) unless the Program has ≥1 attached module and every one of them is published. */
 function assertAssignable(programId: string, program: ProgramWithAssessments) {
-  if (program.assessments.length === 0) {
-    redirect(builderPath(programId, `?status=error&reason=${encodeURIComponent("Attach at least one module first")}`));
-  }
-  const unpublished = program.assessments.find((pa) => pa.assessment.lifecycleStatus !== "published");
-  if (unpublished) {
-    redirect(builderPath(programId, `?status=error&reason=${encodeURIComponent(`"${unpublished.assessment.title}" must be published before assigning this Program`)}`));
-  }
+  const reason = checkAssignabilityReason(program);
+  if (reason) redirect(builderPath(programId, `?status=error&reason=${encodeURIComponent(reason)}`));
 }
 
 function parseExpiresAt(formData: FormData): Date | null {
   const raw = String(formData.get("expiresAt") ?? "").trim();
   return raw ? new Date(raw) : null;
-}
-
-/**
- * Creates one ProgramAssignment (the single emailed link) plus one child
- * AssessmentAssignment per attached module, each with its own accessToken so
- * the existing, unchanged /candidate/test/[assignmentId] flow keeps working
- * per module. `expiresAt`, when set, is applied to every child module —
- * that's the field the candidate-side page actually checks (ProgramAssignment
- * itself has no expiry gate today), so a Program-level deadline has to be
- * pushed down to each module to actually lock the candidate out.
- */
-async function createProgramAssignment(
-  program: ProgramWithAssessments,
-  candidateId: string,
-  expiresAt: Date | null,
-): Promise<{ programAssignmentId: string; accessToken: string }> {
-  const accessToken = generateAccessToken();
-  const programAssignmentId = await prisma.$transaction(async (tx) => {
-    const programAssignment = await tx.programAssignment.create({
-      data: { programId: program.id, candidateId, accessToken, status: "assigned", expiresAt },
-    });
-    for (const pa of program.assessments) {
-      await tx.assessmentAssignment.create({
-        data: {
-          candidateId,
-          assessmentId: pa.assessment.id,
-          accessToken: generateAccessToken(),
-          status: "assigned",
-          expiresAt,
-          programAssignmentId: programAssignment.id,
-          programModuleOrder: pa.displayOrder,
-        },
-      });
-    }
-    return programAssignment.id;
-  });
-  return { programAssignmentId, accessToken };
 }
 
 /** Assigns the whole Program to one candidate — one emailed link that walks them through every module in order. */
@@ -246,7 +243,7 @@ export async function assignProgramToCandidate(programId: string, formData: Form
   const expiresAt = parseExpiresAt(formData);
   let assignment: { programAssignmentId: string; accessToken: string };
   try {
-    assignment = await createProgramAssignment(program, candidateId, expiresAt);
+    assignment = await createProgramAssignmentRecord(program, candidateId, expiresAt);
   } catch {
     redirect(builderPath(programId, "?status=error"));
   }
@@ -304,7 +301,7 @@ export async function assignProgramToBatch(programId: string, formData: FormData
 
     let assignment: { programAssignmentId: string; accessToken: string };
     try {
-      assignment = await createProgramAssignment(program, candidate.id, expiresAt);
+      assignment = await createProgramAssignmentRecord(program, candidate.id, expiresAt);
     } catch {
       continue;
     }

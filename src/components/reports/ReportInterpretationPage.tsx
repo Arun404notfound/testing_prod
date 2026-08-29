@@ -1,25 +1,13 @@
-"use client";
-
-import { useReportTheme } from "./report-theme-context";
+import { REPORT_DESIGN_COLORS } from "./report-theme";
 import { reportTypography } from "./report-typography";
+import { SectionHeading, CornerTick } from "./SectionHeading";
 
-const ACCENT_BG = "#F0FDFA";
-const ACCENT_BORDER = "#99F6E4";
-const FOCUS_BG = "#FFFBEB";
-const FOCUS_BORDER = "#FDE68A";
+const C = REPORT_DESIGN_COLORS;
 
-function GuideSection({
-  title,
-  children,
-  ink,
-}: {
-  title: string;
-  children: React.ReactNode;
-  ink: string;
-}) {
+function GuideSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: "0.875rem" }}>
-      <h3 style={{ ...reportTypography.h3, marginBottom: 4, color: ink }}>{title}</h3>
+    <div style={{ marginBottom: "1rem" }}>
+      <p style={{ ...reportTypography.h4, marginBottom: 6, color: C.eyebrow, letterSpacing: "0.06em" }}>{title.toUpperCase()}</p>
       {children}
     </div>
   );
@@ -38,95 +26,78 @@ function GuideSection({
  * measurement variance that makes borderline pages risky.
  */
 export function ReportInterpretationPage() {
-  const { theme } = useReportTheme();
-
   return (
     <div>
-      <div style={{ ...reportTypography.h2, borderBottom: `2px solid ${theme.ink}`, paddingBottom: "0.5rem", marginBottom: "0.5rem", color: theme.ink }}>
-        How to Read This Report
-      </div>
-      <p style={{ ...reportTypography.bodyXSmall, color: theme.body, marginBottom: "1.125rem" }}>
-        A short guide to the scale, chart and terms used throughout the pages that follow.
+      <SectionHeading eyebrow="Section 03" title="How to read this report" />
+      <p style={{ ...reportTypography.body, color: C.body, marginTop: "0.75rem", marginBottom: "1.5rem" }}>
+        A short guide to the scale, the chart and the terms used on the pages that follow.
       </p>
 
-      <GuideSection title="The 1–10 Scale" ink={theme.ink}>
-        <p style={{ ...reportTypography.bodySmall, color: theme.body }}>
-          Every competency is scored 1–10 from the candidate&rsquo;s responses against that competency&rsquo;s defined
-          attributes. It is a position on a continuum, not a pass/fail result.
-        </p>
-      </GuideSection>
-
-      <GuideSection title="Proficiency Bands" ink={theme.ink}>
-        <p style={{ ...reportTypography.bodySmall, color: theme.body }}>
-          Each score also carries a band label (e.g. <em>Proficient</em>, <em>Intermediate</em>). Band names vary by
-          framework, but always move from strongest demonstrated capability to the greatest development need — the
-          segmented bar under each score is a visual read of the same thing.
-        </p>
-      </GuideSection>
-
-      <GuideSection title="The Radar Chart" ink={theme.ink}>
-        <p style={{ ...reportTypography.bodySmall, color: theme.body }}>
-          Scores are plotted against the <strong style={{ color: theme.ink }}>cohort median</strong>{" "}
-          — the middle score among other candidates who completed this same assessment — for an at-a-glance read of
-          performance relative to peers. With too small a cohort, the chart shows the candidate&rsquo;s own scores alone.
-        </p>
-      </GuideSection>
-
-      <div style={{ display: "flex", alignItems: "stretch", gap: 16, flexWrap: "wrap", marginBottom: "0.875rem" }}>
-        <div
-          style={{
-            flex: 1,
-            minWidth: 220,
-            backgroundColor: ACCENT_BG,
-            border: `1px solid ${ACCENT_BORDER}`,
-            borderRadius: 8,
-            padding: "0.625rem 0.875rem",
-          }}
-        >
-          <p style={{ ...reportTypography.h4, color: "#047857", marginBottom: 4 }}>Key Strengths</p>
-          <p style={{ ...reportTypography.bodySmall, color: theme.body }}>
-            Highest-scoring competencies (above the proficient threshold) — reliable today.
+      <div className="grid grid-cols-2 gap-x-10">
+        <GuideSection title="The 1–10 Scale">
+          <p style={{ ...reportTypography.bodySmall, color: C.body }}>
+            Every competency is scored from the candidate&rsquo;s responses against that competency&rsquo;s defined
+            attributes. It marks a position on a continuum, not a pass or a fail.
           </p>
-        </div>
-        <div
-          style={{
-            flex: 1,
-            minWidth: 220,
-            backgroundColor: FOCUS_BG,
-            border: `1px solid ${FOCUS_BORDER}`,
-            borderRadius: 8,
-            padding: "0.625rem 0.875rem",
-          }}
-        >
-          <p style={{ ...reportTypography.h4, color: "#B45309", marginBottom: 4 }}>Priority Focus Areas</p>
-          <p style={{ ...reportTypography.bodySmall, color: theme.body }}>
-            Lowest-scoring competencies (at or below the threshold) — where development has the most impact.
+        </GuideSection>
+
+        <GuideSection title="Proficiency Bands">
+          <p style={{ ...reportTypography.bodySmall, color: C.body }}>
+            Each score carries a band label such as Proficient or Intermediate. Band names vary by framework but
+            always run from strongest demonstrated capability to greatest development need.
           </p>
-        </div>
+        </GuideSection>
+
+        <GuideSection title="The Radar Chart">
+          <p style={{ ...reportTypography.bodySmall, color: C.body }}>
+            Scores are plotted against the cohort median — the middle score among other candidates who completed the
+            same assessment. Where the cohort is too small, the chart shows the candidate&rsquo;s scores alone.
+          </p>
+        </GuideSection>
+
+        <GuideSection title="Strengths and Focus Areas">
+          <p style={{ ...reportTypography.bodySmall, color: C.body }}>
+            Key strengths are the highest-scoring competencies, above the proficient threshold and reliable today.
+            Priority focus areas sit at or below it, where development has the most impact.
+          </p>
+        </GuideSection>
       </div>
 
-      <GuideSection title="Reading a Competency Page" ink={theme.ink}>
-        <p style={{ ...reportTypography.bodySmall, color: theme.body, marginBottom: 4 }}>
-          Every competency gets its own page later in this report, each built the same way:
-        </p>
-        <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
-          {[
-            ["Description & Score Interpretation", "what the competency measures and what this score means in practice."],
-            ["Behavioural Implications", "what tends to show up day-to-day at this score level."],
-            ["Watch-outs", "risks or blind spots worth being aware of."],
-            ["Development Projects", "concrete, on-the-job actions for the areas that would benefit most."],
-          ].map(([label, desc]) => (
-            <li key={label} style={{ ...reportTypography.bodySmall, color: theme.body, marginBottom: 2 }}>
-              <strong style={{ color: theme.ink }}>{label}:</strong> {desc}
-            </li>
-          ))}
-        </ul>
-      </GuideSection>
+      <div style={{ borderTop: `1px solid ${C.hairline}`, marginTop: "0.5rem", paddingTop: "1.25rem" }}>
+        <p style={{ ...reportTypography.h3, color: C.ink, marginBottom: 4 }}>Reading a competency page</p>
+        <p style={{ ...reportTypography.bodySmall, color: C.body, marginBottom: 14 }}>Every competency has its own page, and each is built the same way.</p>
+        {[
+          ["Description & Interpretation", "What the competency measures, and what this score means in practice."],
+          ["Behavioural Implications", "What tends to show up day to day at this score level."],
+          ["Watch-outs", "Risks and blind spots worth being aware of."],
+          ["Development Projects", "Concrete, on-the-job actions for the areas that would benefit most."],
+        ].map(([label, desc]) => (
+          <div key={label} className="flex items-start" style={{ gap: "1.25rem", padding: "0.5rem 0" }}>
+            <span style={{ ...reportTypography.h4, color: C.eyebrow, letterSpacing: "0.04em", width: "13rem", flexShrink: 0 }}>{label.toUpperCase()}</span>
+            <span style={{ alignSelf: "stretch", width: 1, backgroundColor: C.hairline, flexShrink: 0 }} />
+            <span style={{ ...reportTypography.bodySmall, color: C.body }}>{desc}</span>
+          </div>
+        ))}
+      </div>
 
-      <p style={{ ...reportTypography.bodyXSmall, color: theme.body, fontStyle: "italic", marginTop: "0.5rem" }}>
-        This report is a structured signal to support conversations, interviews and development planning — it works
-        best alongside professional judgement and business context, not in place of them.
-      </p>
+      <div
+        style={{
+          position: "relative",
+          backgroundColor: "#F8FAFC",
+          border: "1px solid #CBD5E1",
+          padding: "0.875rem 1.125rem",
+          marginTop: "1.5rem",
+        }}
+      >
+        <CornerTick top left />
+        <CornerTick top left={false} />
+        <CornerTick top={false} left />
+        <CornerTick top={false} left={false} />
+        <p style={{ ...reportTypography.bodySmall, color: C.body }}>
+          This report is a structured signal to support conversations, interviews and development planning. It works
+          best alongside professional judgement and business context, not in place of them.
+        </p>
+      </div>
     </div>
   );
 }

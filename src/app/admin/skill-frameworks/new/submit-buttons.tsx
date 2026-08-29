@@ -10,3 +10,12 @@ export function CreateSkillFrameworkButton() {
     </button>
   );
 }
+
+export function ImportSkillFrameworkButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className="tg-button-primary w-fit disabled:opacity-60">
+      {pending ? "Importing…" : "Import workbook"}
+    </button>
+  );
+}

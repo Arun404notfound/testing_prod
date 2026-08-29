@@ -53,7 +53,7 @@ export function buildScoringContext(assessment: any, blocks: TestBlock[], answer
           definition: sq.definition ?? null, polarity: sq.polarity ?? null,
           sectionTitle: sq.section?.title ?? comp.sourceCaseStudy.section?.title ?? comp.section?.title ?? "Imported",
           skillId: sq.skillId ?? null, subSkillId: sq.subSkillId ?? null,
-          likertScale: null,
+          likertScale: sq.likertScale ? { minValue: sq.likertScale.minValue, maxValue: sq.likertScale.maxValue } : null,
           options: (sq.options ?? []).map((o: { id: string; label: string; value: string; isCorrect: boolean; scoreValue: number | null }) => ({
             id: o.id, label: o.label, value: o.value, isCorrect: o.isCorrect, scoreValue: o.scoreValue,
           })),
@@ -94,6 +94,17 @@ export function buildScoringContext(assessment: any, blocks: TestBlock[], answer
         })),
       });
     }
+    if (comp.sourceCaseStudy) {
+      for (const g of comp.sourceCaseStudy.triadSubQuestions ?? []) {
+        triadByGroupId.set(g.id, {
+          sectionTitle: comp.sourceCaseStudy.section?.title ?? comp.section?.title ?? "Imported",
+          statements: (g.statements ?? []).map((s: { id: string; statementText: string; factor: string; trait: string; definition: string; polarity: string }) => ({
+            id: s.id, statementText: s.statementText, factor: s.factor,
+            trait: s.trait, definition: s.definition, polarity: s.polarity as "POSITIVE" | "NEGATIVE",
+          })),
+        });
+      }
+    }
   }
 
   return { blocks, answers, itemById, questionById, triadByGroupId };
@@ -128,7 +139,11 @@ export const ASSESSMENT_INCLUDE = {
         include: {
           section: true,
           subQuestions: {
-            include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, images: { orderBy: { displayOrder: "asc" as const } } },
+            include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, likertScale: true, images: { orderBy: { displayOrder: "asc" as const } } },
+            orderBy: { displayOrder: "asc" as const },
+          },
+          triadSubQuestions: {
+            include: { statements: { orderBy: { displayOrder: "asc" as const } } },
             orderBy: { displayOrder: "asc" as const },
           },
         },
@@ -144,7 +159,11 @@ export const ASSESSMENT_INCLUDE = {
             include: {
               section: true,
               subQuestions: {
-                include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, images: { orderBy: { displayOrder: "asc" as const } } },
+                include: { section: true, options: { orderBy: { displayOrder: "asc" as const } }, likertScale: true, images: { orderBy: { displayOrder: "asc" as const } } },
+                orderBy: { displayOrder: "asc" as const },
+              },
+              triadSubQuestions: {
+                include: { statements: { orderBy: { displayOrder: "asc" as const } } },
                 orderBy: { displayOrder: "asc" as const },
               },
             },

@@ -58,6 +58,12 @@ export default async function ReportsIndexPage({
 
   const mergedWhere: Prisma.AssessmentResultWhereInput = {
     candidate: candidateFilter,
+    // Once every sibling module of a Program is scored, score-and-save.ts stamps
+    // programResultId on all of them and rolls them into one ProgramResult — those
+    // show up below as a single combined "Program Reports" card instead, so they're
+    // excluded here. A module still mid-Program (siblings not all done yet) keeps
+    // programResultId null and stays visible in this flat list until it's rolled up.
+    programResultId: null,
     ...(assessmentQ && {
       OR: [
         { assessmentName: { contains: assessmentQ } },
@@ -71,6 +77,28 @@ export default async function ReportsIndexPage({
     include: {
       candidate: { select: { fullName: true, email: true, employeeId: true, batchName: true } },
       assessment: { select: { title: true, assessmentType: true } },
+    },
+    orderBy: { completedAt: "desc" },
+  });
+
+  const programResults = await prisma.programResult.findMany({
+    where: {
+      candidate: candidateFilter,
+      ...(assessmentQ && {
+        assessmentResults: {
+          some: {
+            OR: [
+              { assessmentName: { contains: assessmentQ } },
+              { assessment: { title: { contains: assessmentQ } } },
+            ],
+          },
+        },
+      }),
+    },
+    include: {
+      candidate: { select: { fullName: true, email: true, employeeId: true, batchName: true } },
+      programAssignment: { include: { program: { select: { title: true } } } },
+      assessmentResults: { select: { assessmentName: true }, orderBy: { assignment: { programModuleOrder: "asc" } } },
     },
     orderBy: { completedAt: "desc" },
   });
@@ -106,9 +134,12 @@ export default async function ReportsIndexPage({
         <div>
           <h1 className="text-2xl font-bold text-[#0F172A]">Assessment Reports</h1>
           <p className="mt-1 text-sm text-[#64748B]">
+            {programResults.length > 0
+              ? `${programResults.length} program report${programResults.length === 1 ? "" : "s"} · `
+              : ""}
             {hasFilter
-              ? `${results.length} result${results.length === 1 ? "" : "s"} matching filters`
-              : `${results.length} total result${results.length === 1 ? "" : "s"}`}
+              ? `${results.length} module result${results.length === 1 ? "" : "s"} matching filters`
+              : `${results.length} module result${results.length === 1 ? "" : "s"}`}
           </p>
         </div>
         <BackToDashboard />
@@ -238,12 +269,62 @@ export default async function ReportsIndexPage({
         </div>
       </section>
 
+      {/* Program reports — one combined entry per completed Program, covering every module */}
+      {programResults.length > 0 && (
+        <section className="overflow-hidden rounded-2xl border border-[#D1D9E6] bg-white shadow-sm">
+          <div className="flex items-center gap-3 border-b border-[#E2E8F0] bg-gradient-to-r from-[#F5F3FF] to-[#F8FAFC] px-5 py-4">
+            <div className="h-4 w-1 rounded-full bg-violet-600" />
+            <p className="text-base font-bold text-[#0F172A]">Program Reports</p>
+            <span className="ml-1 rounded-full bg-violet-600 px-2.5 py-0.5 text-[10px] font-bold text-white">
+              {programResults.length}
+            </span>
+          </div>
+          <div className="divide-y divide-[#F1F5F9]">
+            {programResults.map((pr) => (
+              <div key={pr.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-[#0F172A]">{pr.programAssignment.program.title}</p>
+                    {pr.candidate.batchName && (
+                      <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                        {pr.candidate.batchName}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#94A3B8]">
+                    {pr.candidate.fullName} · {pr.candidate.email}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {pr.assessmentResults.map((ar) => (
+                      <span key={ar.assessmentName} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-[#334155]">
+                        {ar.assessmentName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="text-xs text-[#64748B]">
+                    {new Date(pr.completedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                  <Link
+                    href={`/admin/program-reports/${pr.id}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100"
+                  >
+                    Open Program Report →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Results table */}
       <section className="overflow-hidden rounded-2xl border border-[#D1D9E6] bg-white shadow-sm">
         <div className="flex items-center gap-3 border-b border-[#E2E8F0] bg-gradient-to-r from-[#EFF6FF] to-[#F8FAFC] px-5 py-4">
           <div className="h-4 w-1 rounded-full bg-[#2563EB]" />
           <p className="text-base font-bold text-[#0F172A]">
-            Completed Results
+            Module Reports
           </p>
           {hasFilter && (
             <span className="ml-1 rounded-full bg-[#2563EB] px-2.5 py-0.5 text-[10px] font-bold text-white">

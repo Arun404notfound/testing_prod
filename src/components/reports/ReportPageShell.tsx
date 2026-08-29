@@ -7,15 +7,11 @@ import { reportTypography } from "./report-typography";
 
 type Props = {
   children: ReactNode;
-  /** Running header label, top-left (e.g. report/section name). Omit to render the page exactly as before. */
-  pageLabel?: string;
   /** Running footer line, bottom-left (e.g. "Candidate · Tenant · Date"). */
   footerMeta?: string;
-  /** 1-indexed page number, shown top-right and bottom-right alongside `totalPages`. */
+  /** 1-indexed page number, shown bottom-right alongside `totalPages`. */
   pageNumber?: number;
   totalPages?: number;
-  /** Suppress the small running-header logo — for pages (e.g. the cover) that already feature a large logo of their own. */
-  hideHeaderLogo?: boolean;
   /** Vertically center children within the page body — for cover-style pages. */
   centerContent?: boolean;
   /**
@@ -28,15 +24,18 @@ type Props = {
   autoFit?: boolean;
 };
 
-export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, totalPages, hideHeaderLogo, centerContent, autoFit }: Props) {
-  const { theme, logoUrl } = useReportTheme();
+// No running header bar — matching the reference design, each page's own
+// content (via SectionHeading) starts right at the top margin instead of
+// sitting under a logo/page-label chrome bar. Only the footer is "running"
+// (repeated) chrome now.
+export function ReportPageShell({ children, footerMeta, pageNumber, totalPages, centerContent, autoFit }: Props) {
+  const { theme } = useReportTheme();
   const style: CSSProperties = {
     backgroundColor: theme.cardBackground,
     color: theme.ink,
     minHeight: "297mm",
     fontFamily: theme.fontFamily,
   };
-  const hasRunningHeader = Boolean(pageLabel || pageNumber);
   const hasRunningFooter = Boolean(footerMeta || pageNumber);
 
   return (
@@ -44,40 +43,6 @@ export function ReportPageShell({ children, pageLabel, footerMeta, pageNumber, t
       className="report-page mx-auto flex w-[210mm] flex-col"
       style={style}
     >
-      {hasRunningHeader && (
-        <div
-          className="report-page-header flex shrink-0 items-center justify-between border-b px-10 pt-7 pb-4"
-          style={{ borderColor: theme.hairline }}
-        >
-          <div className="flex items-center gap-3">
-            {logoUrl && !hideHeaderLogo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoUrl}
-                alt=""
-                className="h-8 max-w-[140px] object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-              />
-            ) : null}
-            {pageLabel && (
-              <div className="flex items-center gap-2">
-                <span style={{ ...reportTypography.bodySmall, fontWeight: 500, color: theme.ink }}>
-                  {pageLabel}
-                </span>
-              </div>
-            )}
-          </div>
-          {pageNumber && (
-            <span style={{ ...reportTypography.bodyXSmall, fontWeight: 600, color: theme.body }}>
-              Page {pageNumber}
-              {totalPages ? ` of ${totalPages}` : ""}
-            </span>
-          )}
-        </div>
-      )}
-
       <div className={`report-page-body flex flex-1 flex-col px-10 py-10 ${centerContent ? "justify-center" : ""}`}>
         {autoFit ? <AutoFitPageBody>{children}</AutoFitPageBody> : children}
       </div>

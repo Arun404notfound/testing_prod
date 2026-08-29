@@ -34,6 +34,9 @@ export type BuilderSearch = {
   editDomainId?: string;
   editCompId?: string;
   comp?: string;
+  domains?: string;
+  comps?: string;
+  maps?: string;
 };
 
 const STATUS_MESSAGES: Record<string, { message: string; variant: "success" | "error" }> = {
@@ -74,7 +77,12 @@ export default async function SkillFrameworkBuilderPage({
 
   const boundUpdateDetails = updateSkillFrameworkDetails.bind(null, skillFrameworkId);
 
-  const toast = sp.status ? STATUS_MESSAGES[sp.status] : null;
+  const toast = sp.status && (STATUS_MESSAGES[sp.status] ?? (sp.status.startsWith("import") ? {
+    message: sp.status === "import-warn"
+      ? `Imported ${sp.domains ?? "0"} domains, ${sp.comps ?? "0"} skills, ${sp.maps ?? "0"} sub-skill mappings — with warnings, check the server log.`
+      : `Imported ${sp.domains ?? "0"} domains, ${sp.comps ?? "0"} skills, ${sp.maps ?? "0"} sub-skill mappings.`,
+    variant: sp.status === "import-warn" ? "error" as const : "success" as const,
+  } : null));
 
   return (
     <main className="tg-page space-y-6">

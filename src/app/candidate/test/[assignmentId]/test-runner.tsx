@@ -21,16 +21,30 @@ import {
   SendHorizonal,
   X,
 } from "lucide-react";
-import type { TestBlock } from "@/lib/candidate-test-payload";
+import type { TestBlock, CaseStudySubQuestion } from "@/lib/candidate-test-payload";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type Answers = Record<
   string,
-  number | string | string[] | { most: string; least: string } | Record<string, string> | undefined
+  number | string | string[] | { most: string; least: string } | Record<string, string | number | { most?: string; least?: string }> | undefined
 >;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Case-study sub-questions key their answer by itemId (mcq/likert) or groupId (triad) — the id that's stable for that sub-question's own type. */
+function caseStudySubKey(sq: CaseStudySubQuestion): string {
+  return sq.kind === "triad" ? sq.groupId : sq.itemId;
+}
+
+function isCaseStudySubAnswered(sq: CaseStudySubQuestion, subAnswers: Record<string, string | number | { most?: string; least?: string }>): boolean {
+  const v = subAnswers[caseStudySubKey(sq)];
+  if (sq.kind === "triad") {
+    const t = v as { most?: string; least?: string } | undefined;
+    return Boolean(t && t.most && t.least && t.most !== t.least);
+  }
+  return v !== undefined && v !== null && v !== "";
+}
 
 function isAnswered(block: TestBlock, answers: Answers): boolean {
   const v = answers[block.key];
@@ -40,8 +54,8 @@ function isAnswered(block: TestBlock, answers: Answers): boolean {
     return Boolean(t.most && t.least && t.most !== t.least);
   }
   if (block.kind === "case_study") {
-    const subAnswers = v as Record<string, string>;
-    return block.subQuestions.every((sq) => Boolean(subAnswers[sq.itemId]));
+    const subAnswers = v as Record<string, string | number | { most?: string; least?: string }>;
+    return block.subQuestions.every((sq) => isCaseStudySubAnswered(sq, subAnswers));
   }
   if (block.kind === "item_mcq_multi") {
     return Array.isArray(v) && v.length > 0;
@@ -50,6 +64,25 @@ function isAnswered(block: TestBlock, answers: Answers): boolean {
     return typeof v === "string" && v.trim().length > 0;
   }
   return true;
+}
+
+/** How wide the question column gets, per type — split/grid layouts (MCQ with
+ *  media, Triad's 3-across cards, Case Study's two panes) need the extra room;
+ *  a single Likert scale or an open text box reads better narrower. */
+function questionContainerMaxW(kind: TestBlock["kind"]): string {
+  switch (kind) {
+    case "case_study":
+      return "max-w-7xl";
+    case "item_mcq":
+    case "item_tf":
+    case "legacy_mcq":
+    case "sjt":
+    case "item_mcq_multi":
+    case "triad":
+      return "max-w-5xl";
+    default:
+      return "max-w-3xl";
+  }
 }
 
 // True when a triad has exactly one of most/least filled but not both
@@ -190,14 +223,18 @@ function QuestionNavigator({ blocks, answers, currentIndex }: {
 function QuestionMedia({ images, audioUrl }: { images?: string[]; audioUrl?: string | null }) {
   const hasImages = Boolean(images && images.length > 0);
   if (!hasImages && !audioUrl) return null;
-  const gridColsClass = (images?.length ?? 0) <= 1 ? "grid-cols-1" : (images?.length ?? 0) === 2 ? "grid-cols-2" : "grid-cols-3";
+  const count = images?.length ?? 0;
+  // Fewer images means each one can afford to be much bigger — a single image
+  // is the dominant thing on screen, three share the row more modestly.
+  const gridColsClass = count <= 1 ? "grid-cols-1" : count === 2 ? "grid-cols-2" : "grid-cols-3";
+  const imgHeightClass = count <= 1 ? "max-h-[36vh] lg:max-h-[54vh]" : count === 2 ? "max-h-[28vh] lg:max-h-[42vh]" : "max-h-[22vh] lg:max-h-[32vh]";
   return (
     <div className="mb-4 space-y-3">
       {hasImages && (
         <div className={`grid gap-3 ${gridColsClass}`}>
           {images!.map((src, i) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={i} src={src} alt="" className="max-h-72 w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] object-contain" />
+            <img key={i} src={src} alt="" className={`w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] object-contain ${imgHeightClass}`} />
           ))}
         </div>
       )}
@@ -206,105 +243,20 @@ function QuestionMedia({ images, audioUrl }: { images?: string[]; audioUrl?: str
   );
 }
 
-// ─── Question header card (media + badge + title + subtitle) ─────────────────
-// Shared shell used by every question type, kept separate from the response
-// card below it so media/prompt and answer controls read as distinct zones.
-
-function QuestionHeader({ badge, badgeClassName, title, subtitle, extra, images, audioUrl }: {
-  badge?: string;
-  badgeClassName?: string;
-  title: string;
-  subtitle?: ReactNode;
-  extra?: ReactNode;
-  images?: string[];
-  audioUrl?: string | null;
-}) {
+// Shared badge/title/subtitle text blocks — each layout below places these
+// wherever fits its own split, so this stays just the text styling, no shell.
+function QuestionBadge({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
-      <QuestionMedia images={images} audioUrl={audioUrl} />
-      {badge && (
-        <span className={badgeClassName ?? "inline-flex items-center rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#1D4ED8]"}>
-          {badge}
-        </span>
-      )}
-      <p className={`${badge ? "mt-2" : ""} text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl`}>{title}</p>
-      {subtitle && <div className="mt-1 text-sm text-[#64748B]">{subtitle}</div>}
-      {extra}
-    </div>
+    <span className={className ?? "inline-flex items-center rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#1D4ED8]"}>
+      {children}
+    </span>
   );
 }
-
-/** Derives the shared header's props per block kind — the single place that knows each type's badge/title/subtitle copy. */
-function QuestionHeaderForBlock({ block }: { block: TestBlock }) {
-  if (block.kind === "likert") {
-    return (
-      <QuestionHeader
-        title={block.prompt}
-        subtitle={block.scale ? "Select the option that best reflects your response." : "Rate how much the statement above describes you."}
-        images={block.images} audioUrl={block.audioUrl}
-      />
-    );
-  }
-  if (block.kind === "item_mcq" || block.kind === "item_tf") {
-    return <QuestionHeader title={block.prompt} images={block.images} audioUrl={block.audioUrl} />;
-  }
-  if (block.kind === "legacy_mcq") {
-    return <QuestionHeader title={block.questionText} />;
-  }
-  if (block.kind === "sjt") {
-    return (
-      <QuestionHeader
-        badge="Situational Judgment"
-        title={block.prompt}
-        images={block.images} audioUrl={block.audioUrl}
-      />
-    );
-  }
-  if (block.kind === "item_mcq_multi") {
-    return (
-      <QuestionHeader
-        badge="Select all that apply"
-        title={block.prompt}
-        images={block.images} audioUrl={block.audioUrl}
-      />
-    );
-  }
-  if (block.kind === "open_ended") {
-    return (
-      <QuestionHeader
-        badge="Open-Ended"
-        badgeClassName="inline-flex items-center rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-purple-700"
-        title={block.prompt}
-        subtitle={block.helpText ?? undefined}
-        images={block.images} audioUrl={block.audioUrl}
-      />
-    );
-  }
-  if (block.kind === "triad") {
-    return (
-      <QuestionHeader
-        title={block.title}
-        subtitle={
-          <>
-            Below are three ways to complete this statement. Choose the one that is <span className="font-semibold text-emerald-600">Most like you</span> and the one that is <span className="font-semibold text-rose-500">Least like you</span>.
-          </>
-        }
-      />
-    );
-  }
-  // case_study
-  return (
-    <QuestionHeader
-      badge="Case Study"
-      badgeClassName="inline-flex items-center rounded-full bg-[#FDF4FF] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#A21CAF]"
-      title={block.title}
-      extra={
-        <div className="mt-3 max-h-64 overflow-y-auto rounded-2xl border-2 border-[#E2E8F0] bg-[#F8FAFC] p-4">
-          <p className="whitespace-pre-line text-sm leading-relaxed text-[#334155]">{block.passageText}</p>
-        </div>
-      }
-    />
-  );
+function QuestionTitle({ children, hasBadge }: { children: ReactNode; hasBadge?: boolean }) {
+  return <p className={`${hasBadge ? "mt-2" : ""} text-lg font-semibold leading-snug text-[#0F172A] sm:text-xl`}>{children}</p>;
+}
+function QuestionSubtitle({ children }: { children: ReactNode }) {
+  return <div className="mt-1 text-sm text-[#64748B]">{children}</div>;
 }
 
 // ─── Likert (horizontal scale, compact) ──────────────────────────────────────
@@ -317,68 +269,128 @@ const LIKERT_OPTS = [
   { value: 5, label: "Just like me" },
 ];
 
-/** Generates a generic N-point scale from a custom min/max — used only for Survey Likert items with a configured scale; every legacy Psychometric item has no scale and keeps the fixed LIKERT_OPTS above untouched. */
+/** Known opposite-intensity word families, keyed by their core word once a
+ *  leading intensity modifier ("Strongly", "Very", ...) is stripped — covers
+ *  every LikertScale actually configured in this product (plain agree/disagree
+ *  and satisfaction scales). Candidates never see 1/2/3/4/5: those numbers only
+ *  exist for internal scoring, so every point on the scale needs a real word. */
+const INTENSITY_FAMILIES: { minCore: string; maxCore: string; ladder3: string[]; ladder5: string[]; ladder7: string[] }[] = [
+  {
+    minCore: "disagree", maxCore: "agree",
+    ladder3: ["Disagree", "Neutral", "Agree"],
+    ladder5: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"],
+    ladder7: ["Strongly Disagree", "Disagree", "Somewhat Disagree", "Neutral", "Somewhat Agree", "Agree", "Strongly Agree"],
+  },
+  {
+    minCore: "dissatisfied", maxCore: "satisfied",
+    ladder3: ["Dissatisfied", "Neutral", "Satisfied"],
+    ladder5: ["Very Dissatisfied", "Dissatisfied", "Neutral", "Satisfied", "Very Satisfied"],
+    ladder7: ["Very Dissatisfied", "Dissatisfied", "Somewhat Dissatisfied", "Neutral", "Somewhat Satisfied", "Satisfied", "Very Satisfied"],
+  },
+];
+const INTENSITY_MODIFIERS = new Set(["strongly", "very", "extremely", "somewhat", "slightly", "moderately"]);
+
+function coreWord(label: string): string {
+  const words = label.trim().toLowerCase().split(/\s+/);
+  return words.length > 1 && INTENSITY_MODIFIERS.has(words[0]) ? words.slice(1).join(" ") : words.join(" ");
+}
+
+function findWordLadder(minLabel: string, maxLabel: string, count: number): string[] | null {
+  const family = INTENSITY_FAMILIES.find((f) => f.minCore === coreWord(minLabel) && f.maxCore === coreWord(maxLabel));
+  if (!family) return null;
+  if (count === 3) return family.ladder3;
+  if (count === 5) return family.ladder5;
+  if (count === 7) return family.ladder7;
+  return null;
+}
+
+/** Generates a fully-worded N-point scale from a custom min/max — used only for Survey
+ *  Likert items and Case Study Likert sub-questions with a configured scale; every legacy
+ *  Psychometric item has no scale and keeps the fixed LIKERT_OPTS above untouched. Points
+ *  between the two admin-authored ends get real wording too (via the word ladder above for
+ *  a recognized family, or minLabel/maxLabel/"Neutral" split by proximity otherwise) —
+ *  never a bare number standing in for a missing label. */
 function buildScaleOpts(scale: { min: number; max: number; minLabel: string; maxLabel: string }) {
+  const count = scale.max - scale.min + 1;
+  const ladder = findWordLadder(scale.minLabel, scale.maxLabel, count);
+  const mid = (scale.min + scale.max) / 2;
   const opts: { value: number; label: string }[] = [];
-  for (let v = scale.min; v <= scale.max; v++) {
-    const label = v === scale.min ? scale.minLabel : v === scale.max ? scale.maxLabel : String(v);
+  let i = 0;
+  for (let v = scale.min; v <= scale.max; v++, i++) {
+    const label = ladder
+      ? ladder[i]
+      : v === scale.min
+        ? scale.minLabel
+        : v === scale.max
+          ? scale.maxLabel
+          : v === mid
+            ? "Neutral"
+            : v < mid
+              ? scale.minLabel
+              : scale.maxLabel;
     opts.push({ value: v, label });
   }
   return opts;
 }
 
-function LikertQuestion({ block, answers, setAnswers }: {
+/** The scale-button UI shared by standalone Likert questions and Likert
+ *  case-study sub-questions — pulled out so both call sites stay identical.
+ *  Styled to match the MCQ option rows (letter badge, full-width row, check
+ *  icon on select) rather than a boxed 1-5 scale, for a consistent look
+ *  across every question type. */
+/** Vertical list on phones (narrow, so a horizontal scale would cramp the words);
+ *  a single full-width segmented row on lg+, since a 5-point scale is short enough
+ *  to lay out horizontally once there's room, and that reads as a proper Likert
+ *  scale instead of five stacked rows eating vertical space for no reason. */
+function LikertScaleButtons({ value, scale, onChange }: {
+  value: number | undefined;
+  scale?: { min: number; max: number; minLabel: string; maxLabel: string };
+  onChange: (v: number) => void;
+}) {
+  const opts = scale ? buildScaleOpts(scale) : LIKERT_OPTS;
+  return (
+    <div className="flex flex-col gap-2 lg:flex-row lg:gap-3">
+      {opts.map((opt, idx) => {
+        const sel = value === opt.value;
+        const letter = String.fromCharCode(65 + idx);
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={`group flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all lg:flex-1 lg:flex-col lg:justify-center lg:gap-2 lg:px-3 lg:py-5 lg:text-center ${
+              sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
+            }`}
+          >
+            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all ${
+              sel ? "bg-[#0F766E] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#0F766E]"
+            }`}>
+              {letter}
+            </span>
+            <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
+            {sel && <CheckCircle2 size={16} className="ml-auto shrink-0 text-[#0F766E] lg:ml-0" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function LikertLayout({ block, answers, setAnswers }: {
   block: Extract<TestBlock, { kind: "likert" }>;
   answers: Answers;
   setAnswers: Dispatch<SetStateAction<Answers>>;
 }) {
   const val = answers[block.key] as number | undefined;
-  const opts = block.scale ? buildScaleOpts(block.scale) : LIKERT_OPTS;
-  const gridColsClass = opts.length <= 5 ? "grid-cols-5" : opts.length <= 7 ? "grid-cols-7" : "grid-cols-5";
   return (
-    <div className="space-y-5">
-      {/* Desktop: horizontal scale */}
-      <div className="hidden lg:block">
-        <div className={`grid gap-3 ${gridColsClass}`}>
-          {opts.map((opt) => {
-            const sel = val === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setAnswers((a) => ({ ...a, [block.key]: opt.value }))}
-                className={`flex items-center justify-center rounded-2xl border-2 px-3 py-5 text-center text-sm font-semibold leading-tight transition-all duration-150 ${
-                  sel
-                    ? "border-[#0F766E] bg-[#0F766E] text-white shadow-md"
-                    : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#0F766E] hover:text-[#0F766E]"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Mobile/tablet: vertical stacked */}
-      <div className="space-y-2 lg:hidden">
-        {opts.map((opt) => {
-          const sel = val === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setAnswers((a) => ({ ...a, [block.key]: opt.value }))}
-              className={`w-full rounded-xl border-2 px-4 py-3 text-center text-sm font-semibold transition-all ${
-                sel
-                  ? "border-[#0F766E] bg-[#0F766E] text-white shadow-md"
-                  : "border-[#E2E8F0] bg-white text-[#334155] hover:border-[#0F766E] hover:text-[#0F766E]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
+    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+      <QuestionMedia images={block.images} audioUrl={block.audioUrl} />
+      <QuestionTitle>{block.prompt}</QuestionTitle>
+      <QuestionSubtitle>
+        {block.scale ? "Select the option that best reflects your response." : "Rate how much the statement above describes you."}
+      </QuestionSubtitle>
+      <div className="mt-5">
+        <LikertScaleButtons value={val} scale={block.scale} onChange={(v) => setAnswers((a) => ({ ...a, [block.key]: v }))} />
       </div>
     </div>
   );
@@ -386,46 +398,120 @@ function LikertQuestion({ block, answers, setAnswers }: {
 
 // ─── MCQ ─────────────────────────────────────────────────────────────────────
 
-function McqQuestion({ block, answers, setAnswers }: {
-  block: Extract<TestBlock, { kind: "item_mcq" | "item_tf" | "legacy_mcq" | "sjt" }>;
-  answers: Answers;
-  setAnswers: Dispatch<SetStateAction<Answers>>;
-}) {
-  const options =
-    block.kind === "legacy_mcq"
-      ? block.options.map((o) => ({ id: o.value, label: o.label, imageUrl: undefined as string | undefined }))
-      : block.options.map((o) => ({ id: o.optionId, label: o.label, imageUrl: o.imageUrl ?? undefined }));
-  const val = answers[block.key];
+type McqOption = { id: string; label: string; imageUrl?: string };
 
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+/** Single-select option list. When any option carries its own image, this switches
+ *  to a card grid with the image as the dominant element (big enough to actually
+ *  compare, not a thumbnail) instead of a stacked list of tiny icons. */
+function McqOptionsList({ options, value, onSelect, twoColText }: {
+  options: McqOption[];
+  value: unknown;
+  onSelect: (id: string) => void;
+  /** Only meaningful for the plain-text (no-image) list — lets short option sets use the width instead of stacking. */
+  twoColText?: boolean;
+}) {
+  const hasImages = options.some((o) => o.imageUrl);
+
+  if (hasImages) {
+    return (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {options.map((opt, idx) => {
-          const sel = val === opt.id;
+          const sel = value === opt.id;
           const letter = String.fromCharCode(65 + idx);
           return (
             <button
               key={opt.id}
               type="button"
-              onClick={() => setAnswers((a) => ({ ...a, [block.key]: opt.id }))}
-              className={`group flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+              onClick={() => onSelect(opt.id)}
+              className={`group flex flex-col items-center gap-2 rounded-xl border-2 p-3 text-center transition-all ${
                 sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
               }`}
             >
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all ${
-                sel ? "bg-[#0F766E] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#0F766E]"
-              }`}>
-                {letter}
-              </span>
+              <div className="flex w-full items-center justify-between">
+                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all ${
+                  sel ? "bg-[#0F766E] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#0F766E]"
+                }`}>
+                  {letter}
+                </span>
+                {sel && <CheckCircle2 size={16} className="shrink-0 text-[#0F766E]" />}
+              </div>
               {opt.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={opt.imageUrl} alt="" className="h-16 w-16 shrink-0 rounded-lg border border-[#E2E8F0] object-cover" />
+                <img src={opt.imageUrl} alt="" className="h-40 w-full rounded-lg border border-[#E2E8F0] bg-white object-contain p-1 sm:h-48" />
               )}
               <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
-              {sel && <CheckCircle2 size={16} className="ml-auto shrink-0 text-[#0F766E]" />}
             </button>
           );
         })}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`grid gap-2 ${twoColText ? "sm:grid-cols-2" : ""}`}>
+      {options.map((opt, idx) => {
+        const sel = value === opt.id;
+        const letter = String.fromCharCode(65 + idx);
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onSelect(opt.id)}
+            className={`group flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+              sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
+            }`}
+          >
+            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all ${
+              sel ? "bg-[#0F766E] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#0F766E]"
+            }`}>
+              {letter}
+            </span>
+            <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
+            {sel && <CheckCircle2 size={16} className="ml-auto shrink-0 text-[#0F766E]" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function McqLayout({ block, answers, setAnswers }: {
+  block: Extract<TestBlock, { kind: "item_mcq" | "item_tf" | "legacy_mcq" | "sjt" }>;
+  answers: Answers;
+  setAnswers: Dispatch<SetStateAction<Answers>>;
+}) {
+  const options: McqOption[] =
+    block.kind === "legacy_mcq"
+      ? block.options.map((o) => ({ id: String(o.value), label: o.label }))
+      : block.options.map((o) => ({ id: o.optionId, label: o.label, imageUrl: o.imageUrl ?? undefined }));
+  const val = block.kind === "legacy_mcq" ? String(answers[block.key] ?? "") : answers[block.key];
+  const prompt = block.kind === "legacy_mcq" ? block.questionText : block.prompt;
+  const media = block.kind !== "legacy_mcq" ? { images: block.images, audioUrl: block.audioUrl } : {};
+  const hasMedia = Boolean(media.images?.length || media.audioUrl);
+  const onSelect = (id: string) =>
+    setAnswers((a) => ({ ...a, [block.key]: block.kind === "legacy_mcq" ? Number(id) : id }));
+
+  if (hasMedia) {
+    return (
+      <div className="grid gap-6 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 lg:h-full lg:min-h-0 lg:overflow-y-auto">
+          {block.kind === "sjt" && <QuestionBadge>Situational Judgment</QuestionBadge>}
+          <QuestionMedia images={media.images} audioUrl={media.audioUrl} />
+          <QuestionTitle hasBadge={block.kind === "sjt"}>{prompt}</QuestionTitle>
+        </div>
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 lg:h-full lg:min-h-0 lg:overflow-y-auto">
+          <McqOptionsList options={options} value={val} onSelect={onSelect} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+      {block.kind === "sjt" && <QuestionBadge>Situational Judgment</QuestionBadge>}
+      <QuestionTitle hasBadge={block.kind === "sjt"}>{prompt}</QuestionTitle>
+      <div className="mt-4">
+        <McqOptionsList options={options} value={val} onSelect={onSelect} twoColText={options.length >= 4} />
       </div>
     </div>
   );
@@ -433,7 +519,54 @@ function McqQuestion({ block, answers, setAnswers }: {
 
 // ─── MCQ multi-select ──────────────────────────────────────────────────────────
 
-function McqMultiQuestion({ block, answers, setAnswers }: {
+type OptionWithImageForRender = { optionId: string; label: string; imageUrl?: string | null };
+
+function McqMultiOptionsList({ options, selected, onToggle }: {
+  options: OptionWithImageForRender[];
+  selected: string[];
+  onToggle: (id: string) => void;
+}) {
+  const hasImages = options.some((o) => o.imageUrl);
+  const twoCol = hasImages || options.length >= 4;
+  return (
+    <div className={`grid gap-2 ${twoCol ? "grid-cols-1 sm:grid-cols-2" : ""}`}>
+      {options.map((opt, idx) => {
+        const sel = selected.includes(opt.optionId);
+        const letter = String.fromCharCode(65 + idx);
+        return (
+          <button
+            key={opt.optionId}
+            type="button"
+            onClick={() => onToggle(opt.optionId)}
+            className={`group flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+              hasImages ? "flex-col text-center" : ""
+            } ${sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"}`}
+          >
+            <div className={`flex items-center gap-3 ${hasImages ? "w-full justify-between" : ""}`}>
+              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 text-xs font-bold transition-all ${
+                sel ? "border-[#0F766E] bg-[#0F766E] text-white" : "border-[#CBD5E1] bg-white text-transparent group-hover:border-[#6EE7B7]"
+              }`}>
+                {sel && <Check size={13} strokeWidth={3} />}
+              </span>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all ${
+                sel ? "bg-[#0F766E] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#0F766E]"
+              }`}>
+                {letter}
+              </span>
+            </div>
+            {opt.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={opt.imageUrl} alt="" className="h-40 w-full rounded-lg border border-[#E2E8F0] bg-white object-contain p-1 sm:h-48" />
+            )}
+            <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function McqMultiLayout({ block, answers, setAnswers }: {
   block: Extract<TestBlock, { kind: "item_mcq_multi" }>;
   answers: Answers;
   setAnswers: Dispatch<SetStateAction<Answers>>;
@@ -445,40 +578,29 @@ function McqMultiQuestion({ block, answers, setAnswers }: {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
       return { ...a, [block.key]: next };
     });
+  const hasMedia = Boolean(block.images?.length || block.audioUrl);
+
+  if (hasMedia) {
+    return (
+      <div className="grid gap-6 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 lg:h-full lg:min-h-0 lg:overflow-y-auto">
+          <QuestionBadge>Select all that apply</QuestionBadge>
+          <QuestionMedia images={block.images} audioUrl={block.audioUrl} />
+          <QuestionTitle hasBadge>{block.prompt}</QuestionTitle>
+        </div>
+        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 lg:h-full lg:min-h-0 lg:overflow-y-auto">
+          <McqMultiOptionsList options={block.options} selected={selected} onToggle={toggle} />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        {block.options.map((opt, idx) => {
-          const sel = selected.includes(opt.optionId);
-          const letter = String.fromCharCode(65 + idx);
-          return (
-            <button
-              key={opt.optionId}
-              type="button"
-              onClick={() => toggle(opt.optionId)}
-              className={`group flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
-                sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
-              }`}
-            >
-              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 text-xs font-bold transition-all ${
-                sel ? "border-[#0F766E] bg-[#0F766E] text-white" : "border-[#CBD5E1] bg-white text-transparent group-hover:border-[#6EE7B7]"
-              }`}>
-                {sel && <Check size={13} strokeWidth={3} />}
-              </span>
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all ${
-                sel ? "bg-[#0F766E] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#0F766E]"
-              }`}>
-                {letter}
-              </span>
-              {opt.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={opt.imageUrl} alt="" className="h-16 w-16 shrink-0 rounded-lg border border-[#E2E8F0] object-cover" />
-              )}
-              <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
-            </button>
-          );
-        })}
+    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+      <QuestionBadge>Select all that apply</QuestionBadge>
+      <QuestionTitle hasBadge>{block.prompt}</QuestionTitle>
+      <div className="mt-4">
+        <McqMultiOptionsList options={block.options} selected={selected} onToggle={toggle} />
       </div>
     </div>
   );
@@ -486,20 +608,25 @@ function McqMultiQuestion({ block, answers, setAnswers }: {
 
 // ─── Open-Ended ─────────────────────────────────────────────────────────────────
 
-function OpenEndedQuestion({ block, answers, setAnswers }: {
+function OpenEndedLayout({ block, answers, setAnswers }: {
   block: Extract<TestBlock, { kind: "open_ended" }>;
   answers: Answers;
   setAnswers: Dispatch<SetStateAction<Answers>>;
 }) {
   const val = (answers[block.key] as string | undefined) ?? "";
   return (
-    <div className="space-y-4">
+    <div className="flex h-full min-h-0 flex-col rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+      <QuestionBadge className="inline-flex w-fit items-center rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-purple-700">
+        Open-Ended
+      </QuestionBadge>
+      <QuestionMedia images={block.images} audioUrl={block.audioUrl} />
+      <QuestionTitle hasBadge>{block.prompt}</QuestionTitle>
+      {block.helpText && <QuestionSubtitle>{block.helpText}</QuestionSubtitle>}
       <textarea
         value={val}
         onChange={(e) => setAnswers((a) => ({ ...a, [block.key]: e.target.value }))}
-        rows={8}
         placeholder="Type your answer here…"
-        className="w-full resize-y rounded-xl border-2 border-[#E2E8F0] px-4 py-3 text-sm text-[#334155] placeholder:text-[#94A3B8] transition-all focus:border-[#0F766E] focus:outline-none"
+        className="mt-4 w-full flex-1 min-h-[200px] resize-none rounded-xl border-2 border-[#E2E8F0] px-4 py-3 text-sm text-[#334155] placeholder:text-[#94A3B8] transition-all focus:border-[#0F766E] focus:outline-none"
       />
     </div>
   );
@@ -509,15 +636,21 @@ function OpenEndedQuestion({ block, answers, setAnswers }: {
 
 const LETTERS = ["A", "B", "C", "D", "E"];
 
-function TriadQuestion({ block, answers, setAnswers }: {
-  block: Extract<TestBlock, { kind: "triad" }>;
-  answers: Answers;
-  setAnswers: Dispatch<SetStateAction<Answers>>;
+/** The most/least statement-card UI shared by standalone Triad questions and
+ *  Triad case-study sub-questions — pulled out so both call sites stay identical. */
+/** `layout="grid"` (the standalone Triad question, with room to spare) lays the
+ *  three statements out side by side instead of stacked, each card the same
+ *  height with its Most/Least buttons pinned to the bottom. `layout="stack"`
+ *  (the default, used inside a Case Study's narrower sub-question pane) keeps
+ *  the original vertical list. */
+function TriadStatementCards({ statements, value, onMost, onLeast, layout = "stack" }: {
+  statements: { id: string; text: string }[];
+  value: { most?: string; least?: string };
+  onMost: (id: string) => void;
+  onLeast: (id: string) => void;
+  layout?: "stack" | "grid";
 }) {
-  const tv = (answers[block.key] as { most?: string; least?: string }) ?? {};
-  const setMost = (id: string) => setAnswers((a) => ({ ...a, [block.key]: { most: id, least: tv.least === id ? "" : (tv.least ?? "") } }));
-  const setLeast = (id: string) => setAnswers((a) => ({ ...a, [block.key]: { most: tv.most === id ? "" : (tv.most ?? ""), least: id } }));
-
+  const tv = value;
   return (
     <div className="space-y-3">
       {/* Selection status bar */}
@@ -526,29 +659,29 @@ function TriadQuestion({ block, answers, setAnswers }: {
           tv.most ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-dashed border-[#CBD5E1] text-[#94A3B8]"
         }`}>
           <CheckCircle2 size={13} />
-          {tv.most ? `Most: ${LETTERS[block.statements.findIndex((s) => s.id === tv.most)] ?? "?"}` : "Select Most"}
+          {tv.most ? `Most: ${LETTERS[statements.findIndex((s) => s.id === tv.most)] ?? "?"}` : "Select Most"}
         </div>
         <div className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-1.5 text-xs font-semibold transition-all ${
           tv.least ? "border-rose-300 bg-rose-50 text-rose-600" : "border-dashed border-[#CBD5E1] text-[#94A3B8]"
         }`}>
           <X size={13} />
-          {tv.least ? `Least: ${LETTERS[block.statements.findIndex((s) => s.id === tv.least)] ?? "?"}` : "Select Least"}
+          {tv.least ? `Least: ${LETTERS[statements.findIndex((s) => s.id === tv.least)] ?? "?"}` : "Select Least"}
         </div>
       </div>
 
       {/* Statement cards */}
-      <div className="space-y-1.5">
-        {block.statements.map((s, idx) => {
+      <div className={layout === "grid" ? "grid gap-3 lg:grid-cols-3" : "space-y-1.5"}>
+        {statements.map((s, idx) => {
           const isMost = tv.most === s.id;
           const isLeast = tv.least === s.id;
           const letter = LETTERS[idx] ?? String(idx + 1);
           return (
-            <div key={s.id} className={`overflow-hidden rounded-2xl border-2 transition-all ${
+            <div key={s.id} className={`flex flex-col overflow-hidden rounded-2xl border-2 transition-all ${
               isMost ? "border-emerald-400 bg-emerald-50/60"
               : isLeast ? "border-rose-300 bg-rose-50/60"
               : "border-[#E2E8F0] bg-white"
             }`}>
-              <div className="flex items-start gap-3 px-4 py-2.5">
+              <div className="flex flex-1 items-start gap-3 px-4 py-2.5">
                 <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                   isMost ? "bg-emerald-500 text-white" : isLeast ? "bg-rose-400 text-white" : "bg-[#F1F5F9] text-[#475569]"
                 }`}>
@@ -566,7 +699,7 @@ function TriadQuestion({ block, answers, setAnswers }: {
               <div className="flex border-t border-[#F1F5F9]">
                 <button
                   type="button"
-                  onClick={() => setMost(s.id)}
+                  onClick={() => onMost(s.id)}
                   disabled={isLeast}
                   className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-xs font-semibold transition-all ${
                     isMost ? "bg-emerald-500 text-white"
@@ -580,7 +713,7 @@ function TriadQuestion({ block, answers, setAnswers }: {
                 <div className="w-px bg-[#F1F5F9]" />
                 <button
                   type="button"
-                  onClick={() => setLeast(s.id)}
+                  onClick={() => onLeast(s.id)}
                   disabled={isMost}
                   className={`flex flex-1 items-center justify-center gap-1.5 py-1.5 text-xs font-semibold transition-all ${
                     isLeast ? "bg-rose-400 text-white"
@@ -600,59 +733,104 @@ function TriadQuestion({ block, answers, setAnswers }: {
   );
 }
 
+function TriadLayout({ block, answers, setAnswers }: {
+  block: Extract<TestBlock, { kind: "triad" }>;
+  answers: Answers;
+  setAnswers: Dispatch<SetStateAction<Answers>>;
+}) {
+  const tv = (answers[block.key] as { most?: string; least?: string }) ?? {};
+  const setMost = (id: string) => setAnswers((a) => ({ ...a, [block.key]: { most: id, least: tv.least === id ? "" : (tv.least ?? "") } }));
+  const setLeast = (id: string) => setAnswers((a) => ({ ...a, [block.key]: { most: tv.most === id ? "" : (tv.most ?? ""), least: id } }));
+
+  return (
+    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+      <QuestionTitle>{block.title}</QuestionTitle>
+      <QuestionSubtitle>
+        Below are three ways to complete this statement. Choose the one that is <span className="font-semibold text-emerald-600">Most like you</span> and the one that is <span className="font-semibold text-rose-500">Least like you</span>.
+      </QuestionSubtitle>
+      <div className="mt-4">
+        <TriadStatementCards statements={block.statements} value={tv} onMost={setMost} onLeast={setLeast} layout="grid" />
+      </div>
+    </div>
+  );
+}
+
 // ─── Case Study ────────────────────────────────────────────────────────────
 
-function CaseStudyQuestion({ block, answers, setAnswers }: {
+type CaseStudySubAnswers = Record<string, string | number | { most?: string; least?: string }>;
+
+/** Case Study: on lg+ the passage is pinned in its own left-hand pane at full
+ *  height (own scroll only if the passage itself runs long) while the
+ *  sub-questions scroll independently in the right-hand pane — the passage
+ *  never leaves view while answering. Below lg there isn't width for a split,
+ *  so it falls back to the original stacked layout: a bounded, scrollable
+ *  passage box on top, sub-questions below in the page's normal scroll. */
+function CaseStudyLayout({ block, answers, setAnswers }: {
   block: Extract<TestBlock, { kind: "case_study" }>;
   answers: Answers;
   setAnswers: Dispatch<SetStateAction<Answers>>;
 }) {
-  const subAnswers = (answers[block.key] as Record<string, string>) ?? {};
-  const setSubAnswer = (itemId: string, optionId: string) =>
+  const subAnswers = (answers[block.key] as CaseStudySubAnswers) ?? {};
+  const setSubAnswer = (key: string, value: string | number | { most?: string; least?: string }) =>
     setAnswers((a) => ({
       ...a,
-      [block.key]: { ...((a[block.key] as Record<string, string>) ?? {}), [itemId]: optionId },
+      [block.key]: { ...((a[block.key] as CaseStudySubAnswers) ?? {}), [key]: value },
     }));
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-5">
+    <div className="grid gap-4 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-6">
+      {/* Passage pane — pinned on lg+, bounded box on mobile */}
+      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
+        <QuestionBadge className="inline-flex w-fit items-center rounded-full bg-[#FDF4FF] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#A21CAF]">
+          Case Study
+        </QuestionBadge>
+        <QuestionTitle hasBadge>{block.title}</QuestionTitle>
+        <div className="mt-3 max-h-64 overflow-y-auto rounded-2xl border-2 border-[#E2E8F0] bg-[#F8FAFC] p-4 lg:max-h-none lg:min-h-0 lg:flex-1">
+          <p className="whitespace-pre-line text-sm leading-relaxed text-[#334155]">{block.passageText}</p>
+        </div>
+      </div>
+
+      {/* Sub-questions pane — scrolls independently of the passage on lg+ */}
+      <div className="space-y-5 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6 lg:h-full lg:min-h-0 lg:overflow-y-auto">
         {block.subQuestions.map((sq, qIdx) => {
-          const val = subAnswers[sq.itemId];
+          const key = caseStudySubKey(sq);
           return (
-            <div key={sq.itemId} className="space-y-2">
+            <div key={key} className="space-y-2 border-b border-[#F1F5F9] pb-5 last:border-0 last:pb-0">
               <QuestionMedia images={sq.images} audioUrl={sq.audioUrl} />
               <p className="text-sm font-semibold text-[#0F172A]">
-                {qIdx + 1}. {sq.prompt}
+                {qIdx + 1}. {sq.kind === "triad" ? sq.title : sq.prompt}
               </p>
-              <div className="space-y-1.5">
-                {sq.options.map((opt, idx) => {
-                  const sel = val === opt.optionId;
-                  const letter = String.fromCharCode(65 + idx);
-                  return (
-                    <button
-                      key={opt.optionId}
-                      type="button"
-                      onClick={() => setSubAnswer(sq.itemId, opt.optionId)}
-                      className={`group flex w-full items-center gap-3 rounded-xl border-2 px-3 py-2 text-left transition-all ${
-                        sel ? "border-[#0F766E] bg-[#E6F7F1]" : "border-[#E2E8F0] bg-white hover:border-[#6EE7B7] hover:bg-[#F8FAFC]"
-                      }`}
-                    >
-                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold transition-all ${
-                        sel ? "bg-[#0F766E] text-white" : "bg-[#F1F5F9] text-[#64748B] group-hover:bg-[#D1FAE5] group-hover:text-[#0F766E]"
-                      }`}>
-                        {letter}
-                      </span>
-                      {opt.imageUrl && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={opt.imageUrl} alt="" className="h-14 w-14 shrink-0 rounded-lg border border-[#E2E8F0] object-cover" />
-                      )}
-                      <span className={`text-sm font-medium ${sel ? "text-[#0D9488]" : "text-[#334155]"}`}>{opt.label}</span>
-                      {sel && <CheckCircle2 size={14} className="ml-auto shrink-0 text-[#0F766E]" />}
-                    </button>
-                  );
-                })}
-              </div>
+
+              {sq.kind === "mcq" && (
+                <McqOptionsList
+                  options={sq.options.map((o) => ({ id: o.optionId, label: o.label, imageUrl: o.imageUrl ?? undefined }))}
+                  value={subAnswers[key]}
+                  onSelect={(id) => setSubAnswer(key, id)}
+                />
+              )}
+
+              {sq.kind === "likert" && (
+                <LikertScaleButtons
+                  value={subAnswers[key] as number | undefined}
+                  scale={sq.scale}
+                  onChange={(v) => setSubAnswer(key, v)}
+                />
+              )}
+
+              {sq.kind === "triad" && (
+                <TriadStatementCards
+                  statements={sq.statements}
+                  value={(subAnswers[key] as { most?: string; least?: string } | undefined) ?? {}}
+                  onMost={(id) => {
+                    const tv = (subAnswers[key] as { most?: string; least?: string } | undefined) ?? {};
+                    setSubAnswer(key, { most: id, least: tv.least === id ? "" : (tv.least ?? "") });
+                  }}
+                  onLeast={(id) => {
+                    const tv = (subAnswers[key] as { most?: string; least?: string } | undefined) ?? {};
+                    setSubAnswer(key, { most: tv.most === id ? "" : (tv.most ?? ""), least: id });
+                  }}
+                />
+              )}
             </div>
           );
         })}
@@ -1145,42 +1323,43 @@ export function CandidateTestRunner({
               when question is taller than available height. The nav-bar below
               NEVER scrolls away — it's outside this div.
             */}
-            <div ref={questionScrollRef} className="flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-2xl px-4 py-4 sm:px-6 sm:py-5">
+            <div
+              ref={questionScrollRef}
+              className={`flex-1 ${block.kind === "case_study" ? "overflow-y-auto lg:overflow-hidden" : "overflow-y-auto"}`}
+            >
+              <div className={`mx-auto flex h-full min-h-0 w-full flex-col px-4 py-4 sm:px-6 sm:py-5 ${questionContainerMaxW(block.kind)}`}>
 
                 {/* Breadcrumb / meta */}
-                <div className="mb-2 flex flex-wrap items-center gap-2">
+                <div className="mb-2 flex shrink-0 flex-wrap items-center gap-2">
                   <span className="ml-auto flex items-center gap-1 text-[11px] text-[#94A3B8]">
                     {isCurrentAnswered && <CheckCircle2 size={12} className="text-emerald-500" />}
                     {currentIndex + 1} / {total}
                   </span>
                 </div>
 
-                {/* Question header: media zone + prompt, shared across every type */}
-                <QuestionHeaderForBlock block={block} />
-
-                {/* Response card: the type-specific answer controls, kept visually distinct from the question above */}
-                <div className="mt-4 rounded-2xl border border-[#E2E8F0] bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
+                {/* Type-specific layout: each kind lays out its own media/prompt/controls
+                    the way that suits it best, rather than forcing one shared shape. */}
+                <div className="min-h-0 flex-1">
                   {block.kind === "likert" && (
-                    <LikertQuestion block={block} answers={answers} setAnswers={setAnswers} />
+                    <LikertLayout block={block} answers={answers} setAnswers={setAnswers} />
                   )}
                   {(block.kind === "item_mcq" || block.kind === "item_tf" || block.kind === "legacy_mcq" || block.kind === "sjt") && (
-                    <McqQuestion
+                    <McqLayout
                       block={block as Extract<TestBlock, { kind: "item_mcq" | "item_tf" | "legacy_mcq" | "sjt" }>}
                       answers={answers} setAnswers={setAnswers}
                     />
                   )}
                   {block.kind === "item_mcq_multi" && (
-                    <McqMultiQuestion block={block} answers={answers} setAnswers={setAnswers} />
+                    <McqMultiLayout block={block} answers={answers} setAnswers={setAnswers} />
                   )}
                   {block.kind === "open_ended" && (
-                    <OpenEndedQuestion block={block} answers={answers} setAnswers={setAnswers} />
+                    <OpenEndedLayout block={block} answers={answers} setAnswers={setAnswers} />
                   )}
                   {block.kind === "triad" && (
-                    <TriadQuestion block={block} answers={answers} setAnswers={setAnswers} />
+                    <TriadLayout block={block} answers={answers} setAnswers={setAnswers} />
                   )}
                   {block.kind === "case_study" && (
-                    <CaseStudyQuestion block={block} answers={answers} setAnswers={setAnswers} />
+                    <CaseStudyLayout block={block} answers={answers} setAnswers={setAnswers} />
                   )}
                 </div>
 
@@ -1196,7 +1375,7 @@ export function CandidateTestRunner({
             */}
             <div className="shrink-0 border-t border-[#E2E8F0] bg-white px-4 py-3 sm:px-6">
               {unansweredWarning && (
-                <div className="mx-auto mb-2 flex max-w-2xl items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                <div className="mx-auto mb-2 flex max-w-5xl items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
                   <AlertCircle size={13} className="shrink-0 text-amber-600" />
                   <p className="text-xs font-medium text-amber-700">
                     {blocks[currentIndex]?.kind === "triad"
@@ -1207,7 +1386,7 @@ export function CandidateTestRunner({
                   </p>
                 </div>
               )}
-              <div className="mx-auto flex max-w-2xl items-center gap-3">
+              <div className="mx-auto flex max-w-5xl items-center gap-3">
 
                 {/* Centre status */}
                 <div className="flex flex-1 items-center gap-2">

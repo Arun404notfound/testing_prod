@@ -62,14 +62,14 @@ export function BulkMcqPool({
             type="checkbox"
             checked={allChecked}
             onChange={toggleAll}
-            className="h-4 w-4 rounded border-slate-300 accent-amber-600"
+            className="h-4 w-4 rounded border-slate-300 accent-[#2563EB]"
           />
           Select all ({addableIds.length} not added)
         </label>
         {newlyChecked.length > 0 && (
           <form action={handleBulkAdd}>
             {newlyChecked.map((id) => <input key={id} type="hidden" name="ids" value={id} />)}
-            <button type="submit" className="rounded-md bg-amber-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-700">
+            <button type="submit" className="rounded-md bg-[#2563EB] px-4 py-1.5 text-sm font-medium text-white hover:bg-teal-700">
               Add {newlyChecked.length} selected
             </button>
           </form>
@@ -83,13 +83,13 @@ export function BulkMcqPool({
           const isChecked = checked.has(q.id);
           const attrInfo = q.attribute ? attrByName.get(q.attribute.name.toLowerCase()) : undefined;
           return (
-            <li key={q.id} className={`flex items-start gap-3 p-3 ${isAdded ? "bg-slate-50 opacity-70" : isChecked ? "bg-amber-50" : ""}`}>
+            <li key={q.id} className={`flex items-start gap-3 p-3 ${isAdded ? "bg-slate-50 opacity-70" : isChecked ? "bg-teal-50" : ""}`}>
               <input
                 type="checkbox"
                 checked={isAdded ? true : isChecked}
                 disabled={isAdded}
                 onChange={() => toggleOne(q.id)}
-                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 accent-[#2563EB] disabled:cursor-not-allowed disabled:opacity-60"
               />
               <div className="min-w-0 flex-1">
                 {isAdded && (

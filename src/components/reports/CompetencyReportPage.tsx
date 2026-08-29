@@ -1,8 +1,11 @@
 "use client";
 
-import { useReportTheme } from "@/components/reports/report-theme-context";
 import { reportTypography } from "./report-typography";
+import { REPORT_DESIGN_COLORS } from "./report-theme";
+import { SectionHeading, CornerTick } from "./SectionHeading";
 import { CompetencyRadarChart } from "./CompetencyRadarChart";
+
+const C = REPORT_DESIGN_COLORS;
 
 export type CompetencyScoreData = {
   competencyId: string;
@@ -38,150 +41,105 @@ type Props = {
   detailIndexOffset?: number;
 };
 
-/** Warning tone for "Watch-outs" — distinct from the accent used for Behavioural Implications. */
-const WATCH_OUT_COLOR = "#B45309"; // amber-700
-
-/** Light box tints for the parallel Behavioural Implications / Watch-outs cards. */
-const IMPLICATION_BG = "#F0FDFA"; // teal-50
-const IMPLICATION_BORDER = "#99F6E4"; // teal-200
-const WATCH_OUT_BG = "#FFFBEB"; // amber-50
-const WATCH_OUT_BORDER = "#FDE68A"; // amber-200
-
-/** Score-based colors: green for > 6.5, blue for ≤ 6.5 */
-export function scoreColor(score: number): string {
-  return score > 6.5 ? "#059669" : "#1D4ED8"; // emerald-600 / blue-700
-}
-
-/** Solid, saturated band colors — no pastel washes. White text sits directly on these. */
-export function bandColor(band: string): { solid: string } {
-  switch (band) {
-    // Legacy 5-band scale (GENERIC_5)
-    case "Exceptional":
-      return { solid: "#047857" }; // emerald-700
-    case "Strong":
-      return { solid: "#1D4ED8" }; // blue-700
-    case "Moderate":
-      return { solid: "#B45309" }; // amber-700
-    case "Low":
-      return { solid: "#B91C1C" }; // red-700
-
-    // Job-role maturity scale (MATURITY_4)
-    case "Expert":
-      return { solid: "#6D28D9" }; // violet-700
-    case "Proficient":
-      return { solid: "#047857" }; // emerald-700
-    case "Intermediate":
-      return { solid: "#1D4ED8" }; // blue-700
-    case "Developing":
-      return { solid: "#C2410C" }; // orange-700
-
-    default:
-      return { solid: "#334155" }; // slate-700
-  }
-}
-
-// Plain nested block (no position:absolute, no Tailwind space-y/variable utilities) —
-// kept as basic layout primitives from an earlier html2canvas-based PDF pipeline;
-// the export now prints the real DOM in headless Chrome, so this is no longer required
-// but is left as-is since it renders correctly.
-function SegmentedScoreBar({
-  score,
-  max = 10,
-  segments = 5,
-  color,
-  trackColor,
-}: {
-  score: number;
-  max?: number;
-  segments?: number;
-  color: string;
-  trackColor: string;
-}) {
-  const segMax = max / segments;
+/** Small uppercase field label + hairline rule — heads every plain content
+ *  block inside a competency card (Description, Score Interpretation,
+ *  Behavioural Implications, Watch-outs). Matches the reference exactly:
+ *  no boxes/backgrounds anywhere inside the card, just labels and rules. */
+function FieldLabel({ title }: { title: string }) {
   return (
-    <div className="flex items-center" style={{ gap: 4, height: 14 }}>
-      {Array.from({ length: segments }).map((_, i) => {
-        const segStart = i * segMax;
-        const filled = Math.max(0, Math.min(segMax, score - segStart));
-        const pct = Math.round((filled / segMax) * 100);
-        return (
-          <div key={i} style={{ flex: 1, height: 14, overflow: "hidden", backgroundColor: trackColor, borderRadius: 2 }}>
-            <div style={{ height: 14, width: `${pct}%`, backgroundColor: color, borderRadius: 2 }} />
-          </div>
-        );
-      })}
+    <div style={{ marginBottom: 10 }}>
+      <p style={{ ...reportTypography.h4, color: C.eyebrow, letterSpacing: "0.08em", marginBottom: 6 }}>{title.toUpperCase()}</p>
+      <div style={{ height: 1, backgroundColor: C.hairline }} />
     </div>
   );
 }
 
-// Manual bullet rows, not <ul>/list-disc — same leftover-from-html2canvas reasoning
-// as the SegmentedScoreBar note above; no longer required but renders correctly.
-function BulletList({ items, dotColor, textColor }: { items: string[]; dotColor: string; textColor: string }) {
+/** Plain square-bullet list — solid square for Behavioural Implications,
+ *  hollow (outlined) square for Watch-outs. No card/background of any kind. */
+function SquareBulletList({ items, color, hollow = false }: { items: string[]; color: string; hollow?: boolean }) {
   return (
     <div>
       {items.map((item, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "flexStart", gap: "0.5rem", marginBottom: 2 }}>
-          <span style={{ marginTop: 7, height: 5, width: 5, borderRadius: 9999, backgroundColor: dotColor, flexShrink: 0 }} />
-          <span style={{ ...reportTypography.bodySmall, color: textColor }}>{item}</span>
+        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "0.625rem", marginBottom: 8 }}>
+          <span
+            style={{
+              marginTop: 6,
+              height: 8,
+              width: 8,
+              flexShrink: 0,
+              backgroundColor: hollow ? "transparent" : color,
+              border: hollow ? `1.5px solid ${color}` : "none",
+            }}
+          />
+          <span style={{ ...reportTypography.bodySmall, color: C.body }}>{item}</span>
         </div>
       ))}
     </div>
   );
 }
 
-/** Light-tinted card used for the parallel Behavioural Implications / Watch-outs pair. */
-function ImplicationBox({
-  title,
-  items,
-  accentColor,
-  bgColor,
-  borderColor,
-  textColor,
+/** On-the-job development projects, as a real bordered table (rows = What to
+ *  do / How to do it / How to measure, columns = the up-to-3 projects) —
+ *  matches the reference's clean editorial table instead of colored cards.
+ *  Real <table> markup fragments cleanly row-by-row under Chrome's print
+ *  engine, unlike flex/grid (see the float-based layout this replaced,
+ *  documented elsewhere in this file for why flex/grid were avoided there). */
+function DevelopmentProjectsTable({
+  projects,
 }: {
-  title: string;
-  items: string[];
-  accentColor: string;
-  bgColor: string;
-  borderColor: string;
-  textColor: string;
+  projects: Array<{ title: string; whatToDo: string; howToDoIt: string; evidence: string }>;
 }) {
-  if (items.length === 0) return null;
+  const rows: Array<{ label: string; key: "whatToDo" | "howToDoIt" | "evidence" }> = [
+    { label: "What to do", key: "whatToDo" },
+    { label: "How to do it", key: "howToDoIt" },
+    { label: "How to measure", key: "evidence" },
+  ];
   return (
-    <div
-      style={{
-        flex: 1,
-        minWidth: 200,
-        alignSelf: "stretch",
-        backgroundColor: bgColor,
-        border: `1px solid ${borderColor}`,
-        borderRadius: 8,
-        padding: "0.625rem 0.875rem",
-        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
-      }}
-    >
-      <p style={{ ...reportTypography.h3, marginBottom: 5, color: accentColor }}>{title}</p>
-      <BulletList items={items} dotColor={accentColor} textColor={textColor} />
-    </div>
-  );
-}
-
-function CompetencyNumberBadge({ number, color }: { number: number; color: string }) {
-  return (
-    <svg className="h-8 w-8 shrink-0" viewBox="0 0 32 32" aria-label={`Competency ${number}`}>
-      <circle cx="16" cy="16" r="16" fill="#ffffff" />
-      <text
-        x="16"
-        y="16"
-        fill={color}
-        fontFamily={reportTypography.fontFamily}
-        fontSize={reportTypography.dataSmall.fontSize}
-        fontWeight="700"
-        textAnchor="middle"
-        dominantBaseline="central"
-      >
-        {number}
-      </text>
-    </svg>
+    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+      <colgroup>
+        <col style={{ width: "16%" }} />
+        {projects.map((_, i) => (
+          <col key={i} />
+        ))}
+      </colgroup>
+      <thead>
+        <tr>
+          <th style={{ borderTop: `1.5px solid ${C.ink}`, borderBottom: `1.5px solid ${C.ink}` }} />
+          {projects.map((p, i) => (
+            <th
+              key={i}
+              style={{
+                textAlign: "left",
+                verticalAlign: "top",
+                padding: "0 14px 12px",
+                borderLeft: `1px solid ${C.hairline}`,
+                borderTop: `1.5px solid ${C.ink}`,
+                borderBottom: `1.5px solid ${C.ink}`,
+              }}
+            >
+              <span style={{ ...reportTypography.bodyXSmall, fontWeight: 700, color: C.accent }}>{String(i + 1).padStart(2, "0")}</span>{" "}
+              <span style={{ ...reportTypography.bodySmall, fontWeight: 700, color: C.ink }}>{p.title}</span>
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, rowIdx) => (
+          <tr key={row.key} data-pdf-break-inside="avoid" style={{ borderBottom: rowIdx === rows.length - 1 ? `1.5px solid ${C.ink}` : `1px solid ${C.hairline}` }}>
+            <td style={{ verticalAlign: "top", padding: "10px 14px 10px 0", ...reportTypography.bodyXSmall, fontWeight: 700, letterSpacing: "0.04em", color: C.ink }}>
+              {row.label.toUpperCase()}
+            </td>
+            {projects.map((p, i) => (
+              <td key={i} style={{ verticalAlign: "top", padding: "10px 14px", borderLeft: `1px solid ${C.hairline}` }}>
+                <p className="whitespace-pre-line" style={{ ...reportTypography.bodyXSmall, color: C.body }}>
+                  {p[row.key]}
+                </p>
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -194,23 +152,37 @@ export function CompetencyReportPage({
   radarHeight = 340,
   detailIndexOffset = 0,
 }: Props) {
-  const { theme } = useReportTheme();
+  // Bottom 3 by rank (tail of the same descending order the score overview
+  // and detail pages both use), not an independently-sorted-ascending list —
+  // with tied scores those two orderings can disagree on which row is #10
+  // vs #12 (see the identical fix on lowestThreeIds below).
   const developmentProjectCompetencyIds = new Set(
-    competencies
-      .map((competency, index) => ({ competency, index }))
-      .sort(
-        (a, b) =>
-          a.competency.scaledScore - b.competency.scaledScore || a.index - b.index,
-      )
-      .slice(0, 3)
-      .filter(({ competency }) => competency.scaledScore <= 6.5)
-      .map(({ competency }) => competency.competencyId),
+    [...competencies]
+      .sort((a, b) => b.scaledScore - a.scaledScore)
+      .slice(-3)
+      .filter((competency) => competency.scaledScore <= 6.5)
+      .map((competency) => competency.competencyId),
   );
+  // Score Overview's 3-tier legend (green/blue/red) is stricter than the plain
+  // >6.5 threshold used elsewhere — the lowest 3 are always red, matching the
+  // reference's "priority focus" legend regardless of their raw score value.
+  // Taken from the tail of the SAME descending-ranked order the list below
+  // renders in (not an independent ascending sort) — with tied scores, an
+  // independent sort can tie-break differently and pick a different row than
+  // whichever one actually lands in the last 3 positions on screen.
+  const lowestThreeIds = new Set(
+    [...competencies]
+      .sort((a, b) => b.scaledScore - a.scaledScore)
+      .slice(-3)
+      .map((c) => c.competencyId),
+  );
+  const overviewRowColor = (c: CompetencyScoreData) =>
+    lowestThreeIds.has(c.competencyId) ? "#B91C1C" : c.scaledScore > 6.5 ? "#047857" : "#1D4ED8";
 
   if (competencies.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p style={{ ...reportTypography.bodySmall, color: theme.body }}>No competency scores available for this assessment.</p>
+        <p style={{ ...reportTypography.bodySmall, color: C.body }}>No competency scores available for this assessment.</p>
       </div>
     );
   }
@@ -218,17 +190,13 @@ export function CompetencyReportPage({
 return (
     <div>
       {showRadar && (<>
-      {/* Heading */}
-      <div style={{ ...reportTypography.h2, borderBottom: `2px solid ${theme.ink}`, paddingBottom: "0.5rem", marginBottom: "1.5rem", color: theme.ink }}>
-        {heading}
-      </div>
-      <p style={{ ...reportTypography.bodyXSmall, color: theme.body, marginTop: "0.25rem" }}>
-        Scores are on a 1–10 scale derived from candidate responses mapped to each competency.
+      <SectionHeading eyebrow="Section 02" title={heading} />
+      <p style={{ ...reportTypography.body, color: C.body, marginTop: "0.5rem" }}>
+        Scores run on a 1–10 scale, derived from the candidate&rsquo;s responses mapped to each competency.
       </p>
 
       {/* Candidate vs. cohort median — spider/radar comparison */}
       <div style={{ marginTop: "1.5rem" }}>
-        <h3 style={{ ...reportTypography.h3, marginBottom: "0.5rem", color: theme.ink }}>Candidate vs. Cohort Median</h3>
         <CompetencyRadarChart
           height={radarHeight}
           competencies={competencies.map((c) => ({
@@ -242,47 +210,41 @@ return (
       </>)}
 
       {showScoreOverview && (<>
-      {/* Page heading — standalone when the radar page precedes it on its own sheet */}
-      <div style={{ ...reportTypography.h2, borderBottom: `2px solid ${theme.ink}`, paddingBottom: "0.5rem", marginBottom: "1.5rem", color: theme.ink }}>
-        Score Overview
-      </div>
-      <p style={{ ...reportTypography.bodyXSmall, color: theme.body, marginTop: "-1rem", marginBottom: "1.5rem" }}>
+      <SectionHeading eyebrow="Section 04" title="Score overview" />
+      <p style={{ ...reportTypography.body, color: C.body, marginTop: "0.5rem", marginBottom: "1.75rem" }}>
         Every competency scored in this assessment, ranked highest to lowest.
       </p>
 
-      {/* Score overview bar chart */}
+      {/* Score overview — single continuous bar per row, a tick mark at the
+          proficient threshold (6.0), 3-tier legend coloring (see overviewRowColor). */}
       <div style={{ marginBottom: "1.5rem" }}>
-        <div>
-          {[...competencies]
-            .sort((a, b) => b.scaledScore - a.scaledScore)
-            .map((c) => {
-              const scoreColorValue = scoreColor(c.scaledScore);
-              return (
-                <div key={c.competencyId} style={{ marginBottom: 14 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: 6 }}>
-                    <span style={{ ...reportTypography.bodySmall, flex: 1, minWidth: 0, fontWeight: 500, color: theme.ink }}>{c.competencyName}</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0, whiteSpace: "nowrap" }}>
-                      <span style={{ ...reportTypography.dataSmall, lineHeight: 1, color: theme.ink }}>
-                        {c.scaledScore.toFixed(1)}<span style={{ ...reportTypography.bodyXSmall, fontWeight: 400, color: theme.body }}> / 10</span>
-                      </span>
-                      <span
-                        style={{
-                          ...reportTypography.badge,
-                          borderRadius: "9999px",
-                          padding: "0.25rem 0.75rem",
-                          backgroundColor: scoreColorValue,
-                          color: theme.accentContrastText,
-                        }}
-                      >
-                        {c.band}
-                      </span>
-                    </span>
-                  </div>
-                  <SegmentedScoreBar score={c.scaledScore} color={scoreColorValue} trackColor={theme.trackBackground} />
-                </div>
-              );
-            })}
+        <div style={{ display: "flex", ...reportTypography.tableHeader, color: C.body, paddingBottom: 8, borderBottom: `1px solid ${C.hairline}`, marginBottom: 4 }}>
+          <span style={{ width: 24 }} />
+          <span style={{ flex: "0 0 34%" }}>Competency</span>
+          <span style={{ flex: 1 }}>Scale 1–10</span>
+          <span style={{ width: 60, textAlign: "right" }}>Score</span>
+          <span style={{ width: 90, textAlign: "right" }}>Band</span>
         </div>
+        {[...competencies]
+          .sort((a, b) => b.scaledScore - a.scaledScore)
+          .map((c, i) => {
+            const rowColor = overviewRowColor(c);
+            return (
+              <div key={c.competencyId} style={{ display: "flex", alignItems: "center", gap: 0, padding: "0.75rem 0", borderBottom: `1px solid ${C.hairline}` }}>
+                <span style={{ width: 24, ...reportTypography.bodyXSmall, color: C.body }}>{i + 1}</span>
+                <span style={{ flex: "0 0 34%", ...reportTypography.bodySmall, fontWeight: 500, color: C.ink, paddingRight: 12 }}>{c.competencyName}</span>
+                <span style={{ flex: 1, position: "relative", height: 8, backgroundColor: C.hairline, borderRadius: 4, marginRight: 16 }}>
+                  <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.min(100, (c.scaledScore / 10) * 100)}%`, backgroundColor: rowColor, borderRadius: 4 }} />
+                  <span style={{ position: "absolute", left: "60%", top: -2, bottom: -2, width: 1, backgroundColor: C.body, opacity: 0.5 }} />
+                </span>
+                <span style={{ width: 60, textAlign: "right", ...reportTypography.dataSmall, color: C.ink }}>{c.scaledScore.toFixed(1)}</span>
+                <span style={{ width: 90, textAlign: "right", ...reportTypography.badge, letterSpacing: "0.06em", color: rowColor }}>{c.band}</span>
+              </div>
+            );
+          })}
+        <p style={{ ...reportTypography.bodyXSmall, color: C.body, marginTop: 10, textAlign: "right" }}>
+          The vertical rule marks the proficient threshold at 6.0.
+        </p>
       </div>
       </>)}
 
@@ -290,131 +252,91 @@ return (
       <div>
         {groupByDomain(detailCompetencies).map(([domainName, group], groupIdx, groupArr) => (
           <div key={domainName ?? "__ungrouped"} style={{ marginBottom: groupIdx < groupArr.length - 1 ? 32 : 0 }}>
-            {domainName && (
-              <div data-pdf-break-after="avoid" style={{ marginBottom: 8 }}>
-                <p style={{ ...reportTypography.h3, marginBottom: 4, color: theme.accent, letterSpacing: "0.08em" }}>{domainName}</p>
-                <div style={{ height: 2, width: 28, backgroundColor: theme.accent, borderRadius: 1 }} />
-              </div>
-            )}
             {group.map((c, idx) => {
-              const scoreColorValue = scoreColor(c.scaledScore);
-              const colors = bandColor(c.band);
+              const scoreColorValue = overviewRowColor(c);
+              const number = detailIndexOffset + idx + 1;
+              // Reference shows the strength/development-need statement as a
+              // one-line subtitle right under the title, not as a bottom
+              // callout box — the box further down this card is a separate
+              // score-based note (see below), kept for the rare case both exist.
+              const subtitle = c.scaledScore > 6.5 ? c.strengthStatement : c.developmentNeedStatement;
               return (
-                <div key={c.competencyId} style={{ marginBottom: idx < group.length - 1 ? 24 : 0 }}>
-                  {/*
-                    Full-bleed solid-color header strip. break-after (not break-inside on the
-                    whole card): this card easily runs taller than one A4 page, and marking a
-                    block that tall as break-inside: avoid backfires — Chrome can't honor it, so
-                    it defers the entire card to a fresh page and leaves the previous page's tail
-                    blank. Only the header needs to stay glued to what follows it.
-                  */}
-                  <div
-                    data-pdf-break-after="avoid"
-                    className="-mx-10 flex items-center justify-between gap-4 px-10 py-4"
-                    style={{ backgroundColor: scoreColorValue }}
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <CompetencyNumberBadge number={detailIndexOffset + idx + 1} color={scoreColorValue} />
-                      <h3 className="min-w-0 leading-tight" style={{ ...reportTypography.h2, color: theme.accentContrastText }}>{c.competencyName}</h3>
+                <div key={c.competencyId} style={{ marginBottom: idx < group.length - 1 ? 32 : 0 }}>
+                  {domainName && (
+                    <div data-pdf-break-after="avoid" className="flex items-baseline justify-between gap-3" style={{ marginBottom: 6 }}>
+                      <span style={{ ...reportTypography.h4, color: C.domainLabel, letterSpacing: "0.08em", whiteSpace: "nowrap" }}>{domainName.toUpperCase()}</span>
+                      <span style={{ flex: 1, height: 1, backgroundColor: C.hairline }} />
+                      <span style={{ ...reportTypography.h4, color: C.body, letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                        Competency {number} of {competencies.length}
+                      </span>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-                      <span style={{ ...reportTypography.dataLarge, lineHeight: 1, color: theme.accentContrastText }}>
-                        {c.scaledScore.toFixed(1)}
-                      </span>
-                      <span style={{ ...reportTypography.bodySmall, color: theme.accentContrastText, opacity: 0.85 }}>/ 10</span>
-                      <span
-                        style={{
-                          ...reportTypography.badge,
-                          borderRadius: "9999px",
-                          padding: "0.25rem 0.75rem",
-                          backgroundColor: "rgba(255,255,255,0.22)",
-                          color: theme.accentContrastText,
-                        }}
-                      >
-                        {c.band}
-                      </span>
+                  )}
+                  <div data-pdf-break-after="avoid" className="flex items-start justify-between gap-4" style={{ marginBottom: 24 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <h3 style={{ ...reportTypography.display, color: C.ink }}>{c.competencyName}</h3>
+                      {subtitle && <p style={{ ...reportTypography.body, color: C.body, marginTop: "0.4rem", maxWidth: "36rem" }}>{subtitle}</p>}
+                    </div>
+                    <div
+                      className="shrink-0"
+                      style={{ position: "relative", border: "1px solid #CBD5E1", padding: "0.75rem 1.5rem", textAlign: "right", minWidth: 130 }}
+                    >
+                      <CornerTick top left />
+                      <CornerTick top left={false} />
+                      <CornerTick top={false} left />
+                      <CornerTick top={false} left={false} />
+                      <span style={{ ...reportTypography.display, fontSize: "2.25rem", color: C.ink }}>{c.scaledScore.toFixed(1)}</span>
+                      <span style={{ ...reportTypography.bodySmall, color: C.body }}> / 10</span>
+                      <div style={{ height: 4, backgroundColor: C.hairline, marginTop: 8 }}>
+                        <div style={{ height: 4, width: `${Math.min(100, (c.scaledScore / 10) * 100)}%`, backgroundColor: scoreColorValue }} />
+                      </div>
+                      <p style={{ ...reportTypography.badge, letterSpacing: "0.06em", color: scoreColorValue, marginTop: 8 }}>{c.band}</p>
                     </div>
                   </div>
 
-                  {/* Body */}
-                  <div className="pt-5">
-                    <div style={{ marginBottom: 14 }}>
-                      <SegmentedScoreBar score={c.scaledScore} color={scoreColorValue} trackColor={theme.trackBackground} />
-                    </div>
-
+                  {/* Body — a plain two-column layout throughout, no colored
+                      cards/backgrounds/shadows anywhere: field label (small
+                      uppercase + hairline rule) followed by plain text or a
+                      square-bullet list, matching the reference exactly. */}
+                  <div>
                     {(c.reportDescription || c.bandContent) && (
-                      <div
-                        data-pdf-break-inside="avoid"
-                        style={{
-                          backgroundColor: `${theme.accent}08`,
-                          border: `1px solid ${theme.accent}2E`,
-                          borderLeft: `4px solid ${theme.accent}`,
-                          borderRadius: 8,
-                          padding: "0.625rem 1rem",
-                          marginBottom: 12,
-                          boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
-                        }}
-                      >
+                      <div data-pdf-break-inside="avoid" className="flex items-start" style={{ gap: 40, marginBottom: 24 }}>
                         {c.reportDescription && (
-                          <div style={{ marginBottom: c.bandContent ? 8 : 0 }}>
-                            <p style={{ ...reportTypography.h3, marginBottom: 6, color: theme.ink }}>Description</p>
-                            <p style={{ ...reportTypography.body, color: theme.body }}>{c.reportDescription}</p>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <FieldLabel title="Description" />
+                            <p style={{ ...reportTypography.body, color: C.body }}>{c.reportDescription}</p>
                           </div>
                         )}
                         {c.bandContent && (
-                          <div>
-                            <p style={{ ...reportTypography.h3, marginBottom: 6, color: theme.ink }}>Score Interpretation</p>
-                            <p style={{ ...reportTypography.body, color: theme.body }}>{c.bandContent.proficiencyDescription}</p>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <FieldLabel title="Score Interpretation" />
+                            <p style={{ ...reportTypography.body, color: C.body }}>{c.bandContent.proficiencyDescription}</p>
                           </div>
                         )}
                       </div>
                     )}
 
-                    {/*
-                      Band-specific proficiency description (Job Role frameworks). Each
-                      sub-block gets its own break-inside: avoid instead of one for the whole
-                      section — the section as a whole can run long enough to exceed a page,
-                      and (as with the card-level wrapper above) marking an over-long block
-                      atomic backfires by deferring it whole to a blank-looking fresh page.
-                    */}
-{c.bandContent ? (
-                       <div style={{ marginBottom: 12 }}>
-                         {(c.bandContent.behaviouralImplications.length > 0 || c.bandContent.watchOuts.length > 0) && (
-                           <div data-pdf-break-inside="avoid" style={{ display: "flex", alignItems: "stretch", gap: 16, flexWrap: "wrap" }}>
-                             <ImplicationBox
-                               title="Behavioural Implications"
-                               items={c.bandContent.behaviouralImplications}
-                               accentColor={theme.accent}
-                               bgColor={IMPLICATION_BG}
-                               borderColor={IMPLICATION_BORDER}
-                               textColor={theme.body}
-                             />
-                             <ImplicationBox
-                               title="Watch-outs"
-                               items={c.bandContent.watchOuts}
-                               accentColor={WATCH_OUT_COLOR}
-                               bgColor={WATCH_OUT_BG}
-                               borderColor={WATCH_OUT_BORDER}
-                               textColor={theme.body}
-                             />
-                           </div>
-                         )}
-                       </div>
-                     ) : (
-                      /* Generic band interpretation fallback (legacy competencies) */
-                      <div
-                        data-pdf-break-inside="avoid"
-                        style={{
-                          backgroundColor: `${colors.solid}14`,
-                          border: `1px solid ${colors.solid}33`,
-                          borderLeft: `4px solid ${colors.solid}`,
-                          borderRadius: 8,
-                          padding: "0.625rem 1rem",
-                          marginBottom: 12,
-                          boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
-                        }}
-                      >
-                        <p style={{ ...reportTypography.bodySmall, color: theme.body }}>
+                    {c.bandContent ? (
+                      (c.bandContent.behaviouralImplications.length > 0 || c.bandContent.watchOuts.length > 0) && (
+                        <div data-pdf-break-inside="avoid" className="flex items-start" style={{ gap: 40, marginBottom: 24 }}>
+                          {c.bandContent.behaviouralImplications.length > 0 && (
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <FieldLabel title="Behavioural Implications" />
+                              <SquareBulletList items={c.bandContent.behaviouralImplications} color={C.accent} />
+                            </div>
+                          )}
+                          {c.bandContent.watchOuts.length > 0 && (
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <FieldLabel title="Watch-outs" />
+                              <SquareBulletList items={c.bandContent.watchOuts} color={C.danger} hollow />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    ) : (
+                      /* Generic band interpretation fallback (legacy competencies without bandContent) */
+                      <div data-pdf-break-inside="avoid" style={{ marginBottom: 24, maxWidth: "36rem" }}>
+                        <FieldLabel title="Score Interpretation" />
+                        <p style={{ ...reportTypography.body, color: C.body }}>
                           {c.band === "Exceptional" && "Demonstrates outstanding capability. A key strength to leverage."}
                           {c.band === "Strong" && "Demonstrates solid capability. Performs effectively in this area."}
                           {c.band === "Moderate" && "Shows adequate capability with room for further development."}
@@ -427,85 +349,18 @@ return (
                       </div>
                     )}
 
-                    {/* Strength / development-need statement */}
-                    {(c.strengthStatement || c.developmentNeedStatement) && (
-                      <div
-                        data-pdf-break-inside="avoid"
-                        style={{
-                          backgroundColor: `${scoreColorValue}14`,
-                          border: `1px solid ${scoreColorValue}33`,
-                          borderLeft: `4px solid ${scoreColorValue}`,
-                          borderRadius: 8,
-                          padding: "0.5rem 1rem",
-                          marginBottom: 12,
-                          boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
-                        }}
-                      >
-                        <p style={{ ...reportTypography.bodySmall, color: theme.ink, fontWeight: 600 }}>
-                          {c.scaledScore > 6.5 ? c.strengthStatement : c.developmentNeedStatement}
-                        </p>
-                      </div>
-                    )}
+                    {/* Strength/development-need statement already rendered as the
+                        card's subtitle, right under the title — not repeated here. */}
 
-                    {/*
-                      On-the-job development projects. Deliberately NOT break-inside: avoid —
-                      that forced the whole three-card grid onto a fresh page even when the
-                      current page had clearly enough room left, leaving a large blank gap
-                      above it. Letting it flow uses that leftover space instead.
-                    */}
                     {developmentProjectCompetencyIds.has(c.competencyId) &&
                       c.developmentProjects &&
                       c.developmentProjects.length > 0 && (
                       <div>
-                        <p data-pdf-break-after="avoid" style={{ ...reportTypography.h3, marginBottom: 4, color: theme.ink }}>
-                          On-the-Job Development Projects
-                        </p>
-                        {/*
-                          Floated columns, not flex/grid — Chrome's print engine doesn't split
-                          an overflowing flex row across pages: it defers the *entire* row whole
-                          to a fresh page, leaving a large blank gap behind. Floats fragment
-                          properly instead — but only as long as this wrapper stays a plain
-                          block. `overflow: hidden` is the usual float-clearfix, but it (like
-                          `flex`/`grid`) establishes a new block-formatting context, and Chrome
-                          treats *those* as atomic for pagination too — same bug, different
-                          trigger. A trailing `clear: both` div clears the floats without turning
-                          the wrapper into a BFC, so it stays plain, fragmentable block flow.
-                        */}
-                        <div>
-                          {c.developmentProjects.map((p, i, projects) => (
-                            <div
-                              key={i}
-                              style={{
-                                float: "left",
-                                width: "calc((100% - 24px) / 3)",
-                                marginRight: i < projects.length - 1 ? 12 : 0,
-                                backgroundColor: `${theme.accent}08`,
-                                border: `1px solid ${theme.accent}2E`,
-                                borderTop: `3px solid ${theme.accent}`,
-                                borderRadius: 8,
-                                padding: "0.5rem 0.875rem 0.625rem",
-                                boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
-                              }}
-                            >
-                              <p style={{ ...reportTypography.bodySmall, fontWeight: 700, color: theme.ink, marginBottom: 4, minHeight: 42 }}>{p.title}</p>
-                              <p style={{ ...reportTypography.h4, color: theme.body, marginTop: 6 }}>What to do</p>
-                              <p className="whitespace-pre-line" style={{ ...reportTypography.bodyXSmall, color: theme.body }}>{p.whatToDo}</p>
-                              {p.howToDoIt && (
-                                <>
-                                  <p style={{ ...reportTypography.h4, color: theme.body, marginTop: 6 }}>How to do it</p>
-                                  <p className="whitespace-pre-line" style={{ ...reportTypography.bodyXSmall, color: theme.body }}>{p.howToDoIt}</p>
-                                </>
-                              )}
-                              {p.evidence && (
-                                <>
-                                  <p style={{ ...reportTypography.h4, color: theme.body, marginTop: 6 }}>How to measure</p>
-                                  <p className="whitespace-pre-line" style={{ ...reportTypography.bodyXSmall, color: theme.body }}>{p.evidence}</p>
-                                </>
-                              )}
-                            </div>
-                          ))}
-                          <div style={{ clear: "both" }} />
+                        <div data-pdf-break-after="avoid" className="flex items-center gap-2" style={{ marginBottom: 12 }}>
+                          <span style={{ height: 9, width: 9, backgroundColor: C.ink, flexShrink: 0 }} />
+                          <p style={{ ...reportTypography.h3, color: C.ink, letterSpacing: "0.04em" }}>On-the-Job Development Projects</p>
                         </div>
+                        <DevelopmentProjectsTable projects={c.developmentProjects} />
                       </div>
                     )}
                   </div>

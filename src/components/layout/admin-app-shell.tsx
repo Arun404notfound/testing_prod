@@ -40,7 +40,7 @@ const navGroups = [
     label: "People",
     items: [
       { href: "/admin/candidates", label: "Candidates", icon: Users },
-      { href: "/admin/assignments", label: "Assign Assessments", icon: UserPlus },
+      { href: "/admin/assignments", label: "Assign Program", icon: UserPlus },
     ],
   },
   {

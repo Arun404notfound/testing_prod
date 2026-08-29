@@ -10,6 +10,13 @@ import type { ProgramCompositionType } from "@/generated/prisma/enums";
 
 const COMPOSITION_TYPES: ProgramCompositionType[] = ["PSYCHOMETRIC", "TECHNICAL", "SURVEY", "MIXED"];
 
+const COMPOSITION_OPTIONS: Array<{ value: ProgramCompositionType; label: string; description: string }> = [
+  { value: "PSYCHOMETRIC", label: "Psychometric", description: "Single Psychometric module" },
+  { value: "TECHNICAL", label: "Technical", description: "Single Technical module" },
+  { value: "SURVEY", label: "Survey", description: "Single Survey module" },
+  { value: "MIXED", label: "Mixed", description: "Combine multiple modules" },
+];
+
 async function createProgram(formData: FormData) {
   "use server";
   const tenantId = await getDefaultTenantId();
@@ -55,24 +62,41 @@ export default async function NewProgramPage({
         </div>
       ) : null}
 
-      <div className="max-w-xl">
+      <div className="max-w-4xl">
         <FormCard title="Program details">
-          <form action={createProgram} className="grid gap-4">
-            <TextField name="title" label="Title" />
-            <label className="text-sm text-[#334155]">
-              <span className="mb-1 block font-medium">Description <span className="font-normal text-[#94A3B8]">(optional)</span></span>
-              <textarea name="description" rows={3} className="tg-input w-full" />
-            </label>
-            <label className="text-sm text-[#334155]">
-              <span className="mb-1 block font-medium">Composition</span>
-              <select name="compositionType" required defaultValue="PSYCHOMETRIC" className="tg-input w-full">
-                <option value="PSYCHOMETRIC">Psychometric — single Psychometric module</option>
-                <option value="TECHNICAL">Technical — single Technical module</option>
-                <option value="SURVEY">Survey — single Survey module</option>
-                <option value="MIXED">Mixed — combine multiple modules</option>
-              </select>
-            </label>
-            <button type="submit" className="tg-button-primary w-fit">Create and open builder</button>
+          <form action={createProgram} className="grid gap-x-8 gap-y-6 lg:grid-cols-2">
+            <div className="grid content-start gap-4">
+              <TextField name="title" label="Title" />
+              <label className="flex h-full flex-col text-sm text-[#334155]">
+                <span className="mb-1 block font-medium">Description <span className="font-normal text-[#94A3B8]">(optional)</span></span>
+                <textarea name="description" rows={5} className="tg-input w-full flex-1 resize-none" />
+              </label>
+            </div>
+            <fieldset className="text-sm text-[#334155]">
+              <legend className="mb-1 block font-medium">Composition</legend>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                {COMPOSITION_OPTIONS.map((option, index) => (
+                  <label
+                    key={option.value}
+                    className="flex cursor-pointer items-center gap-3 rounded-[10px] border-[1.5px] border-[#C4CFDD] bg-[#FAFBFD] px-3.5 py-2.5 transition-colors has-checked:border-[#2563EB] has-checked:bg-[#EFF6FF]"
+                  >
+                    <input
+                      type="radio"
+                      name="compositionType"
+                      value={option.value}
+                      required
+                      defaultChecked={index === 0}
+                      className="h-4 w-4 shrink-0 accent-[#2563EB]"
+                    />
+                    <span>
+                      <span className="block font-medium text-[#0f172a]">{option.label}</span>
+                      <span className="block text-xs text-[#64748B]">{option.description}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <button type="submit" className="tg-button-primary w-fit lg:col-span-2">Create and open builder</button>
           </form>
         </FormCard>
       </div>

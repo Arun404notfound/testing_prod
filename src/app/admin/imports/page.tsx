@@ -233,6 +233,12 @@ export default async function ImportsPage({
             Templates include headers and sample rows. Triad template includes two complete groups (6 data rows).
             Case Study template groups sub-questions by <code>caseStudyCode</code> — include as many rows sharing the
             same code as sub-questions you want (numbered 1, 2, 3… via <code>subQuestionNumber</code>).
+            Set <code>subQuestionType</code> to <code>MCQ</code>, <code>LIKERT</code>, or <code>TRIAD</code> (blank
+            defaults to MCQ) — a Triad sub-question needs 3 rows sharing the same <code>subQuestionNumber</code>, one
+            per <code>statementNumber</code> (1-3), same as the standalone Triad template. Every <code>imageUrl</code>/
+            <code>audioUrl</code> column is optional and takes a link to a file already hosted elsewhere (spreadsheets
+            can&apos;t carry embedded pictures/audio) — for MCQ/SJT options, leaving the option text blank is fine as
+            long as its image URL is filled in.
           </p>
         </FormCard>
 

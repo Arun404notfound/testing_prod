@@ -3,21 +3,21 @@
 import { useState } from "react";
 
 type Candidate = { id: string; fullName: string; email: string };
-type Assessment = { id: string; title: string };
+type ProgramOption = { id: string; title: string };
 
-export function AssignmentForm({
+export function ProgramAssignmentForm({
   candidates,
-  assessments,
+  programs,
   batches,
-  defaultAssessmentId,
+  defaultProgramId,
   defaultBatchName,
   createAssignment,
   bulkAssignBatch,
 }: {
   candidates: Candidate[];
-  assessments: Assessment[];
+  programs: ProgramOption[];
   batches: string[];
-  defaultAssessmentId?: string;
+  defaultProgramId?: string;
   defaultBatchName?: string;
   createAssignment: (formData: FormData) => Promise<void>;
   bulkAssignBatch: (formData: FormData) => Promise<void>;
@@ -38,27 +38,26 @@ export function AssignmentForm({
     });
   }
 
-  if (assessments.length === 0) {
+  if (programs.length === 0) {
     return (
       <div id="new-assignment" className="rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
         <div className="border-b border-amber-200 bg-amber-100 px-5 py-4 flex items-center gap-2">
           <span className="text-amber-600 text-base">⚠</span>
-          <p className="text-sm font-semibold text-amber-800">No assessments ready to assign</p>
+          <p className="text-sm font-semibold text-amber-800">No programs ready to assign</p>
         </div>
         <div className="p-6 space-y-4">
           <p className="text-sm text-amber-700">
-            An assessment must be <strong>published</strong> and have <strong>at least one question added via the builder</strong> before it can be assigned. To get started:
+            A Program must have <strong>at least one attached module</strong>, and every attached module must be <strong>published</strong>, before it can be assigned. To get started:
           </p>
           <ol className="space-y-2 text-sm text-amber-800">
-            <li className="flex items-start gap-2"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[11px] font-bold text-amber-800">1</span> Go to <strong>Assessments</strong> and open an existing assessment (or create one).</li>
-            <li className="flex items-start gap-2"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[11px] font-bold text-amber-800">2</span> Click <strong>Open Builder</strong> and add questions from the question pool.</li>
-            <li className="flex items-start gap-2"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[11px] font-bold text-amber-800">3</span> Make sure the assessment status is set to <strong>Published</strong>.</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[11px] font-bold text-amber-800">1</span> Go to <strong>Program Builder</strong> and open an existing Program (or create one).</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-200 text-[11px] font-bold text-amber-800">2</span> Attach at least one module and make sure it's <strong>Published</strong>.</li>
           </ol>
           <a
-            href="/admin/assessments"
+            href="/admin/programs"
             className="inline-flex items-center gap-2 rounded-lg bg-[#2563EB] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1d4edb] transition"
           >
-            Go to Assessments →
+            Go to Programs →
           </a>
         </div>
       </div>
@@ -70,7 +69,7 @@ export function AssignmentForm({
       {/* Header */}
       <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-4">
         <p className="text-sm font-semibold text-[#0F172A]">New Assignment</p>
-        <p className="mt-0.5 text-xs text-[#64748B]">Only published assessments with questions appear in the list below.</p>
+        <p className="mt-0.5 text-xs text-[#64748B]">One link walks the candidate through every module in the Program, in order. Only fully-published Programs appear below.</p>
       </div>
 
       <div className="p-5 space-y-5">
@@ -131,16 +130,16 @@ export function AssignmentForm({
                 )}
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#475569]">Assessment *</label>
+                <label className="mb-1.5 block text-xs font-medium text-[#475569]">Program *</label>
                 <select
-                  name="assessmentId"
+                  name="programId"
                   required
-                  defaultValue={defaultAssessmentId ?? ""}
+                  defaultValue={defaultProgramId ?? ""}
                   className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#2563EB] focus:outline-none"
                 >
-                  <option value="">Select assessment…</option>
-                  {assessments.map((a) => (
-                    <option key={a.id} value={a.id}>{a.title}</option>
+                  <option value="">Select program…</option>
+                  {programs.map((p) => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
                   ))}
                 </select>
               </div>
@@ -149,35 +148,21 @@ export function AssignmentForm({
             {/* Assignment settings */}
             <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#475569]">Assignment settings</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Deadline <span className="font-normal text-[#94A3B8]">(optional)</span></label>
-                  <input
-                    type="datetime-local"
-                    name="expiresAt"
-                    className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#2563EB] focus:outline-none"
-                  />
-                  <p className="mt-1 text-[10px] text-[#94A3B8]">Test locks after this date/time</p>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Duration <span className="font-normal text-[#94A3B8]">(minutes, optional)</span></label>
-                  <input
-                    type="number"
-                    name="durationMinutes"
-                    min="1"
-                    max="480"
-                    placeholder="e.g. 45"
-                    className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#2563EB] focus:outline-none"
-                  />
-                  <p className="mt-1 text-[10px] text-[#94A3B8]">Overrides assessment default</p>
-                </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[#475569]">Deadline <span className="font-normal text-[#94A3B8]">(optional)</span></label>
+                <input
+                  type="datetime-local"
+                  name="expiresAt"
+                  className="w-full max-w-xs rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[#334155] focus:border-[#2563EB] focus:outline-none"
+                />
+                <p className="mt-1 text-[10px] text-[#94A3B8]">Applies to every module — the whole Program locks after this date/time</p>
               </div>
             </div>
 
             <div className="flex justify-end border-t border-[#F1F5F9] pt-4">
               <button
                 type="submit"
-                disabled={candidates.length === 0 || assessments.length === 0}
+                disabled={candidates.length === 0 || programs.length === 0}
                 className="rounded-xl bg-[#2563EB] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#1d4edb] disabled:opacity-40 transition"
               >
                 Assign to Candidate
@@ -220,16 +205,16 @@ export function AssignmentForm({
                 )}
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-medium text-[#475569]">Assessment *</label>
+                <label className="mb-1.5 block text-xs font-medium text-[#475569]">Program *</label>
                 <select
-                  name="assessmentId"
+                  name="programId"
                   required
-                  defaultValue={defaultAssessmentId ?? ""}
+                  defaultValue={defaultProgramId ?? ""}
                   className="w-full rounded-lg border border-violet-200 px-3 py-2 text-sm text-[#334155] focus:border-violet-500 focus:outline-none"
                 >
-                  <option value="">Select assessment…</option>
-                  {assessments.map((a) => (
-                    <option key={a.id} value={a.id}>{a.title}</option>
+                  <option value="">Select program…</option>
+                  {programs.map((p) => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
                   ))}
                 </select>
               </div>
@@ -238,35 +223,21 @@ export function AssignmentForm({
             {/* Assignment settings */}
             <div className="rounded-lg border border-violet-100 bg-violet-50 p-4 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">Assignment settings</p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Deadline <span className="font-normal text-[#94A3B8]">(optional)</span></label>
-                  <input
-                    type="datetime-local"
-                    name="expiresAt"
-                    className="w-full rounded-lg border border-violet-200 px-3 py-2 text-sm text-[#334155] focus:border-violet-500 focus:outline-none"
-                  />
-                  <p className="mt-1 text-[10px] text-[#94A3B8]">Test locks after this date/time</p>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-[#475569]">Duration <span className="font-normal text-[#94A3B8]">(minutes, optional)</span></label>
-                  <input
-                    type="number"
-                    name="durationMinutes"
-                    min="1"
-                    max="480"
-                    placeholder="e.g. 45"
-                    className="w-full rounded-lg border border-violet-200 px-3 py-2 text-sm text-[#334155] focus:border-violet-500 focus:outline-none"
-                  />
-                  <p className="mt-1 text-[10px] text-[#94A3B8]">Overrides assessment default</p>
-                </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-[#475569]">Deadline <span className="font-normal text-[#94A3B8]">(optional)</span></label>
+                <input
+                  type="datetime-local"
+                  name="expiresAt"
+                  className="w-full max-w-xs rounded-lg border border-violet-200 px-3 py-2 text-sm text-[#334155] focus:border-violet-500 focus:outline-none"
+                />
+                <p className="mt-1 text-[10px] text-[#94A3B8]">Applies to every module — the whole Program locks after this date/time</p>
               </div>
             </div>
 
             <div className="flex justify-end border-t border-violet-100 pt-4">
               <button
                 type="submit"
-                disabled={assessments.length === 0 || selectedBatches.size === 0}
+                disabled={programs.length === 0 || selectedBatches.size === 0}
                 className="rounded-xl bg-violet-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 disabled:opacity-40 transition"
               >
                 Assign {selectedBatches.size > 1 ? `${selectedBatches.size} Batches` : "Batch"}

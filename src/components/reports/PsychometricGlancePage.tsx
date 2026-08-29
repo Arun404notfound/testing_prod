@@ -1,8 +1,11 @@
 "use client";
 
 import type { ReportPayload, ReportFactorAggregate, ReportCompetencyScore } from "@/lib/report-data";
-import { useReportTheme } from "./report-theme-context";
+import { REPORT_DESIGN_COLORS } from "./report-theme";
 import { reportTypography } from "./report-typography";
+import { SectionHeading } from "./SectionHeading";
+
+const C = REPORT_DESIGN_COLORS;
 
 // --- helpers ----------------------------------------------------------------
 
@@ -85,8 +88,6 @@ export function PsychometricGlancePage({
 }: {
   report: ReportPayload;
 }) {
-  const { theme } = useReportTheme();
-
   const competencies = report.competencyScores;
   const factors = report.factorAggregates;
 
@@ -109,38 +110,36 @@ export function PsychometricGlancePage({
 
   return (
     <section>
-      <div style={{ ...reportTypography.h2, borderBottom: `2px solid ${theme.ink}`, paddingBottom: "0.5rem", marginBottom: "1.5rem", color: theme.ink }}>
-        Your Personality at a Glance
-      </div>
+      <SectionHeading eyebrow="Section 01" title="Your personality at a glance" />
 
       {/* Competency Snapshot */}
       <div style={{ marginTop: "2rem" }}>
-        <h3 style={{ ...reportTypography.h3, marginBottom: "0.75rem", color: theme.ink }}>
+        <h3 style={{ ...reportTypography.h3, marginBottom: "0.75rem", color: C.ink }}>
           Competency Snapshot
         </h3>
         {competencies.length > 0 ? (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={{ ...reportTypography.tableHeader, padding: "0.25rem 1rem 0.25rem 0", textAlign: "left", color: theme.body }}>Competency</th>
-                <th style={{ ...reportTypography.tableHeader, padding: "0.25rem 1rem 0.25rem 0", textAlign: "left", color: theme.body }}>Score</th>
-                <th style={{ ...reportTypography.tableHeader, padding: "0.25rem 0", textAlign: "left", color: theme.body }}>Category</th>
+                <th style={{ ...reportTypography.tableHeader, padding: "0.25rem 1rem 0.25rem 0", textAlign: "left", color: C.body }}>Competency</th>
+                <th style={{ ...reportTypography.tableHeader, padding: "0.25rem 1rem 0.25rem 0", textAlign: "left", color: C.body }}>Score</th>
+                <th style={{ ...reportTypography.tableHeader, padding: "0.25rem 0", textAlign: "left", color: C.body }}>Category</th>
               </tr>
             </thead>
             <tbody>
               {competencies.map((c) => (
-                <CompetencySnapshotRow key={c.competencyId} competency={c} hairline={theme.hairline} ink={theme.ink} />
+                <CompetencySnapshotRow key={c.competencyId} competency={c} hairline={C.hairline} ink={C.ink} />
               ))}
             </tbody>
           </table>
         ) : (
-          <p style={{ ...reportTypography.bodySmall, color: theme.body }}>No competency data available.</p>
+          <p style={{ ...reportTypography.bodySmall, color: C.body }}>No competency data available.</p>
         )}
       </div>
 
       {/* Big Five Personality Profile */}
       <div style={{ marginTop: "2rem" }}>
-        <h3 style={{ ...reportTypography.h3, marginBottom: "1rem", color: theme.ink }}>
+        <h3 style={{ ...reportTypography.h3, marginBottom: "1rem", color: C.ink }}>
           Big Five Personality Profile
         </h3>
         {sortedFactors.length > 0 ? (
@@ -150,14 +149,14 @@ export function PsychometricGlancePage({
                 key={f.factor}
                 factor={f.factor}
                 score={factorScore(f)}
-                accentColor={theme.accent}
-                trackColor={theme.trackBackground}
-                inkColor={theme.ink}
+                accentColor={C.accent}
+                trackColor={C.hairline}
+                inkColor={C.ink}
               />
             ))}
           </div>
         ) : (
-          <p style={{ ...reportTypography.bodySmall, color: theme.body }}>No Big Five factor data available.</p>
+          <p style={{ ...reportTypography.bodySmall, color: C.body }}>No Big Five factor data available.</p>
         )}
       </div>
 
@@ -165,24 +164,24 @@ export function PsychometricGlancePage({
       <div
         style={{
           marginTop: "2rem",
-          backgroundColor: `${theme.accent}0D`,
-          border: `1px solid ${theme.accent}33`,
-          borderLeft: `4px solid ${theme.accent}`,
+          backgroundColor: `${C.accent}0D`,
+          border: `1px solid ${C.accent}33`,
+          borderLeft: `4px solid ${C.accent}`,
           borderRadius: 8,
           padding: "1rem 1.25rem",
           boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
         }}
       >
-        <p style={{ ...reportTypography.h4, color: theme.accent, marginBottom: "0.25rem" }}>
+        <p style={{ ...reportTypography.h4, color: C.accent, marginBottom: "0.25rem" }}>
           Personality Archetype
         </p>
-        <p style={{ ...reportTypography.dataMedium, color: theme.ink }}>The Influential Connector</p>
-        <p style={{ ...reportTypography.body, marginTop: "0.5rem", color: theme.body }}>
+        <p style={{ ...reportTypography.dataMedium, color: C.ink }}>The Influential Connector</p>
+        <p style={{ ...reportTypography.body, marginTop: "0.5rem", color: C.body }}>
           You naturally build relationships, engage others, and create positive interactions. You tend to be energetic,
           expressive, and comfortable in social environments. Your profile suggests strong communication capabilities
           and emotional balance, while greater structure and planning may further enhance performance.
         </p>
-        <p style={{ ...reportTypography.bodyXSmall, marginTop: "0.5rem", fontStyle: "italic", color: theme.body }}>
+        <p style={{ ...reportTypography.bodyXSmall, marginTop: "0.5rem", fontStyle: "italic", color: C.body }}>
           * Archetype description is a placeholder and will be populated via API.
         </p>
       </div>

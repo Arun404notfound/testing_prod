@@ -294,9 +294,19 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
     } else if (b.kind === "case_study") {
       let csMax = 0;
       for (const sq of b.subQuestions) {
+        if (sq.kind === "triad") {
+          const group = ctx.triadByGroupId.get(sq.groupId);
+          if (!group) continue;
+          for (const st of group.statements) bumpTrait(st.factor, st.trait, st.definition, 0, 3);
+          csMax += 6;
+          continue;
+        }
         const item = ctx.itemById.get(sq.itemId);
         if (!item) continue;
-        const max = maxMarksForMcqItem(item.options);
+        const max =
+          sq.kind === "likert"
+            ? (item.likertScale?.maxValue ?? 5) - (item.likertScale?.minValue ?? 1) + 1
+            : maxMarksForMcqItem(item.options);
         bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), 0, max);
         csMax += max;
       }
@@ -569,11 +579,79 @@ export function scoreAssessment(ctx: ScoringContext): ScoringResult {
         scoredValue: score,
       });
     } else if (b.kind === "case_study") {
-      const answerMap = (v as Record<string, string> | undefined) ?? {};
+      const answerMap = (v as Record<string, string | number | { most?: string; least?: string }> | undefined) ?? {};
       for (const sq of b.subQuestions) {
+        if (sq.kind === "triad") {
+          const group = ctx.triadByGroupId.get(sq.groupId);
+          if (!group) continue;
+          const t = answerMap[sq.groupId] as { most?: string; least?: string } | undefined;
+          if (!t || typeof t !== "object" || !t.most || !t.least || t.most === t.least) continue;
+          let groupRaw = 0;
+          for (const st of group.statements) {
+            const role: "most" | "neutral" | "least" = st.id === t.most ? "most" : st.id === t.least ? "least" : "neutral";
+            const stmtScore = triadRoleScore(st.polarity, role);
+            groupRaw += stmtScore;
+            bumpTrait(st.factor, st.trait, st.definition, stmtScore, 0); // max pre-registered
+            evaluations.push({
+              itemId: st.id,
+              itemType: "TRIAD",
+              selectedAnswer: role,
+              correctAnswer: null,
+              score: stmtScore,
+              maxScore: 3,
+              isCorrect: null,
+              factor: st.factor,
+              attribute: st.trait,
+              polarity: st.polarity,
+            });
+          }
+          totalRaw += groupRaw;
+          attemptResponses.push({
+            triadGroupId: sq.groupId,
+            triadMostStatementId: t.most,
+            triadLeastStatementId: t.least,
+            status: "ANSWERED",
+            rawScore: groupRaw,
+            scoredValue: groupRaw,
+          });
+          continue;
+        }
+
         const item = ctx.itemById.get(sq.itemId);
         if (!item) continue;
-        const evalResult = evaluateMcqSelection(item, answerMap[sq.itemId]);
+
+        if (sq.kind === "likert") {
+          const selectedRating = Number(answerMap[sq.itemId]);
+          const scaleMin = item.likertScale?.minValue ?? 1;
+          const scaleMax = item.likertScale?.maxValue ?? 5;
+          if (!Number.isFinite(selectedRating) || selectedRating < scaleMin || selectedRating > scaleMax) continue;
+          const score = likertScoredValue(selectedRating, item.polarity, scaleMin, scaleMax);
+          totalRaw += score;
+          bumpTrait(item.factor ?? "General", item.trait ?? "General", item.definition ?? item.prompt.slice(0, 120), score, 0);
+
+          evaluations.push({
+            itemId: item.id,
+            itemType: "LIKERT",
+            selectedAnswer: selectedRating,
+            correctAnswer: null,
+            score,
+            maxScore: scaleMax - scaleMin + 1,
+            isCorrect: null,
+            factor: item.factor ?? "General",
+            attribute: item.trait ?? "General",
+            polarity: item.polarity,
+          });
+          attemptResponses.push({
+            itemId: item.id,
+            status: "ANSWERED",
+            numericValue: selectedRating,
+            rawScore: selectedRating,
+            scoredValue: score,
+          });
+          continue;
+        }
+
+        const evalResult = evaluateMcqSelection(item, answerMap[sq.itemId] as string | undefined);
         if (!evalResult) continue;
         const { opt, max, score, isCorrect, correctOpt } = evalResult;
         totalRaw += score;

@@ -79,12 +79,15 @@ export type TestBlock =
       section: string;
       title: string;
       passageText: string;
-      subQuestions: ({
-        itemId: string;
-        prompt: string;
-        options: OptionWithImage[];
-      } & ItemMedia)[];
+      /** One entry per sub-question, in the case study's authored order — MCQ/Likert
+       *  come from AssessmentItem, Triad from a TriadGroup attached via caseStudyId. */
+      subQuestions: CaseStudySubQuestion[];
     };
+
+export type CaseStudySubQuestion =
+  | ({ kind: "mcq"; itemId: string; prompt: string; options: OptionWithImage[] } & ItemMedia)
+  | ({ kind: "likert"; itemId: string; prompt: string; scale?: { min: number; max: number; minLabel: string; maxLabel: string } } & ItemMedia)
+  | ({ kind: "triad"; groupId: string; title: string; statements: { id: string; text: string }[] } & ItemMedia);
 
 type SectionLike = { title: string; displayOrder: number };
 
@@ -210,10 +213,74 @@ function pushItemBlock(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function caseStudyMedia(sq: any): ItemMedia {
+  return {
+    images: (sq.images && sq.images.length > 0)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? [...sq.images].sort((a: any, b: any) => a.displayOrder - b.displayOrder).map((i: any) => i.url)
+      : undefined,
+    audioUrl: sq.audioUrl ?? undefined,
+  };
+}
+
+/** Merges the two source tables a case study's sub-questions can live in —
+ *  AssessmentItem (MCQ/Likert, `cs.subQuestions`) and TriadGroup (`cs.triadSubQuestions`,
+ *  see prisma/schema.prisma) — into one list ordered by each row's own
+ *  displayOrder, exactly the "one shared index across different source
+ *  tables" pattern AssessmentCompositionItem already uses for section pools. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildCaseStudyBlock(cs: any, fallbackSectionTitle: string): TestBlock {
-  const subs = [...(cs.subQuestions ?? [])].sort(
-    (a: { displayOrder: number }, b: { displayOrder: number }) => a.displayOrder - b.displayOrder,
-  );
+  const itemSubs = (cs.subQuestions ?? []).map((sq: { displayOrder: number }) => ({ displayOrder: sq.displayOrder, sq }));
+  const triadSubs = (cs.triadSubQuestions ?? []).map((tg: { displayOrder: number }) => ({ displayOrder: tg.displayOrder, tg }));
+  const merged = [...itemSubs, ...triadSubs].sort((a, b) => a.displayOrder - b.displayOrder);
+
+  const subQuestions: CaseStudySubQuestion[] = merged.map((entry) => {
+    if ("tg" in entry) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tg = entry.tg as any;
+      const stmts = [...(tg.statements ?? [])].sort(
+        (a: { displayOrder: number }, b: { displayOrder: number }) => a.displayOrder - b.displayOrder,
+      );
+      return {
+        kind: "triad",
+        groupId: tg.id,
+        title: tg.title,
+        statements: stmts.map((s: { id: string; statementText: string }) => ({ id: s.id, text: s.statementText })),
+      };
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sq = entry.sq as any;
+    const media = caseStudyMedia(sq);
+    if (sq.itemType === "LIKERT") {
+      return {
+        kind: "likert",
+        itemId: sq.id,
+        prompt: sq.prompt,
+        ...media,
+        ...(sq.likertScale
+          ? {
+              scale: {
+                min: sq.likertScale.minValue,
+                max: sq.likertScale.maxValue,
+                minLabel: sq.likertScale.minLabel,
+                maxLabel: sq.likertScale.maxLabel,
+              },
+            }
+          : {}),
+      };
+    }
+    return {
+      kind: "mcq",
+      itemId: sq.id,
+      prompt: sq.prompt,
+      options: [...(sq.options ?? [])]
+        .sort((a: { displayOrder: number }, b: { displayOrder: number }) => a.displayOrder - b.displayOrder)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((o: any) => ({ optionId: o.id, label: o.label || o.value, imageUrl: o.imageUrl ?? undefined })),
+      ...media,
+    };
+  });
+
   return {
     kind: "case_study",
     key: `case_study:${cs.id}`,
@@ -221,20 +288,7 @@ function buildCaseStudyBlock(cs: any, fallbackSectionTitle: string): TestBlock {
     section: cs.section?.title ?? fallbackSectionTitle,
     title: cs.title,
     passageText: cs.passageText,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    subQuestions: subs.map((sq: any) => ({
-      itemId: sq.id,
-      prompt: sq.prompt,
-      options: [...(sq.options ?? [])]
-        .sort((a: { displayOrder: number }, b: { displayOrder: number }) => a.displayOrder - b.displayOrder)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((o: any) => ({ optionId: o.id, label: o.label || o.value, imageUrl: o.imageUrl ?? undefined })),
-      images: (sq.images && sq.images.length > 0)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ? [...sq.images].sort((a: any, b: any) => a.displayOrder - b.displayOrder).map((i: any) => i.url)
-        : undefined,
-      audioUrl: sq.audioUrl ?? undefined,
-    })),
+    subQuestions,
   };
 }
 
@@ -392,10 +446,9 @@ export function shuffleBlockOptions(blocks: TestBlock[], randomizeOptions: boole
     if (b.kind === "case_study") {
       return {
         ...b,
-        subQuestions: b.subQuestions.map((sq) => ({
-          ...sq,
-          options: seededShuffle(sq.options, `${seed}:${b.key}:${sq.itemId}`),
-        })),
+        subQuestions: b.subQuestions.map((sq) =>
+          sq.kind === "mcq" ? { ...sq, options: seededShuffle(sq.options, `${seed}:${b.key}:${sq.itemId}`) } : sq,
+        ),
       };
     }
     return b;

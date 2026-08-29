@@ -1,23 +1,19 @@
 "use client";
 
 import type { ReportPayload } from "@/lib/report-data";
-import { useReportTheme, type ReportThemeContextValue } from "./report-theme-context";
+import { REPORT_DESIGN_COLORS } from "./report-theme";
 import { reportTypography } from "./report-typography";
-import { scoreColor, type CompetencyScoreData } from "./CompetencyReportPage";
+import { SectionHeading } from "./SectionHeading";
+import { type CompetencyScoreData } from "./CompetencyReportPage";
+
+const C = REPORT_DESIGN_COLORS;
 
 /** Same "needs attention" cutoff CompetencyReportPage uses for score coloring and development-project picks. */
 const FOCUS_THRESHOLD = 6.5;
 const MAX_LISTED = 3;
 
-// Same tint pair CompetencyReportPage uses for its Behavioural Implications /
-// Watch-outs cards — reusing the exact colors makes this read as the same
-// visual system as the per-competency pages instead of a separate one-off.
 const STRENGTH_COLOR = "#047857"; // emerald-700
-const STRENGTH_BG = "#F0FDFA"; // teal-50
-const STRENGTH_BORDER = "#99F6E4"; // teal-200
-const FOCUS_COLOR = "#B45309"; // amber-700
-const FOCUS_BG = "#FFFBEB"; // amber-50
-const FOCUS_BORDER = "#FDE68A"; // amber-200
+const FOCUS_COLOR = "#B91C1C"; // red-700
 
 function formatList(items: string[]): string {
   if (items.length === 0) return "";
@@ -26,75 +22,44 @@ function formatList(items: string[]): string {
   return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
-function SummaryList({
-  title,
-  accentColor,
-  bgColor,
-  borderColor,
-  items,
-  getDescription,
-  emptyLabel,
-  theme,
-}: {
-  title: string;
-  accentColor: string;
-  bgColor: string;
-  borderColor: string;
-  items: CompetencyScoreData[];
-  getDescription: (c: CompetencyScoreData) => string | null | undefined;
-  emptyLabel: string;
-  theme: ReportThemeContextValue["theme"];
-}) {
+function SummaryCard({ title, accentColor, items }: { title: string; accentColor: string; items: CompetencyScoreData[] }) {
   return (
-    <div
-      style={{
-        flex: 1,
-        minWidth: 220,
-        alignSelf: "stretch",
-        backgroundColor: bgColor,
-        border: `1px solid ${borderColor}`,
-        borderRadius: 8,
-        padding: "0.75rem 1rem",
-        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.05)",
-      }}
-    >
-      <p style={{ ...reportTypography.h4, color: accentColor, marginBottom: 8 }}>{title}</p>
-      {items.length > 0 ? (
-        items.map((c) => {
-          const description = getDescription(c);
-          return (
-            <div key={c.competencyId} style={{ marginBottom: 8 }}>
-              <div style={{ display: "flex", alignItems: "flexStart", gap: 8 }}>
-                <span style={{ marginTop: 7, height: 5, width: 5, borderRadius: 9999, backgroundColor: accentColor, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <span style={{ ...reportTypography.bodySmall, fontWeight: 600, color: theme.ink }}>{c.competencyName}</span>
-                    <span style={{ ...reportTypography.dataSmall, color: scoreColor(c.scaledScore), flexShrink: 0 }}>{c.scaledScore.toFixed(1)}</span>
-                  </div>
-                  {description && <p style={{ ...reportTypography.bodyXSmall, color: theme.body, marginTop: 1 }}>{description}</p>}
-                </div>
-              </div>
+    <div style={{ flex: 1, minWidth: 220 }}>
+      <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
+        <span style={{ height: 8, width: 8, borderRadius: 2, backgroundColor: accentColor }} />
+        <p style={{ ...reportTypography.h4, color: C.ink, letterSpacing: "0.08em" }}>{title}</p>
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+        {items.map((c) => (
+          <div key={c.competencyId} style={{ border: `1px solid ${C.hairline}`, borderRadius: 10, padding: "0.875rem 1rem" }}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span style={{ ...reportTypography.bodySmall, fontWeight: 700, color: C.ink }}>{c.competencyName}</span>
+              <span style={{ ...reportTypography.h2, color: accentColor }}>{c.scaledScore.toFixed(1)}</span>
             </div>
-          );
-        })
-      ) : (
-        <p style={{ ...reportTypography.bodyXSmall, color: theme.body }}>{emptyLabel}</p>
-      )}
+            <div style={{ height: 4, borderRadius: 2, backgroundColor: C.hairline, marginTop: 8, marginBottom: 8 }}>
+              <div style={{ height: 4, borderRadius: 2, width: `${Math.min(100, (c.scaledScore / 10) * 100)}%`, backgroundColor: accentColor }} />
+            </div>
+            {(c.strengthStatement || c.developmentNeedStatement) && (
+              <p style={{ ...reportTypography.bodyXSmall, color: C.body }}>
+                {c.scaledScore > FOCUS_THRESHOLD ? c.strengthStatement : c.developmentNeedStatement}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 /**
  * An HR-readable synthesis of the competency profile: a plain-language
- * narrative naming the strongest and weakest areas, then two ranked lists —
- * styled with the same card language (tint, border, dot bullets) as the
- * Behavioural Implications / Watch-outs pair on the per-competency pages, so
- * it reads as part of the report rather than a bolted-on extra. Second half
- * of the Executive Summary section (the radar/cohort-comparison page is the
+ * narrative naming the strongest and weakest areas, then two ranked card
+ * grids — Key Strengths (green) and Priority Focus Areas (red), matching
+ * the reference design's "What the profile says" page. Second half of the
+ * Executive Summary section (the radar/cohort-comparison page is the
  * first), landing right before the Report Interpretation page.
  */
 export function CompetencyExecutiveSummaryPage({ report }: { report: ReportPayload }) {
-  const { theme } = useReportTheme();
   const competencies: CompetencyScoreData[] = report.competencyScores;
 
   if (competencies.length === 0) return null;
@@ -105,62 +70,43 @@ export function CompetencyExecutiveSummaryPage({ report }: { report: ReportPaylo
     MAX_LISTED,
   );
 
+  // Tail of the same descending order strengthList/the score overview page
+  // use, not an independent ascending sort — with tied scores those two
+  // orderings can disagree on which row lands in the bottom 3.
   const focusAreas = [...competencies]
-    .sort((a, b) => a.scaledScore - b.scaledScore)
+    .sort((a, b) => b.scaledScore - a.scaledScore)
+    .slice(-MAX_LISTED)
     .filter((c) => c.scaledScore <= FOCUS_THRESHOLD)
-    .slice(0, MAX_LISTED);
+    .reverse();
 
   const strengthNames = formatList(strengthList.map((c) => c.competencyName));
   const focusNames = formatList(focusAreas.map((c) => c.competencyName));
 
   return (
-    // Standalone page — same h2 + border-bottom title treatment as every
-    // other top-level report page (Score Overview, Trait Scores, etc.).
     <div>
-      <div style={{ ...reportTypography.h2, borderBottom: `2px solid ${theme.ink}`, paddingBottom: "0.5rem", marginBottom: "1.5rem", color: theme.ink }}>
-        Executive Summary
-      </div>
+      <SectionHeading eyebrow="Section 02 · Findings" title="What the profile says" />
 
-      <p style={{ ...reportTypography.body, color: theme.body, marginBottom: "1.5rem" }}>
+      <p style={{ ...reportTypography.body, color: C.body, marginTop: "0.75rem", marginBottom: "1.75rem" }}>
         {strengthList.length > 0 && (
           <>
-            Performance is strongest in <strong style={{ color: theme.ink }}>{strengthNames}</strong>
-            {focusAreas.length > 0 ? ", " : ". "}
+            Performance is strongest in <strong style={{ color: C.ink }}>{strengthNames}</strong>
+            {focusAreas.length > 0 ? ". " : ". "}
           </>
         )}
         {focusAreas.length > 0 ? (
           <>
-            with the most immediate opportunity for growth in <strong style={{ color: theme.ink }}>{focusNames}</strong>. Prioritising
-            coaching, feedback or structured development {focusAreas.length > 1 ? "here" : "in this area"} is likely to have the greatest
-            impact on overall effectiveness.
+            The most immediate opportunity for growth sits in <strong style={{ color: C.ink }}>{focusNames}</strong>. Coaching, feedback or
+            structured development {focusAreas.length > 1 ? "in these areas" : "here"} is likely to have the greatest impact on overall
+            effectiveness.
           </>
         ) : (
           <>No competency falls at or below the proficient threshold — a well-rounded profile with no immediate red flags.</>
         )}
       </p>
 
-      <div style={{ display: "flex", alignItems: "stretch", gap: 16, flexWrap: "wrap" }}>
-        <SummaryList
-          title="Key Strengths"
-          accentColor={STRENGTH_COLOR}
-          bgColor={STRENGTH_BG}
-          borderColor={STRENGTH_BORDER}
-          items={strengthList}
-          getDescription={(c) => c.strengthStatement}
-          emptyLabel="No competencies scored above the proficient threshold."
-          theme={theme}
-        />
-        <SummaryList
-          title="Priority Focus Areas"
-          accentColor={FOCUS_COLOR}
-          bgColor={FOCUS_BG}
-          borderColor={FOCUS_BORDER}
-          items={focusAreas}
-          getDescription={(c) => c.developmentNeedStatement}
-          emptyLabel="No competencies scored at or below the proficient threshold."
-          theme={theme}
-        />
-      </div>
+      <SummaryCard title="Key Strengths" accentColor={STRENGTH_COLOR} items={strengthList} />
+      <div style={{ height: 20 }} />
+      <SummaryCard title="Priority Focus Areas" accentColor={FOCUS_COLOR} items={focusAreas} />
     </div>
   );
 }

@@ -2,72 +2,70 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ClipboardCheck, Clock, UserCheck } from "lucide-react";
-// Link is used in PageHeader right prop
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/page-header";
 import { getDefaultTenantId } from "@/lib/tenant";
 import { appUrl } from "@/lib/app-url";
-import { generateAccessToken, sendAssignmentAssignedEmail } from "@/lib/email/assignment-email";
-import { AssignmentForm } from "./assignment-form";
-import { AssignmentsTable } from "./assignments-table";
+import { sendAssignmentAssignedEmail } from "@/lib/email/assignment-email";
+import { loadAssignableProgram, checkAssignabilityReason, createProgramAssignmentRecord } from "@/lib/program-assignment";
+import { ProgramAssignmentForm } from "./program-assignment-form";
+import { ProgramAssignmentsTable } from "./program-assignments-table";
 import { AutoDismissToast } from "@/components/ui/auto-dismiss-toast";
 
 // ─── Server Actions ───────────────────────────────────────────────────────────
+// Mirrors assignProgramToCandidate/assignProgramToBatch in
+// admin/programs/[programId]/builder/actions.ts, but the Program is picked
+// from a dropdown here rather than fixed by the page's own route — so these
+// stay on /admin/assignments (toast + redirect back here) instead of jumping
+// into that Program's builder.
+
+function parseExpiresAt(formData: FormData): Date | null {
+  const raw = String(formData.get("expiresAt") ?? "").trim();
+  return raw ? new Date(raw) : null;
+}
 
 async function bulkAssignBatch(formData: FormData) {
   "use server";
   const batchNames = formData.getAll("batchName").map((v) => String(v).trim()).filter(Boolean);
-  const assessmentId = String(formData.get("assessmentId") ?? "").trim();
-  if (!batchNames.length || !assessmentId) redirect("/admin/assignments?status=error&reason=missing");
+  const programId = String(formData.get("programId") ?? "").trim();
+  if (!batchNames.length || !programId) redirect("/admin/assignments?status=error&reason=missing");
 
-  const expiresAtRaw = String(formData.get("expiresAt") ?? "").trim();
-  const durationRaw  = parseInt(String(formData.get("durationMinutes") ?? ""), 10);
-  const expiresAt       = expiresAtRaw ? new Date(expiresAtRaw) : null;
-  const durationMinutes = Number.isFinite(durationRaw) && durationRaw > 0 ? durationRaw : null;
-
+  const expiresAt = parseExpiresAt(formData);
   const tenantId = await getDefaultTenantId();
-  const [assessment, candidates] = await Promise.all([
-    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true, title: true, durationMinutes: true } }),
+  const [program, candidates] = await Promise.all([
+    loadAssignableProgram(programId),
     prisma.candidate.findMany({ where: { tenantId, batchName: { in: batchNames } }, select: { id: true, fullName: true, email: true } }),
   ]);
-
-  if (!assessment) redirect("/admin/assignments?status=error&reason=not_found");
+  if (!program) redirect("/admin/assignments?status=error&reason=not_found");
+  const reason = checkAssignabilityReason(program);
+  if (reason) redirect(`/admin/assignments?status=error&reason=${encodeURIComponent(reason)}`);
   if (candidates.length === 0) redirect("/admin/assignments?status=error&reason=batch_empty");
-
-  // Same fallback the candidate test page uses (assignment.durationMinutes ??
-  // assessment.durationMinutes) — a blank duration field means "use the
-  // assessment's own duration," not "no duration," so the invite email
-  // should reflect that instead of showing a blank value.
-  const effectiveDurationMinutes = durationMinutes ?? assessment.durationMinutes;
 
   let created = 0;
   let emailFailures = 0;
   for (const candidate of candidates) {
-    const existing = await prisma.assessmentAssignment.findFirst({
+    const existing = await prisma.programAssignment.findFirst({
       where: {
+        programId,
         candidateId: candidate.id,
-        assessmentId,
         status: "assigned",
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
     });
-    if (!existing) {
-      const accessToken = generateAccessToken();
-      const assignment = await prisma.assessmentAssignment.create({
-        data: { candidateId: candidate.id, assessmentId, accessToken, status: "assigned", expiresAt, durationMinutes },
-      });
-      created++;
-      const emailResult = await sendAssignmentAssignedEmail({
-        tenantId,
-        candidateEmail: candidate.email,
-        candidateName: candidate.fullName,
-        assessmentTitle: assessment.title,
-        link: appUrl(`/candidate/test/${assignment.id}?token=${accessToken}`),
-        durationMinutes: effectiveDurationMinutes,
-        expiresAt,
-      });
-      if (!emailResult.ok) emailFailures++;
-    }
+    if (existing) continue;
+
+    const assignment = await createProgramAssignmentRecord(program, candidate.id, expiresAt);
+    created++;
+    const emailResult = await sendAssignmentAssignedEmail({
+      tenantId,
+      candidateEmail: candidate.email,
+      candidateName: candidate.fullName,
+      assessmentTitle: program.title,
+      link: appUrl(`/candidate/program/${assignment.programAssignmentId}?token=${assignment.accessToken}`),
+      durationMinutes: null,
+      expiresAt,
+    });
+    if (!emailResult.ok) emailFailures++;
   }
 
   revalidatePath("/admin/assignments");
@@ -77,49 +75,38 @@ async function bulkAssignBatch(formData: FormData) {
 async function createAssignment(formData: FormData) {
   "use server";
   const candidateId = String(formData.get("candidateId") ?? "").trim();
-  const assessmentId = String(formData.get("assessmentId") ?? "").trim();
-  if (!candidateId || !assessmentId) redirect("/admin/assignments?status=error&reason=missing");
+  const programId = String(formData.get("programId") ?? "").trim();
+  if (!candidateId || !programId) redirect("/admin/assignments?status=error&reason=missing");
 
-  const expiresAtRaw = String(formData.get("expiresAt") ?? "").trim();
-  const durationRaw  = parseInt(String(formData.get("durationMinutes") ?? ""), 10);
-  const expiresAt       = expiresAtRaw ? new Date(expiresAtRaw) : null;
-  const durationMinutes = Number.isFinite(durationRaw) && durationRaw > 0 ? durationRaw : null;
-
+  const expiresAt = parseExpiresAt(formData);
   const tenantId = await getDefaultTenantId();
-  const [candidate, assessment] = await Promise.all([
+  const [candidate, program] = await Promise.all([
     prisma.candidate.findFirst({ where: { id: candidateId, tenantId }, select: { id: true, fullName: true, email: true } }),
-    prisma.assessment.findFirst({ where: { id: assessmentId, lifecycleStatus: "published" }, select: { id: true, title: true, durationMinutes: true } }),
+    loadAssignableProgram(programId),
   ]);
-  if (!candidate || !assessment) redirect("/admin/assignments?status=error&reason=not_found");
+  if (!candidate || !program) redirect("/admin/assignments?status=error&reason=not_found");
+  const reason = checkAssignabilityReason(program);
+  if (reason) redirect(`/admin/assignments?status=error&reason=${encodeURIComponent(reason)}`);
 
-  // Same fallback the candidate test page uses (assignment.durationMinutes ??
-  // assessment.durationMinutes) — a blank duration field means "use the
-  // assessment's own duration," not "no duration," so the invite email
-  // should reflect that instead of showing a blank value.
-  const effectiveDurationMinutes = durationMinutes ?? assessment.durationMinutes;
-
-  const existing = await prisma.assessmentAssignment.findFirst({
+  const existing = await prisma.programAssignment.findFirst({
     where: {
       candidateId,
-      assessmentId,
+      programId,
       status: "assigned",
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     },
   });
   if (existing) redirect("/admin/assignments?status=error&reason=duplicate");
 
-  const accessToken = generateAccessToken();
-  const assignment = await prisma.assessmentAssignment.create({
-    data: { candidateId, assessmentId, accessToken, status: "assigned", expiresAt, durationMinutes },
-  });
+  const assignment = await createProgramAssignmentRecord(program, candidateId, expiresAt);
 
   const emailResult = await sendAssignmentAssignedEmail({
     tenantId,
     candidateEmail: candidate.email,
     candidateName: candidate.fullName,
-    assessmentTitle: assessment.title,
-    link: appUrl(`/candidate/test/${assignment.id}?token=${accessToken}`),
-    durationMinutes: effectiveDurationMinutes,
+    assessmentTitle: program.title,
+    link: appUrl(`/candidate/program/${assignment.programAssignmentId}?token=${assignment.accessToken}`),
+    durationMinutes: null,
     expiresAt,
   });
 
@@ -127,39 +114,10 @@ async function createAssignment(formData: FormData) {
   redirect(`/admin/assignments?status=success${emailResult.ok ? "" : "&emailFailed=1"}`);
 }
 
-async function cancelAssignment(formData: FormData) {
-  "use server";
-  const id = String(formData.get("id") ?? "").trim();
-  if (!id) return;
-  await prisma.assessmentAssignment.update({
-    where: { id },
-    data: { status: "cancelled" },
-  }).catch(() => {});
-  revalidatePath("/admin/assignments");
-  revalidatePath("/candidate");
-}
-
-async function deleteAssignment(formData: FormData) {
-  "use server";
-  const id = String(formData.get("id") ?? "").trim();
-  if (!id) return;
-  await prisma.assessmentAssignment.delete({ where: { id } }).catch(() => {});
-  revalidatePath("/admin/assignments");
-  revalidatePath("/candidate");
-}
-
-async function deleteAssignmentById(id: string) {
-  "use server";
-  if (!id) return;
-  await prisma.assessmentAssignment.delete({ where: { id } }).catch(() => {});
-  revalidatePath("/admin/assignments");
-  revalidatePath("/candidate");
-}
-
 async function cancelAssignmentById(id: string) {
   "use server";
   if (!id) return;
-  await prisma.assessmentAssignment.update({ where: { id }, data: { status: "cancelled" } }).catch(() => {});
+  await prisma.programAssignment.update({ where: { id }, data: { status: "cancelled" } }).catch(() => {});
   revalidatePath("/admin/assignments");
   revalidatePath("/candidate");
 }
@@ -167,78 +125,33 @@ async function cancelAssignmentById(id: string) {
 async function bulkDeleteAssignments(ids: string[]) {
   "use server";
   if (!ids.length) return;
-  await prisma.assessmentAssignment.deleteMany({ where: { id: { in: ids } } }).catch(() => {});
+  await prisma.programAssignment.deleteMany({ where: { id: { in: ids } } }).catch(() => {});
   revalidatePath("/admin/assignments");
   revalidatePath("/candidate");
-}
-
-async function deleteBatchAssignments(formData: FormData) {
-  "use server";
-  const batchName = String(formData.get("batchName") ?? "").trim();
-  const assessmentId = String(formData.get("assessmentId") ?? "").trim();
-  if (!batchName) redirect("/admin/assignments?status=error&reason=missing");
-
-  const tenantId = await getDefaultTenantId();
-  const candidates = await prisma.candidate.findMany({
-    where: { tenantId, batchName },
-    select: { id: true },
-  });
-  if (candidates.length === 0) redirect("/admin/assignments?status=error&reason=batch_empty");
-
-  const candidateIds = candidates.map((c) => c.id);
-  const where = assessmentId
-    ? { candidateId: { in: candidateIds }, assessmentId }
-    : { candidateId: { in: candidateIds } };
-
-  const { count } = await prisma.assessmentAssignment.deleteMany({ where });
-
-  revalidatePath("/admin/assignments");
-  revalidatePath("/candidate");
-  redirect(`/admin/assignments?status=delete_batch_success&count=${count}&batchName=${encodeURIComponent(batchName)}`);
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const STATUS_STYLES: Record<string, { label: string; cls: string; dot: string }> = {
-  assigned: { label: "Pending", cls: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-400" },
-  completed: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
-  cancelled: { label: "Cancelled", cls: "bg-slate-50 text-slate-500 border-slate-200", dot: "bg-slate-300" },
-  expired: { label: "Expired", cls: "bg-red-50 text-red-700 border-red-200", dot: "bg-red-400" },
-};
-
-function fmtDate(d: Date) {
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
-
 export default async function AssignmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; reason?: string; assessmentId?: string; assessmentTitle?: string; count?: string; total?: string; batchName?: string; deletedCount?: string; filterStatus?: string; emailFailed?: string; emailFailures?: string }>;
+  searchParams: Promise<{ status?: string; reason?: string; programId?: string; count?: string; total?: string; batchName?: string; filterStatus?: string; emailFailed?: string; emailFailures?: string }>;
 }) {
   const sp = await searchParams;
   const tenantId = await getDefaultTenantId();
 
-  const [candidates, assessments, assignments, batchRows] = await Promise.all([
+  const [candidates, programsRaw, assignments, batchRows] = await Promise.all([
     prisma.candidate.findMany({ where: { tenantId }, orderBy: { fullName: "asc" }, select: { id: true, fullName: true, email: true } }),
-    prisma.assessment.findMany({
-      where: {
-        lifecycleStatus: "published",
-        assessmentType: { not: "KNOWLEDGE_MCQ" },
-        OR: [
-          { questions: { some: {} } },
-          { items: { some: {} } },
-          { triadGroups: { some: {} } },
-          { compositionItems: { some: {} } },
-        ],
-      },
+    prisma.program.findMany({
+      where: { tenantId },
       orderBy: { createdAt: "desc" },
-      select: { id: true, title: true },
+      select: { id: true, title: true, assessments: { select: { assessment: { select: { lifecycleStatus: true } } } } },
     }),
-    prisma.assessmentAssignment.findMany({
+    prisma.programAssignment.findMany({
       where: { candidate: { tenantId } },
       include: {
         candidate: { select: { fullName: true, email: true, batchName: true } },
-        assessment: { select: { id: true, title: true } },
+        program: { select: { id: true, title: true } },
         result: { select: { id: true } },
       },
       orderBy: { assignedAt: "desc" },
@@ -250,21 +163,25 @@ export default async function AssignmentsPage({
     }),
   ]);
 
+  // Only fully-published Programs (every attached module published, at least one attached) can be assigned — same rule the Program builder's own assign form enforces.
+  const programs = programsRaw
+    .filter((p) => p.assessments.length > 0 && p.assessments.every((pa) => pa.assessment.lifecycleStatus === "published"))
+    .map((p) => ({ id: p.id, title: p.title }));
+
   const batches = [...new Set(batchRows.map((b) => b.batchName).filter((b): b is string => Boolean(b)))];
 
   const pending = assignments.filter((a) => a.status === "assigned").length;
   const completed = assignments.filter((a) => a.status === "completed").length;
-  const cancelled = assignments.filter((a) => a.status === "cancelled").length;
 
   return (
     <main className="tg-page space-y-6">
       <PageHeader
-        title="Assign Assessments"
-        subtitle="Assign assessments to candidates and track their status."
+        title="Assign Program"
+        subtitle="Assign a Program — its modules bundled into one candidate-facing link — and track status."
         right={
           <div className="flex items-center gap-3">
-            <Link href="/admin/assessments" className="inline-flex items-center gap-1 text-sm font-medium text-[#64748B] hover:text-[#334155] transition">
-              ← Back to assessments
+            <Link href="/admin/programs" className="inline-flex items-center gap-1 text-sm font-medium text-[#64748B] hover:text-[#334155] transition">
+              ← Back to programs
             </Link>
             <a href="#new-assignment" className="tg-button-primary text-sm">+ New Assignment</a>
           </div>
@@ -278,7 +195,7 @@ export default async function AssignmentsPage({
           message={
             sp.emailFailed
               ? "Assignment created, but the notification email could not be sent. Check the Brevo configuration."
-              : "Assignment created. The candidate has been emailed a link to start the assessment."
+              : "Assignment created. The candidate has been emailed a link to start the Program."
           }
         />
       )}
@@ -291,19 +208,15 @@ export default async function AssignmentsPage({
           }
         />
       )}
-      {sp.status === "delete_batch_success" && (
-        <AutoDismissToast
-          message={`Deleted ${sp.count} assignment${Number(sp.count) !== 1 ? "s" : ""} from batch "${sp.batchName}".`}
-        />
-      )}
       {sp.status === "error" && (
         <AutoDismissToast
           variant="error"
           message={
-            sp.reason === "missing" ? "Please select both a candidate/batch and an assessment." :
-            sp.reason === "not_found" ? "Candidate or assessment not found. Only published assessments can be assigned." :
-            sp.reason === "duplicate" ? "This candidate already has an active assignment for that assessment." :
+            sp.reason === "missing" ? "Please select both a candidate/batch and a Program." :
+            sp.reason === "not_found" ? "Candidate or Program not found." :
+            sp.reason === "duplicate" ? "This candidate already has an active assignment for that Program." :
             sp.reason === "batch_empty" ? "No candidates found in that batch." :
+            sp.reason ? decodeURIComponent(sp.reason) :
             "Could not create assignment — please try again."
           }
         />
@@ -329,17 +242,17 @@ export default async function AssignmentsPage({
         })}
       </div>
 
-      <AssignmentForm
+      <ProgramAssignmentForm
         candidates={candidates}
-        assessments={assessments}
+        programs={programs}
         batches={batches}
-        defaultAssessmentId={sp.assessmentId}
+        defaultProgramId={sp.programId}
         defaultBatchName={sp.batchName}
         createAssignment={createAssignment}
         bulkAssignBatch={bulkAssignBatch}
       />
 
-      <AssignmentsTable
+      <ProgramAssignmentsTable
         assignments={assignments.map((a) => ({
           ...a,
           assignedAt: a.assignedAt.toISOString(),

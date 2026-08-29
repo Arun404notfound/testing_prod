@@ -22,7 +22,18 @@ function normalizeValue(value: unknown) {
 }
 
 function parseWorkbookRows(fileName: string, bytes: Uint8Array): ParsedRow[] {
-  const workbook = XLSX.read(bytes, { type: "array" });
+  // CSV has no built-in encoding declaration, so handing the raw bytes to
+  // XLSX.read({type:"array"}) leaves it to guess a codepage — it doesn't
+  // guess UTF-8, so any non-ASCII character (em dashes, curly quotes,
+  // accented names, ₹, …) comes out mangled. Decoding as UTF-8 ourselves
+  // first and reading as a string sidesteps the guess entirely. Real .xlsx
+  // files are a binary zip format, not decodable as text, so those still go
+  // through the byte-array reader (SheetJS parses their internal XML UTF-8
+  // correctly on its own — the bug is specific to plain CSV).
+  const isCsv = fileName.toLowerCase().endsWith(".csv");
+  const workbook = isCsv
+    ? XLSX.read(new TextDecoder("utf-8").decode(bytes), { type: "string" })
+    : XLSX.read(bytes, { type: "array" });
   const firstSheetName = workbook.SheetNames[0];
   if (!firstSheetName) return [];
 
@@ -49,6 +60,21 @@ function parseWorkbookRows(fileName: string, bytes: Uint8Array): ParsedRow[] {
 
 function missingRequired(row: ParsedRow, required: string[]) {
   return required.filter((key) => !row[key]);
+}
+
+/** Bulk-import media is a URL to an already-hosted file, not an embedded/uploaded
+ *  file — spreadsheets have no reliable way to carry binary attachments per row.
+ *  Empty is always fine (media is optional everywhere); a non-empty value must at
+ *  least look like a link, to catch pasted file paths or stray text early. */
+function isValidMediaUrl(value: string): boolean {
+  if (!value) return true;
+  return /^https?:\/\//i.test(value);
+}
+
+/** Reads the shared `imageUrl1`/`imageUrl2`/`imageUrl3` columns, dropping blanks — same
+ *  "up to 3, all optional" shape as the interactive forms' `QuestionImagesField`. */
+function collectImageUrls(row: ParsedRow): string[] {
+  return [row.imageurl1, row.imageurl2, row.imageurl3].filter((v): v is string => Boolean(v));
 }
 
 export async function processImportFile(args: {
@@ -78,23 +104,34 @@ export async function processImportFile(args: {
   const errors: ImportResult["errors"] = [];
   let successRows = 0;
 
-  const likertScale = await prisma.likertScale.upsert({
-    where: {
-      name_minValue_maxValue: {
-        name: "Agreement 1-5",
-        minValue: 1,
-        maxValue: 5,
-      },
-    },
-    update: {},
-    create: {
-      name: "Agreement 1-5",
-      minValue: 1,
-      maxValue: 5,
-      minLabel: "Strongly disagree",
-      maxLabel: "Strongly agree",
-    },
-  });
+  // Scale columns are optional — blank means "use the same shared 1-5 scale
+  // every previous version of this import used", so old sheets keep behaving
+  // identically. A file can mix rows with and without custom scale columns,
+  // so this resolves (and upserts) per row rather than once up front, caching
+  // by scale identity so a file with many rows on the same custom scale only
+  // upserts it once.
+  const likertScaleCache = new Map<string, { id: string }>();
+  async function resolveLikertScale(row: ParsedRow) {
+    const hasCustomScale = Boolean(row.scaleminvalue || row.scalemaxvalue || row.scaleminlabel || row.scalemaxlabel);
+    const minValue = hasCustomScale ? parseInt(row.scaleminvalue || "1", 10) : 1;
+    const maxValue = hasCustomScale ? parseInt(row.scalemaxvalue || "5", 10) : 5;
+    const minLabel = hasCustomScale ? (row.scaleminlabel || "Strongly disagree") : "Strongly disagree";
+    const maxLabel = hasCustomScale ? (row.scalemaxlabel || "Strongly agree") : "Strongly agree";
+    if (!Number.isInteger(minValue) || !Number.isInteger(maxValue) || maxValue <= minValue) {
+      throw new Error("scaleMinValue/scaleMaxValue must be whole numbers with scaleMaxValue greater than scaleMinValue");
+    }
+    const name = hasCustomScale ? `Bulk Import ${minValue}-${maxValue}` : "Agreement 1-5";
+    const cacheKey = `${name}|${minValue}|${maxValue}`;
+    const cached = likertScaleCache.get(cacheKey);
+    if (cached) return cached;
+    const scale = await prisma.likertScale.upsert({
+      where: { name_minValue_maxValue: { name, minValue, maxValue } },
+      update: hasCustomScale ? { minLabel, maxLabel } : {},
+      create: { name, minValue, maxValue, minLabel, maxLabel },
+    });
+    likertScaleCache.set(cacheKey, scale);
+    return scale;
+  }
 
   let likertAssessmentId: string | null = null;
   const likertSectionByTitle = new Map<string, string>();
@@ -210,6 +247,13 @@ export async function processImportFile(args: {
           throw new Error("polarity must be POSITIVE or NEGATIVE");
         }
 
+        const imageUrls = collectImageUrls(row);
+        if ([...imageUrls, row.audiourl].some((v) => v && !isValidMediaUrl(v))) {
+          throw new Error("imageUrl1/2/3 and audioUrl must be full http(s) links, or left blank");
+        }
+
+        const likertScale = await resolveLikertScale(row);
+
         if (!likertAssessmentId) {
           const assessment = await prisma.assessment.create({
             data: {
@@ -257,19 +301,17 @@ export async function processImportFile(args: {
             definition: row.definition,
             polarity: normalizedPolarity as "POSITIVE" | "NEGATIVE",
             likertScaleId: likertScale.id,
+            audioUrl: row.audiourl || null,
+            images: imageUrls.length > 0 ? { create: imageUrls.map((url, i) => ({ url, displayOrder: i })) } : undefined,
           },
         });
       } else if (args.importType === "SJT_ITEMS") {
         const required = [
           "prompt",
           "attribute",
-          "option1",
           "option1score",
-          "option2",
           "option2score",
-          "option3",
           "option3score",
-          "option4",
           "option4score",
         ];
         const missing = missingRequired(row, required);
@@ -289,13 +331,24 @@ export async function processImportFile(args: {
           throw new Error(`Unknown attribute: "${row.attribute}"`);
         }
 
+        const imageUrls = collectImageUrls(row);
         const opts = [1, 2, 3, 4].map((n) => ({
           label: row[`option${n}`],
           scoreValue: Number(row[`option${n}score`]),
+          imageUrl: row[`option${n}imageurl`] || null,
         }));
+        // A response counts even with no text label as long as it has an image.
+        const missingResponse = opts.find((o) => !o.label && !o.imageUrl);
+        if (missingResponse) {
+          throw new Error("Each option needs response text, an option image URL, or both");
+        }
         const badScore = opts.find((o) => !Number.isFinite(o.scoreValue));
         if (badScore) {
           throw new Error(`Option scores must be numbers (got "${badScore.scoreValue}")`);
+        }
+        const badUrl = [...imageUrls, row.audiourl, ...opts.map((o) => o.imageUrl)].find((v) => v && !isValidMediaUrl(v));
+        if (badUrl) {
+          throw new Error("imageUrl1/2/3, audioUrl, and option image URLs must be full http(s) links, or left blank");
         }
         const bestScore = Math.max(...opts.map((o) => o.scoreValue));
 
@@ -316,13 +369,16 @@ export async function processImportFile(args: {
             definition: attribute.name,
             attributeId,
             displayOrder: sjtNextDisplayOrder,
+            audioUrl: row.audiourl || null,
+            images: imageUrls.length > 0 ? { create: imageUrls.map((url, i) => ({ url, displayOrder: i })) } : undefined,
             options: {
               create: opts.map((o, i) => ({
                 label: o.label,
-                value: o.label,
+                value: o.label || `Option ${i + 1}`,
                 displayOrder: i,
                 isCorrect: o.scoreValue === bestScore,
                 scoreValue: o.scoreValue,
+                imageUrl: o.imageUrl,
               })),
             },
           },
@@ -565,39 +621,86 @@ async function processTriadImport(
   } satisfies ImportResult;
 }
 
-const CASE_STUDY_ROW_KEYS = [
-  "casestudycode",
-  "title",
-  "passagetext",
-  "subquestionnumber",
-  "attribute",
-  "questiontext",
-  "option1",
-  "option2",
-  "option3",
-  "option4",
-  "correctoption",
-] as const;
-
 type CaseStudyGroupEntry = { rowNumber: number; row: ParsedRow };
+type SubQuestionType = "MCQ" | "LIKERT" | "TRIAD";
 
-function validateCaseStudyRow(entry: CaseStudyGroupEntry): string | null {
+/** Always required, regardless of subQuestionType. */
+const CASE_STUDY_BASE_ROW_KEYS = ["casestudycode", "title", "passagetext", "subquestionnumber", "questiontext"] as const;
+
+function validateCaseStudyBaseRow(entry: CaseStudyGroupEntry): string | null {
   const { rowNumber, row } = entry;
-  const missing = CASE_STUDY_ROW_KEYS.filter((key) => !String(row[key] ?? "").trim());
+  const missing = CASE_STUDY_BASE_ROW_KEYS.filter((key) => !String(row[key] ?? "").trim());
   if (missing.length > 0) {
     return `Row ${rowNumber}: Missing required fields: ${missing.join(", ")}`;
   }
-
   const subNum = Number(String(row.subquestionnumber).trim());
   if (!Number.isInteger(subNum) || subNum < 1) {
     return `Row ${rowNumber}: subQuestionNumber must be a positive integer`;
   }
+  return null;
+}
 
-  const correctOption = Number(String(row.correctoption).trim());
-  if (![1, 2, 3, 4].includes(correctOption)) {
-    return `Row ${rowNumber}: correctOption must be 1, 2, 3, or 4`;
+/** All rows sharing one (caseStudyCode, subQuestionNumber) must declare the same
+ *  subQuestionType (or leave it blank, which defaults to MCQ) — this is what lets
+ *  a Triad sub-question span 3 rows while MCQ/Likert stay 1 row each. */
+function resolveSubQuestionType(entries: CaseStudyGroupEntry[]): SubQuestionType | null {
+  const declared = new Set(
+    entries.map((e) => e.row.subquestiontype?.trim().toUpperCase()).filter((v): v is string => Boolean(v)),
+  );
+  if (declared.size > 1) return null;
+  const type = [...declared][0] ?? "MCQ";
+  return type === "MCQ" || type === "LIKERT" || type === "TRIAD" ? type : null;
+}
+
+function validateMcqSubQuestion(entry: CaseStudyGroupEntry): string | null {
+  const { rowNumber, row } = entry;
+  if (!row.attribute?.trim()) return `Row ${rowNumber}: attribute is required for an MCQ sub-question`;
+  const correctOption = Number(String(row.correctoption ?? "").trim());
+  if (![1, 2, 3, 4].includes(correctOption)) return `Row ${rowNumber}: correctOption must be 1, 2, 3, or 4`;
+  // An option counts even with no text label as long as it has an image.
+  const missingOption = [1, 2, 3, 4].find((n) => !row[`option${n}`]?.trim() && !row[`option${n}imageurl`]?.trim());
+  if (missingOption) return `Row ${rowNumber}: option${missingOption} needs text, an option image URL, or both`;
+  const badUrl = [...collectImageUrls(row), row.audiourl, ...[1, 2, 3, 4].map((n) => row[`option${n}imageurl`])].find(
+    (v) => v && !isValidMediaUrl(v),
+  );
+  if (badUrl) return `Row ${rowNumber}: image/audio columns must be full http(s) links, or left blank`;
+  return null;
+}
+
+function validateLikertSubQuestion(entry: CaseStudyGroupEntry): string | null {
+  const { rowNumber, row } = entry;
+  if (!row.attribute?.trim()) return `Row ${rowNumber}: attribute is required for a Likert sub-question`;
+  const hasCustomScale = Boolean(row.scaleminvalue || row.scalemaxvalue || row.scaleminlabel || row.scalemaxlabel);
+  if (hasCustomScale) {
+    const min = parseInt(row.scaleminvalue || "1", 10);
+    const max = parseInt(row.scalemaxvalue || "5", 10);
+    if (!Number.isInteger(min) || !Number.isInteger(max) || max <= min) {
+      return `Row ${rowNumber}: scaleMinValue/scaleMaxValue must be whole numbers with scaleMaxValue greater than scaleMinValue`;
+    }
   }
+  const badUrl = [...collectImageUrls(row), row.audiourl].find((v) => v && !isValidMediaUrl(v));
+  if (badUrl) return `Row ${rowNumber}: image/audio columns must be full http(s) links, or left blank`;
+  return null;
+}
 
+function validateTriadSubQuestion(entries: CaseStudyGroupEntry[]): string | null {
+  if (entries.length !== 3) {
+    return `must contain exactly 3 rows for subQuestionType TRIAD (one per statementNumber), found ${entries.length}`;
+  }
+  for (const e of entries) {
+    if (!e.row.statementtext?.trim() || !e.row.statementattribute?.trim()) {
+      return `Row ${e.rowNumber}: statementText and statementAttribute are required for a Triad statement row`;
+    }
+    const polarity = e.row.statementpolarity?.trim().toUpperCase();
+    if (polarity !== "POSITIVE" && polarity !== "NEGATIVE") {
+      return `Row ${e.rowNumber}: statementPolarity must be POSITIVE or NEGATIVE`;
+    }
+  }
+  const nums = entries.map((e) => Number(e.row.statementnumber));
+  const uniq = new Set(nums);
+  if (uniq.size !== 3 || ![1, 2, 3].every((n) => uniq.has(n))) {
+    return "statementNumber must be 1, 2, and 3 (each exactly once) across the 3 rows for this sub-question";
+  }
   return null;
 }
 
@@ -609,13 +712,21 @@ function validateCaseStudyRow(entry: CaseStudyGroupEntry): string | null {
  * persisted. Sub-question count is whatever rows share a code (1 or more),
  * matching the admin form's variable "Add sub-question" count instead of a
  * fixed number.
+ *
+ * A sub-question is 1 row for MCQ/LIKERT, or 3 rows (sharing subQuestionNumber,
+ * one per statementNumber) for TRIAD — mirrors the interactive Case Study
+ * form's MCQ/Likert/Triad type selector (`case-study-form.tsx`) and its
+ * server action (`createCaseStudy` in `psychometric/page.tsx`), including that
+ * action's fix for mixing a scalar `attributeId` with a nested `likertScale`
+ * relation (resolved as a separate upsert below, then passed as a scalar
+ * `likertScaleId`, not `likertScale: { connectOrCreate }`).
  */
 async function processCaseStudyImport(
   rows: ParsedRow[],
   tenantId: string,
 ): Promise<ImportResult> {
   const errors: ImportResult["errors"] = [];
-  const groupMap = new Map<string, CaseStudyGroupEntry[]>();
+  const caseStudyMap = new Map<string, CaseStudyGroupEntry[]>();
 
   for (let index = 0; index < rows.length; index += 1) {
     const rowNumber = index + 2;
@@ -625,12 +736,12 @@ async function processCaseStudyImport(
       errors.push({ rowNumber, message: "caseStudyCode is required." });
       continue;
     }
-    const list = groupMap.get(code) ?? [];
+    const list = caseStudyMap.get(code) ?? [];
     list.push({ rowNumber, row });
-    groupMap.set(code, list);
+    caseStudyMap.set(code, list);
   }
 
-  if (groupMap.size === 0) {
+  if (caseStudyMap.size === 0) {
     return {
       totalRows: rows.length,
       successRows: 0,
@@ -644,6 +755,25 @@ async function processCaseStudyImport(
     select: { id: true, name: true, category: true },
   });
   const attrByName = new Map(attrs.map((a) => [a.name.toLowerCase(), a]));
+  const likertScaleCache = new Map<string, { id: string }>();
+  async function resolveLikertScale(row: ParsedRow) {
+    const hasCustomScale = Boolean(row.scaleminvalue || row.scalemaxvalue || row.scaleminlabel || row.scalemaxlabel);
+    const minValue = hasCustomScale ? parseInt(row.scaleminvalue || "1", 10) : 1;
+    const maxValue = hasCustomScale ? parseInt(row.scalemaxvalue || "5", 10) : 5;
+    const minLabel = hasCustomScale ? (row.scaleminlabel || "Strongly Disagree") : "Strongly Disagree";
+    const maxLabel = hasCustomScale ? (row.scalemaxlabel || "Strongly Agree") : "Strongly Agree";
+    const name = hasCustomScale ? `Bulk Import ${minValue}-${maxValue}` : "Case Study 1-5";
+    const cacheKey = `${name}|${minValue}|${maxValue}`;
+    const cached = likertScaleCache.get(cacheKey);
+    if (cached) return cached;
+    const scale = await prisma.likertScale.upsert({
+      where: { name_minValue_maxValue: { name, minValue, maxValue } },
+      update: hasCustomScale ? { minLabel, maxLabel } : {},
+      create: { name, minValue, maxValue, minLabel, maxLabel },
+    });
+    likertScaleCache.set(cacheKey, scale);
+    return scale;
+  }
 
   const nextOrderAgg = await prisma.caseStudy.aggregate({
     where: { sectionId: null },
@@ -653,84 +783,200 @@ async function processCaseStudyImport(
 
   let successRows = 0;
 
-  for (const [code, entries] of groupMap) {
-    const fieldErrors: ImportResult["errors"] = [];
-    for (const entry of entries) {
-      const msg = validateCaseStudyRow(entry);
-      if (msg) fieldErrors.push({ rowNumber: entry.rowNumber, message: msg });
+  for (const [code, allEntries] of caseStudyMap) {
+    const baseErrors: ImportResult["errors"] = [];
+    for (const entry of allEntries) {
+      const msg = validateCaseStudyBaseRow(entry);
+      if (msg) baseErrors.push({ rowNumber: entry.rowNumber, message: msg });
     }
-    if (fieldErrors.length > 0) {
-      errors.push(...fieldErrors);
+    if (baseErrors.length > 0) {
+      errors.push(...baseErrors);
       continue;
     }
 
-    const subNumbers = entries.map((e) => Number(e.row.subquestionnumber));
-    const uniqueNums = new Set(subNumbers);
-    const expected = Array.from({ length: entries.length }, (_, i) => i + 1);
-    if (uniqueNums.size !== entries.length || !expected.every((n) => uniqueNums.has(n))) {
-      for (const entry of entries) {
+    // Group by subQuestionNumber — 1 row for MCQ/LIKERT, 3 rows (one per
+    // statementNumber) for TRIAD.
+    const subMap = new Map<number, CaseStudyGroupEntry[]>();
+    for (const entry of allEntries) {
+      const subNum = Number(entry.row.subquestionnumber);
+      const list = subMap.get(subNum) ?? [];
+      list.push(entry);
+      subMap.set(subNum, list);
+    }
+    const subNumbers = [...subMap.keys()].sort((a, b) => a - b);
+    const expected = Array.from({ length: subNumbers.length }, (_, i) => i + 1);
+    if (!expected.every((n, i) => subNumbers[i] === n)) {
+      for (const entry of allEntries) {
         errors.push({
           rowNumber: entry.rowNumber,
-          message: `Group "${code}": subQuestionNumber must be 1..${entries.length}, each exactly once within the group.`,
+          message: `Group "${code}": subQuestionNumber must be 1..${subNumbers.length}, each present exactly once.`,
         });
       }
       continue;
     }
 
-    const missingAttrs = entries
-      .map((e) => e.row.attribute.trim())
-      .filter((name) => !attrByName.has(name.toLowerCase()));
+    type ResolvedSub = { subNum: number; type: SubQuestionType; entries: CaseStudyGroupEntry[] };
+    const resolvedSubs: ResolvedSub[] = [];
+    let groupHasError = false;
+
+    for (const subNum of subNumbers) {
+      const entries = subMap.get(subNum)!;
+      const type = resolveSubQuestionType(entries);
+      if (!type) {
+        for (const entry of entries) {
+          errors.push({ rowNumber: entry.rowNumber, message: `Row ${entry.rowNumber}: subQuestionType must be MCQ, LIKERT, or TRIAD (or left blank for MCQ)` });
+        }
+        groupHasError = true;
+        continue;
+      }
+      if (type === "TRIAD") {
+        const msg = validateTriadSubQuestion(entries);
+        if (msg) {
+          for (const entry of entries) errors.push({ rowNumber: entry.rowNumber, message: `Group "${code}", sub-question ${subNum}: ${msg}` });
+          groupHasError = true;
+          continue;
+        }
+      } else {
+        if (entries.length !== 1) {
+          for (const entry of entries) {
+            errors.push({
+              rowNumber: entry.rowNumber,
+              message: `Group "${code}", sub-question ${subNum}: subQuestionType ${type} must have exactly 1 row (found ${entries.length}).`,
+            });
+          }
+          groupHasError = true;
+          continue;
+        }
+        const msg = type === "MCQ" ? validateMcqSubQuestion(entries[0]) : validateLikertSubQuestion(entries[0]);
+        if (msg) {
+          errors.push({ rowNumber: entries[0].rowNumber, message: msg });
+          groupHasError = true;
+          continue;
+        }
+      }
+      resolvedSubs.push({ subNum, type, entries });
+    }
+    if (groupHasError) continue;
+
+    const referencedAttrNames = new Set<string>();
+    for (const sub of resolvedSubs) {
+      if (sub.type === "TRIAD") {
+        for (const e of sub.entries) referencedAttrNames.add(e.row.statementattribute.trim().toLowerCase());
+      } else {
+        referencedAttrNames.add(sub.entries[0].row.attribute.trim().toLowerCase());
+      }
+    }
+    const missingAttrs = [...referencedAttrNames].filter((name) => !attrByName.has(name));
     if (missingAttrs.length > 0) {
-      for (const entry of entries) {
-        errors.push({
-          rowNumber: entry.rowNumber,
-          message: `Group "${code}": unknown attribute "${entry.row.attribute}"`,
-        });
+      for (const entry of allEntries) {
+        errors.push({ rowNumber: entry.rowNumber, message: `Group "${code}": unknown attribute "${missingAttrs.join(", ")}"` });
       }
       continue;
     }
 
-    const sorted = entries.slice().sort((a, b) => Number(a.row.subquestionnumber) - Number(b.row.subquestionnumber));
-    const first = sorted[0].row;
+    const first = allEntries[0].row;
+    const mcqAndLikert = resolvedSubs.filter((s) => s.type !== "TRIAD");
+    const triads = resolvedSubs.filter((s) => s.type === "TRIAD");
+    // Shared displayOrder index across both source tables (AssessmentItem for
+    // MCQ/Likert, TriadGroup for Triad) — same pattern the interactive form
+    // uses, so sub-questions render back in file order regardless of type.
+    const displayOrderBySubNum = new Map(resolvedSubs.map((s, i) => [s.subNum, i]));
 
     try {
-      await prisma.caseStudy.create({
-        data: {
-          tenantId,
-          title: first.title.trim(),
-          passageText: first.passagetext.trim(),
-          displayOrder: nextDisplayOrder,
-          subQuestions: {
-            create: sorted.map((entry, i) => {
-              const attr = attrByName.get(entry.row.attribute.trim().toLowerCase())!;
-              const options = [1, 2, 3, 4].map((n) => entry.row[`option${n}`].trim());
-              const correctOption = Number(entry.row.correctoption);
-              return {
-                itemType: "MCQ_SINGLE" as const,
-                prompt: entry.row.questiontext.trim(),
-                displayOrder: i,
-                factor: attr.category || "General",
-                trait: attr.name,
-                definition: attr.name,
-                attributeId: attr.id,
-                options: {
-                  create: options.map((label, oi) => ({
-                    label,
-                    value: label,
-                    displayOrder: oi,
-                    isCorrect: oi + 1 === correctOption,
-                  })),
-                },
-              };
-            }),
+      await prisma.$transaction(async (tx) => {
+        const caseStudy = await tx.caseStudy.create({
+          data: {
+            tenantId,
+            title: first.title.trim(),
+            passageText: first.passagetext.trim(),
+            displayOrder: nextDisplayOrder,
+            subQuestions: {
+              create: await Promise.all(
+                mcqAndLikert.map(async (sub) => {
+                  const row = sub.entries[0].row;
+                  const attr = attrByName.get(row.attribute.trim().toLowerCase())!;
+                  const imageUrls = collectImageUrls(row);
+                  const images = imageUrls.length > 0 ? { create: imageUrls.map((url, ii) => ({ url, displayOrder: ii })) } : undefined;
+                  const audioUrl = row.audiourl || null;
+                  const displayOrder = displayOrderBySubNum.get(sub.subNum)!;
+
+                  if (sub.type === "LIKERT") {
+                    const scale = await resolveLikertScale(row);
+                    return {
+                      itemType: "LIKERT" as const,
+                      prompt: row.questiontext.trim(),
+                      displayOrder,
+                      factor: attr.category || "General",
+                      trait: attr.name,
+                      definition: attr.name,
+                      attributeId: attr.id,
+                      likertScaleId: scale.id,
+                      audioUrl,
+                      images,
+                    };
+                  }
+                  const options = [1, 2, 3, 4].map((n) => ({
+                    label: row[`option${n}`]?.trim() ?? "",
+                    imageUrl: row[`option${n}imageurl`] || null,
+                  }));
+                  const correctOption = Number(row.correctoption);
+                  return {
+                    itemType: "MCQ_SINGLE" as const,
+                    prompt: row.questiontext.trim(),
+                    displayOrder,
+                    factor: attr.category || "General",
+                    trait: attr.name,
+                    definition: attr.name,
+                    attributeId: attr.id,
+                    audioUrl,
+                    images,
+                    options: {
+                      create: options.map((o, oi) => ({
+                        label: o.label,
+                        value: o.label || `Option ${oi + 1}`,
+                        displayOrder: oi,
+                        isCorrect: oi + 1 === correctOption,
+                        imageUrl: o.imageUrl,
+                      })),
+                    },
+                  };
+                }),
+              ),
+            },
           },
-        },
+        });
+
+        for (const sub of triads) {
+          const sorted = sub.entries.slice().sort((a, b) => Number(a.row.statementnumber) - Number(b.row.statementnumber));
+          await tx.triadGroup.create({
+            data: {
+              tenantId,
+              caseStudyId: caseStudy.id,
+              title: sorted[0].row.questiontext.trim(),
+              displayOrder: displayOrderBySubNum.get(sub.subNum)!,
+              statements: {
+                create: sorted.map((entry, j) => {
+                  const attr = attrByName.get(entry.row.statementattribute.trim().toLowerCase())!;
+                  return {
+                    statementText: entry.row.statementtext.trim(),
+                    displayOrder: j,
+                    factor: attr.category || "General",
+                    trait: attr.name,
+                    definition: attr.name,
+                    polarity: entry.row.statementpolarity.trim().toUpperCase() as "POSITIVE" | "NEGATIVE",
+                    attributeId: attr.id,
+                  };
+                }),
+              },
+            },
+          });
+        }
       });
       nextDisplayOrder += 1;
-      successRows += entries.length;
+      successRows += allEntries.length;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create case study.";
-      for (const entry of entries) {
+      for (const entry of allEntries) {
         errors.push({ rowNumber: entry.rowNumber, message });
       }
     }

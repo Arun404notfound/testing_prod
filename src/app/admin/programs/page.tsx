@@ -103,7 +103,9 @@ export default async function ProgramsPage() {
           <div className="border-b border-amber-200 bg-amber-100/50 px-5 py-3">
             <h2 className="text-sm font-semibold text-amber-900">Unattached modules ({unattachedAssessments.length})</h2>
             <p className="mt-0.5 text-xs text-amber-800">
-              Assessments not attached to any Program — deleting a Program only detaches its modules, it never deletes them, so they land here.
+              Assessments not attached to any Program. Deleting a Program deletes its modules too — except a module still attached to another Program
+              (left alone) or blocked from deletion because it has candidate data (stays attached until you detach it or resolve that data); either of
+              those land here once manually detached.
             </p>
           </div>
           <div className="divide-y divide-amber-100">

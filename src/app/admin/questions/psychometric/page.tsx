@@ -162,7 +162,8 @@ async function createSjtQuestion(formData: FormData) {
 
   if (
     !prompt || !attributeId ||
-    opts.some((o) => !o.label || !Number.isFinite(o.scoreValue))
+    // A response counts even with no text label as long as it has an image.
+    opts.some((o) => (!o.label && !o.imageUrl) || !Number.isFinite(o.scoreValue))
   ) {
     redirect("/admin/questions/psychometric?tab=sjt&status=error&reason=missing");
   }
@@ -190,7 +191,7 @@ async function createSjtQuestion(formData: FormData) {
         options: {
           create: opts.map((o, i) => ({
             label: o.label,
-            value: o.label,
+            value: o.label || `Response ${i + 1}`,
             displayOrder: i,
             // Best-scoring option flagged as "correct" for admin-review display only —
             // scoring itself uses each option's scoreValue directly (weighted partial credit).
@@ -215,6 +216,22 @@ async function deleteSjtItem(formData: FormData) {
   redirect("/admin/questions/psychometric?tab=sjt");
 }
 
+type CaseStudySubMcq = {
+  index: number; type: "MCQ"; prompt: string; attributeId: string; options: string[]; correctOption: number;
+  optionImages: (string | null)[]; images: string[]; audioUrl: string | null;
+};
+type CaseStudySubLikert = {
+  index: number; type: "LIKERT"; prompt: string; attributeId: string;
+  minValue: number; maxValue: number; minLabel: string; maxLabel: string;
+  images: string[]; audioUrl: string | null;
+};
+type CaseStudySubTriad = {
+  index: number; type: "TRIAD"; prompt: string;
+  statements: { text: string; attributeId: string; polarity: "POSITIVE" | "NEGATIVE" }[];
+  images: string[]; audioUrl: string | null;
+};
+type CaseStudySub = CaseStudySubMcq | CaseStudySubLikert | CaseStudySubTriad;
+
 async function createCaseStudy(formData: FormData) {
   "use server";
   const title = String(formData.get("title") ?? "").trim();
@@ -223,81 +240,180 @@ async function createCaseStudy(formData: FormData) {
   // Sub-question count is admin-controlled (see CaseStudyForm's "Add
   // sub-question" button) rather than a fixed number, so read as many
   // `sub_${i}_*` groups as were actually submitted instead of assuming 3.
-  const subs: Array<{
-    prompt: string; attributeId: string; options: string[]; correctOption: number;
-    optionImages: (string | null)[]; images: string[]; audioUrl: string | null;
-  }> = [];
+  // Each sub-question carries its own `type` (MCQ/Likert/Triad, from a
+  // hidden `sub_${i}_type` input) — MCQ/Likert become AssessmentItem rows
+  // under the CaseStudy, Triad becomes a TriadGroup row under it instead
+  // (see prisma/schema.prisma: TriadGroup.caseStudyId).
+  const subs: CaseStudySub[] = [];
   for (let i = 0; formData.has(`sub_${i}_prompt`); i++) {
-    const optionImages = await Promise.all([1, 2, 3, 4].map((n) => collectOptionImage(formData, `sub_${i}_img_opt${n}`)));
+    const type = (String(formData.get(`sub_${i}_type`) ?? "MCQ") as CaseStudySub["type"]);
+    const prompt = String(formData.get(`sub_${i}_prompt`) ?? "").trim();
     const images = await collectQuestionImages(formData, `sub_${i}_img`);
     const audioUrl = await collectQuestionAudio(formData, `sub_${i}_audio`);
-    subs.push({
-      prompt: String(formData.get(`sub_${i}_prompt`) ?? "").trim(),
-      attributeId: String(formData.get(`sub_${i}_attributeId`) ?? "").trim(),
-      options: [1, 2, 3, 4].map((n) => String(formData.get(`sub_${i}_option${n}`) ?? "").trim()),
-      correctOption: Number(formData.get(`sub_${i}_correctOption`)),
-      optionImages,
-      images,
-      audioUrl,
-    });
+
+    if (type === "LIKERT") {
+      const minValue = parseInt(String(formData.get(`sub_${i}_minValue`) ?? "1"), 10);
+      const maxValue = parseInt(String(formData.get(`sub_${i}_maxValue`) ?? "5"), 10);
+      subs.push({
+        index: i, type, prompt,
+        attributeId: String(formData.get(`sub_${i}_attributeId`) ?? "").trim(),
+        minValue: Number.isFinite(minValue) ? minValue : 1,
+        maxValue: Number.isFinite(maxValue) ? maxValue : 5,
+        minLabel: String(formData.get(`sub_${i}_minLabel`) ?? "").trim() || "Strongly Disagree",
+        maxLabel: String(formData.get(`sub_${i}_maxLabel`) ?? "").trim() || "Strongly Agree",
+        images, audioUrl,
+      });
+    } else if (type === "TRIAD") {
+      subs.push({
+        index: i, type, prompt,
+        statements: [0, 1, 2].map((j) => ({
+          text: String(formData.get(`sub_${i}_stmt${j}_text`) ?? "").trim(),
+          attributeId: String(formData.get(`sub_${i}_stmt${j}_attributeId`) ?? "").trim(),
+          polarity: (String(formData.get(`sub_${i}_stmt${j}_polarity`) ?? "POSITIVE")) as "POSITIVE" | "NEGATIVE",
+        })),
+        images, audioUrl,
+      });
+    } else {
+      const optionImages = await Promise.all([1, 2, 3, 4].map((n) => collectOptionImage(formData, `sub_${i}_img_opt${n}`)));
+      subs.push({
+        index: i, type: "MCQ", prompt,
+        attributeId: String(formData.get(`sub_${i}_attributeId`) ?? "").trim(),
+        options: [1, 2, 3, 4].map((n) => String(formData.get(`sub_${i}_option${n}`) ?? "").trim()),
+        correctOption: Number(formData.get(`sub_${i}_correctOption`)),
+        optionImages, images, audioUrl,
+      });
+    }
   }
 
-  if (
-    !title || !passageText || subs.length === 0 ||
-    subs.some(
-      (s) =>
-        !s.prompt || !s.attributeId || s.options.some((o) => !o) ||
-        !Number.isInteger(s.correctOption) || s.correctOption < 1 || s.correctOption > 4,
-    )
-  ) {
+  const invalid = subs.some((s) => {
+    if (!s.prompt) return true;
+    if (s.type === "MCQ") {
+      // An option counts even with no text label as long as it has an image.
+      return !s.attributeId || s.options.some((o, oi) => !o && !s.optionImages[oi]) ||
+        !Number.isInteger(s.correctOption) || s.correctOption < 1 || s.correctOption > 4;
+    }
+    if (s.type === "LIKERT") {
+      return !s.attributeId || !Number.isInteger(s.minValue) || !Number.isInteger(s.maxValue) || s.maxValue <= s.minValue;
+    }
+    return s.statements.some((st) => !st.text || !st.attributeId);
+  });
+  if (!title || !passageText || subs.length === 0 || invalid) {
     redirect("/admin/questions/psychometric?tab=case_study&status=error&reason=missing");
   }
 
+  const attributeIds = new Set<string>();
+  for (const s of subs) {
+    if (s.type === "TRIAD") s.statements.forEach((st) => attributeIds.add(st.attributeId));
+    else attributeIds.add(s.attributeId);
+  }
   const attrs = await prisma.attribute.findMany({
-    where: { id: { in: subs.map((s) => s.attributeId) } },
+    where: { id: { in: [...attributeIds] } },
     select: { id: true, name: true, category: true },
   });
   const attrById = new Map(attrs.map((a) => [a.id, a]));
-  if (subs.some((s) => !attrById.has(s.attributeId))) {
+  if ([...attributeIds].some((id) => !attrById.has(id))) {
     redirect("/admin/questions/psychometric?tab=case_study&status=error&reason=missing");
   }
 
   const tenantId = await getDefaultTenantId();
   const displayOrder = await nextCaseStudyDisplayOrder();
+  const mcqAndLikert = subs.filter((s): s is CaseStudySubMcq | CaseStudySubLikert => s.type !== "TRIAD");
+  const triads = subs.filter((s): s is CaseStudySubTriad => s.type === "TRIAD");
+
+  // Upserted ahead of the transaction (matches createSurveyLikertItem's pattern) —
+  // mixing a scalar attributeId with a nested `likertScale: { connectOrCreate }`
+  // in the same AssessmentItem.create forces Prisma's stricter "Checked" input
+  // variant, which then rejects the scalar attributeId. Using a plain
+  // likertScaleId scalar alongside attributeId avoids that entirely.
+  const likertScaleIdBySubIndex = new Map<number, string>();
+  for (const s of mcqAndLikert) {
+    if (s.type !== "LIKERT") continue;
+    const scaleName = `Case Study ${s.minValue}-${s.maxValue}`;
+    const scale = await prisma.likertScale.upsert({
+      where: { name_minValue_maxValue: { name: scaleName, minValue: s.minValue, maxValue: s.maxValue } },
+      create: { name: scaleName, minValue: s.minValue, maxValue: s.maxValue, minLabel: s.minLabel, maxLabel: s.maxLabel },
+      update: { minLabel: s.minLabel, maxLabel: s.maxLabel },
+    });
+    likertScaleIdBySubIndex.set(s.index, scale.id);
+  }
 
   try {
-    await prisma.caseStudy.create({
-      data: {
-        tenantId,
-        title,
-        passageText,
-        displayOrder,
-        subQuestions: {
-          create: subs.map((s, i) => {
-            const attr = attrById.get(s.attributeId)!;
-            return {
-              itemType: "MCQ_SINGLE" as const,
-              prompt: s.prompt,
-              displayOrder: i,
-              factor: attr.category || "General",
-              trait: attr.name,
-              definition: attr.name,
-              attributeId: s.attributeId,
-              audioUrl: s.audioUrl,
-              images: s.images.length > 0 ? { create: s.images.map((url, ii) => ({ url, displayOrder: ii })) } : undefined,
-              options: {
-                create: s.options.map((label, oi) => ({
-                  label,
-                  value: label,
-                  displayOrder: oi,
-                  isCorrect: oi + 1 === s.correctOption,
-                  imageUrl: s.optionImages[oi],
-                })),
-              },
-            };
-          }),
+    await prisma.$transaction(async (tx) => {
+      const caseStudy = await tx.caseStudy.create({
+        data: {
+          tenantId,
+          title,
+          passageText,
+          displayOrder,
+          subQuestions: {
+            create: mcqAndLikert.map((s) => {
+              const audioUrl = s.audioUrl;
+              const images = s.images.length > 0 ? { create: s.images.map((url, ii) => ({ url, displayOrder: ii })) } : undefined;
+              if (s.type === "LIKERT") {
+                const attr = attrById.get(s.attributeId)!;
+                return {
+                  itemType: "LIKERT" as const,
+                  prompt: s.prompt,
+                  displayOrder: s.index,
+                  factor: attr.category || "General",
+                  trait: attr.name,
+                  definition: attr.name,
+                  attributeId: s.attributeId,
+                  audioUrl,
+                  images,
+                  likertScaleId: likertScaleIdBySubIndex.get(s.index)!,
+                };
+              }
+              const attr = attrById.get(s.attributeId)!;
+              return {
+                itemType: "MCQ_SINGLE" as const,
+                prompt: s.prompt,
+                displayOrder: s.index,
+                factor: attr.category || "General",
+                trait: attr.name,
+                definition: attr.name,
+                attributeId: s.attributeId,
+                audioUrl,
+                images,
+                options: {
+                  create: s.options.map((label, oi) => ({
+                    label,
+                    value: label || `Option ${oi + 1}`,
+                    displayOrder: oi,
+                    isCorrect: oi + 1 === s.correctOption,
+                    imageUrl: s.optionImages[oi],
+                  })),
+                },
+              };
+            }),
+          },
         },
-      },
+      });
+
+      for (const s of triads) {
+        await tx.triadGroup.create({
+          data: {
+            tenantId,
+            caseStudyId: caseStudy.id,
+            title: s.prompt,
+            displayOrder: s.index,
+            statements: {
+              create: s.statements.map((st, j) => {
+                const attr = attrById.get(st.attributeId)!;
+                return {
+                  statementText: st.text,
+                  displayOrder: j,
+                  factor: attr.category || "General",
+                  trait: attr.name,
+                  definition: attr.name,
+                  polarity: st.polarity,
+                  attributeId: st.attributeId,
+                };
+              }),
+            },
+          },
+        });
+      }
     });
   } catch {
     redirect("/admin/questions/psychometric?tab=case_study&status=error&reason=db");
@@ -520,6 +636,16 @@ export default async function PsychometricQuestionsPage({
           include: {
             attribute: { include: { competencyMaps: { include: { competency: true } } } },
             options: { orderBy: { displayOrder: "asc" } },
+            likertScale: true,
+          },
+          orderBy: { displayOrder: "asc" },
+        },
+        triadSubQuestions: {
+          include: {
+            statements: {
+              include: { attribute: { include: { competencyMaps: { include: { competency: true } } } } },
+              orderBy: { displayOrder: "asc" },
+            },
           },
           orderBy: { displayOrder: "asc" },
         },
@@ -956,8 +1082,8 @@ export default async function PsychometricQuestionsPage({
                 </div>
                 {[1, 2, 3, 4].map((n) => (
                   <div key={n} className="rounded-xl border border-[#E2E8F0] p-3">
-                    <label className="mb-1 block text-xs font-medium text-[#475569]">Response {n} *</label>
-                    <input name={`opt${n}_label`} required placeholder={`Response ${n}`} className={`${inputCls} mb-2`} />
+                    <label className="mb-1 block text-xs font-medium text-[#475569]">Response {n} <span className="font-normal text-[#94A3B8]">(text and/or image)</span></label>
+                    <input name={`opt${n}_label`} placeholder={`Response ${n}`} className={`${inputCls} mb-2`} />
                     <label className="mb-1 block text-xs font-medium text-[#475569]">Points *</label>
                     <input name={`opt${n}_score`} type="number" step="1" required placeholder="e.g. 3 = best, 0 = worst" className={`${inputCls} mb-2`} />
                     <OptionImageField name={`img_opt${n}`} />
@@ -1043,10 +1169,17 @@ export default async function PsychometricQuestionsPage({
 
           {caseStudies.map((cs, gi) => (
             <div key={cs.id} className={card}>
+              {(() => {
+                const mergedSubs = [
+                  ...cs.subQuestions.map((sq) => ({ kind: sq.itemType === "LIKERT" ? ("LIKERT" as const) : ("MCQ" as const), order: sq.displayOrder, sq })),
+                  ...cs.triadSubQuestions.map((tg) => ({ kind: "TRIAD" as const, order: tg.displayOrder, tg })),
+                ].sort((a, b) => a.order - b.order);
+                return (
+              <>
               <div className={`${cardHeader} flex items-center justify-between`}>
                 <div>
                   <p className="text-sm font-semibold text-[#0F172A]">Case Study {gi + 1}: {cs.title}</p>
-                  <p className="text-[11px] text-[#94A3B8]">Section: {cs.section?.title ?? "—"} · {cs.subQuestions.length} sub-questions</p>
+                  <p className="text-[11px] text-[#94A3B8]">Section: {cs.section?.title ?? "—"} · {mergedSubs.length} sub-questions</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-fuchsia-100 px-2.5 py-0.5 text-[11px] font-semibold text-fuchsia-700">Case Study</span>
@@ -1062,32 +1195,66 @@ export default async function PsychometricQuestionsPage({
                 {cs.passageText}
               </div>
               <div className="divide-y divide-[#F8FAFC]">
-                {cs.subQuestions.map((sq, si) => (
-                  <div key={sq.id} className="px-5 py-3.5 sm:flex sm:items-start sm:gap-4">
-                    <span className="hidden sm:flex h-6 w-6 shrink-0 mt-0.5 items-center justify-center rounded-lg bg-fuchsia-50 text-[11px] font-bold text-fuchsia-600">{si + 1}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-[#0F172A] leading-snug">{sq.prompt}</p>
-                      <div className="mt-2 grid gap-1 sm:grid-cols-2">
-                        {sq.options.map((opt, oi) => (
-                          <p key={opt.id} className={`flex items-start gap-1.5 text-xs ${opt.isCorrect ? "font-semibold text-emerald-700" : "text-[#475569]"}`}>
-                            <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${opt.isCorrect ? "bg-emerald-100 text-emerald-700" : "bg-[#F1F5F9] text-[#94A3B8]"}`}>
-                              {String.fromCharCode(65 + oi)}
-                            </span>
-                            {opt.label}
-                          </p>
-                        ))}
+                {mergedSubs.map((entry, si) => {
+                  if (entry.kind === "TRIAD") {
+                    const tg = entry.tg;
+                    return (
+                      <div key={tg.id} className="px-5 py-3.5 sm:flex sm:items-start sm:gap-4">
+                        <span className="hidden sm:flex h-6 w-6 shrink-0 mt-0.5 items-center justify-center rounded-lg bg-violet-50 text-[11px] font-bold text-violet-600">{si + 1}</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-[#0F172A] leading-snug">{tg.title} <span className="ml-1 rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-bold text-violet-700">TRIAD</span></p>
+                          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                            {tg.statements.map((st, oi) => (
+                              <p key={st.id} className="flex items-start gap-1.5 text-xs text-[#475569]">
+                                <span className="mt-0.5 shrink-0 rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-bold text-[#94A3B8]">{String.fromCharCode(65 + oi)}</span>
+                                {st.statementText} <span className="text-[10px] text-[#CBD5E1]">({st.polarity})</span>
+                              </p>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                      {sq.trait && <p className="mt-1.5 text-[10px] text-[#94A3B8]">Attribute: {sq.trait}</p>}
+                    );
+                  }
+                  const sq = entry.sq;
+                  return (
+                    <div key={sq.id} className="px-5 py-3.5 sm:flex sm:items-start sm:gap-4">
+                      <span className="hidden sm:flex h-6 w-6 shrink-0 mt-0.5 items-center justify-center rounded-lg bg-fuchsia-50 text-[11px] font-bold text-fuchsia-600">{si + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-[#0F172A] leading-snug">
+                          {sq.prompt}
+                          {entry.kind === "LIKERT" && <span className="ml-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold text-sky-700">LIKERT</span>}
+                        </p>
+                        {entry.kind === "LIKERT" ? (
+                          <p className="mt-2 text-xs text-[#475569]">
+                            Scale {sq.likertScale?.minValue ?? 1}–{sq.likertScale?.maxValue ?? 5}: &ldquo;{sq.likertScale?.minLabel}&rdquo; to &ldquo;{sq.likertScale?.maxLabel}&rdquo;
+                          </p>
+                        ) : (
+                          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                            {sq.options.map((opt, oi) => (
+                              <p key={opt.id} className={`flex items-start gap-1.5 text-xs ${opt.isCorrect ? "font-semibold text-emerald-700" : "text-[#475569]"}`}>
+                                <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${opt.isCorrect ? "bg-emerald-100 text-emerald-700" : "bg-[#F1F5F9] text-[#94A3B8]"}`}>
+                                  {String.fromCharCode(65 + oi)}
+                                </span>
+                                {opt.label}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        {sq.trait && <p className="mt-1.5 text-[10px] text-[#94A3B8]">Attribute: {sq.trait}</p>}
+                      </div>
+                      <form key={sq.attributeId ?? "none"} action={updateItemAttribute} className="mt-3 flex items-center gap-2 sm:mt-0 sm:shrink-0 sm:w-56">
+                        <input type="hidden" name="itemId" value={sq.id} />
+                        <input type="hidden" name="tab" value="case_study" />
+                        <select name="attributeId" defaultValue={sq.attributeId ?? ""} className={selectCls}>{attrOptions}</select>
+                        <button type="submit" className={saveBtnCls}>Save</button>
+                      </form>
                     </div>
-                    <form key={sq.attributeId ?? "none"} action={updateItemAttribute} className="mt-3 flex items-center gap-2 sm:mt-0 sm:shrink-0 sm:w-56">
-                      <input type="hidden" name="itemId" value={sq.id} />
-                      <input type="hidden" name="tab" value="case_study" />
-                      <select name="attributeId" defaultValue={sq.attributeId ?? ""} className={selectCls}>{attrOptions}</select>
-                      <button type="submit" className={saveBtnCls}>Save</button>
-                    </form>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+              </>
+                );
+              })()}
             </div>
           ))}
           {caseStudies.length === 0 && (

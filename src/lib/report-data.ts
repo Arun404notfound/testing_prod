@@ -73,7 +73,7 @@ export type ReportCompetencyScore = {
     watchOuts: string[];
   } | null;
   developmentProjects: Array<{ title: string; whatToDo: string; howToDoIt: string; evidence: string }>;
-  /** Median scaled score (1–10) across other completed attempts on the same assessment. Null when the cohort is too small to be meaningful. */
+  /** Median scaled score (1–10) across other completed attempts on the same module (scoped to the same Program when this attempt was taken as part of one). Null when the cohort is too small to be meaningful. */
   medianScaledScore: number | null;
   /** Number of other completed attempts the median was computed from (0 when medianScaledScore is null). */
   cohortSize: number;
@@ -82,14 +82,25 @@ export type ReportCompetencyScore = {
 /** Below this, a "median" is more noise than signal — the radar chart falls back to candidate-only. */
 const MIN_COHORT_SIZE_FOR_MEDIAN = 3;
 
-/** Median (not average) scaled competency score across every other completed attempt on the same assessment. */
+/**
+ * Median (not average) scaled competency score across every other completed attempt on the same
+ * assessment/module. When `programId` is set, the cohort is further restricted to attempts taken
+ * as part of that same Program — the same module can be reused across unrelated Programs, and
+ * candidates from a different Program shouldn't be pooled into "the cohort" for this one.
+ */
 async function getCohortMedianCompetencyScores(
   assessmentId: string,
   excludeAttemptId: string,
+  programId: string | null,
 ): Promise<Map<string, { median: number; cohortSize: number }>> {
   const rows = await prisma.competencyScore.findMany({
     where: {
-      attempt: { assessmentId, status: "SCORED", id: { not: excludeAttemptId } },
+      attempt: {
+        assessmentId,
+        status: "SCORED",
+        id: { not: excludeAttemptId },
+        ...(programId ? { assignment: { programAssignment: { programId } } } : {}),
+      },
     },
     select: { competencyId: true, scaledScore: true },
   });
@@ -293,6 +304,7 @@ export async function getReportPayload(
         },
         orderBy: { createdAt: "desc" },
         include: {
+          assignment: { select: { programAssignment: { select: { programId: true } } } },
           traitScores: { orderBy: { factor: "asc" } },
           competencyScores: {
             include: {
@@ -453,10 +465,15 @@ export async function getReportPayload(
 
   const factorAggregates = aggregateFactors(traitScores, factorConfigs, attributeScoresForFactors);
 
-  // Cohort median (other candidates on the same assessment) for the report's radar chart.
+  // Cohort median (other candidates who took the same module as part of the same Program, or —
+  // for a standalone assessment — other candidates on the same assessment) for the radar chart.
   const cohortMedianByCompetency =
     attempt && result.assessmentId
-      ? await getCohortMedianCompetencyScores(result.assessmentId, attempt.id)
+      ? await getCohortMedianCompetencyScores(
+          result.assessmentId,
+          attempt.id,
+          attempt.assignment?.programAssignment?.programId ?? null,
+        )
       : new Map<string, { median: number; cohortSize: number }>();
 
   // Build competency scores

@@ -343,6 +343,8 @@ model TriadGroup {
   triadGroupCode  String?
   assessmentId    String?
   sectionId       String?
+  /// Set when this triad group is a Case Study sub-question rather than a standalone/pool item.
+  caseStudyId     String?
   title           String
   displayOrder    Int                         @default(0)
   createdAt       DateTime                    @default(now())
@@ -350,6 +352,7 @@ model TriadGroup {
   tenant          Tenant?                     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   assessment      Assessment?                 @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
   section         AssessmentSection?          @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  caseStudy       CaseStudy?                  @relation(fields: [caseStudyId], references: [id], onDelete: Cascade)
   statements      TriadStatement[]
   responses       AttemptResponse[]
   compositionUses AssessmentCompositionItem[] @relation("CompositionTriadPoolGroup")
@@ -357,6 +360,7 @@ model TriadGroup {
   @@unique([tenantId, triadGroupCode])
   @@index([assessmentId])
   @@index([sectionId])
+  @@index([caseStudyId])
   @@index([tenantId])
   @@index([triadGroupCode])
 }
@@ -375,6 +379,8 @@ model CaseStudy {
   assessment      Assessment?                 @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
   section         AssessmentSection?          @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   subQuestions    AssessmentItem[]
+  /// Triad-type sub-questions — parallel to `subQuestions` (MCQ/Likert), which stay on AssessmentItem.
+  triadSubQuestions TriadGroup[]
   compositionUses AssessmentCompositionItem[] @relation("CompositionCaseStudyPool")
 
   @@index([assessmentId])

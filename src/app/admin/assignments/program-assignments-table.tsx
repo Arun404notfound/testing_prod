@@ -15,30 +15,30 @@ function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export type AssignmentRow = {
+export type ProgramAssignmentRow = {
   id: string;
   status: string;
   assignedAt: string;
   candidate: { fullName: string; email: string; batchName: string | null };
-  assessment: { id: string; title: string };
+  program: { id: string; title: string };
   result: { id: string } | null;
 };
 
-export function AssignmentsTable({
+export function ProgramAssignmentsTable({
   assignments,
   batches,
   cancelAssignment,
   bulkDeleteAssignments,
   initialStatus,
 }: {
-  assignments: AssignmentRow[];
+  assignments: ProgramAssignmentRow[];
   batches: string[];
   cancelAssignment: (id: string) => Promise<void>;
   bulkDeleteAssignments: (ids: string[]) => Promise<void>;
   initialStatus?: string;
 }) {
   const [filterBatch, setFilterBatch] = useState("");
-  const [filterAssessment, setFilterAssessment] = useState("");
+  const [filterProgram, setFilterProgram] = useState("");
   const [filterStatus, setFilterStatus] = useState(initialStatus ?? "");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
@@ -52,20 +52,20 @@ export function AssignmentsTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount, hash is read from the URL at load time
   }, []);
 
-  const allAssessments = useMemo(() => {
+  const allPrograms = useMemo(() => {
     const map = new Map<string, string>();
-    for (const a of assignments) map.set(a.assessment.id, a.assessment.title);
+    for (const a of assignments) map.set(a.program.id, a.program.title);
     return [...map.entries()];
   }, [assignments]);
 
   const filtered = useMemo(() => {
     return assignments.filter((a) => {
       if (filterBatch && a.candidate.batchName !== filterBatch) return false;
-      if (filterAssessment && a.assessment.id !== filterAssessment) return false;
+      if (filterProgram && a.program.id !== filterProgram) return false;
       if (filterStatus && a.status !== filterStatus) return false;
       return true;
     });
-  }, [assignments, filterBatch, filterAssessment, filterStatus]);
+  }, [assignments, filterBatch, filterProgram, filterStatus]);
 
   const filteredIds = useMemo(() => new Set(filtered.map((a) => a.id)), [filtered]);
   const allFilteredSelected = filtered.length > 0 && filtered.every((a) => selected.has(a.id));
@@ -99,11 +99,11 @@ export function AssignmentsTable({
 
   function clearFilters() {
     setFilterBatch("");
-    setFilterAssessment("");
+    setFilterProgram("");
     setFilterStatus("");
   }
 
-  const hasFilters = Boolean(filterBatch || filterAssessment || filterStatus);
+  const hasFilters = Boolean(filterBatch || filterProgram || filterStatus);
 
   function handleBulkDelete() {
     if (selectedInFiltered.length === 0) return;
@@ -154,12 +154,12 @@ export function AssignmentsTable({
             </select>
           )}
           <select
-            value={filterAssessment}
-            onChange={(e) => { setFilterAssessment(e.target.value); setSelected(new Set()); }}
+            value={filterProgram}
+            onChange={(e) => { setFilterProgram(e.target.value); setSelected(new Set()); }}
             className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs text-[#334155] focus:border-[#2563EB] focus:outline-none"
           >
-            <option value="">All assessments</option>
-            {allAssessments.map(([id, title]) => <option key={id} value={id}>{title}</option>)}
+            <option value="">All programs</option>
+            {allPrograms.map(([id, title]) => <option key={id} value={id}>{title}</option>)}
           </select>
           <select
             value={filterStatus}
@@ -238,7 +238,7 @@ export function AssignmentsTable({
                   </label>
                 </th>
                 <th className="px-4 py-3">Candidate</th>
-                <th className="px-4 py-3">Assessment</th>
+                <th className="px-4 py-3">Program</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Assigned</th>
                 <th className="px-4 py-3">Actions</th>
@@ -266,7 +266,7 @@ export function AssignmentsTable({
                       )}
                     </td>
                     <td className="px-4 py-3.5">
-                      <p className="text-[#334155]">{a.assessment.title}</p>
+                      <p className="text-[#334155]">{a.program.title}</p>
                     </td>
                     <td className="px-4 py-3.5">
                       <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${style.cls}`}>
@@ -278,7 +278,7 @@ export function AssignmentsTable({
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
                         {a.result?.id && (
-                          <Link href={`/admin/reports/${a.result.id}`}
+                          <Link href={`/admin/program-reports/${a.result.id}`}
                             className="rounded-lg border border-[#E2E8F0] px-2.5 py-1 text-xs font-medium text-[#2563EB] hover:bg-[#EFF6FF] transition">
                             Report
                           </Link>
